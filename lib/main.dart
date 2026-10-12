@@ -400,25 +400,28 @@ class _QuranPageState extends State<QuranPage> {
             itemBuilder: (context, index) {
               final entry = filtered[index];
               return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFE0F0E7),
-                  child: Text('${entry.key + 1}'),
-                ),
-                title: Text('سورة ${entry.value}'),
-                subtitle: const Text('القرآن الكريم'),
-                trailing: const Icon(Icons.menu_book),
-                onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => QuranReaderPage(
-        surahNumber: entry.key + 1,
-        surahName: entry.value,
+  leading: CircleAvatar(
+    child: Text('${entry.key + 1}'),
+  ),
+  title: Text('سورة ${entry.value}'),
+  subtitle: const Text('القرآن الكريم'),
+  trailing: const Icon(Icons.menu_book),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QuranReaderPage(
+          surahNumber: entry.key + 1,
+          surahName: entry.value,
+        ),
       ),
+    );
+  },
+);
     ),
-  );
-},
-
+  ],
+);
+            }
 class PrayerPage extends StatelessWidget {
   const PrayerPage({super.key});
 
