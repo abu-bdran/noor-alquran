@@ -634,3 +634,130 @@ class LibraryPage extends StatelessWidget {
     );
   }
 }
+class QuranReaderPage extends StatefulWidget {
+  final int surahNumber;
+  final String surahName;
+
+  const QuranReaderPage({
+    super.key,
+    required this.surahNumber,
+    required this.surahName,
+  });
+
+  @override
+  State<QuranReaderPage> createState() => _QuranReaderPageState();
+}
+
+class _QuranReaderPageState extends State<QuranReaderPage> {
+  List<String> verses = [];
+  bool loading = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    loadVerses();
+  }
+
+  Future<void> loadVerses() async {
+    try {
+      final text = await rootBundle.loadString(
+        'assets/quran/quran-uthmani.txt',
+      );
+
+      final result = <String>[];
+
+      for (final line in text.split('\n')) {
+        final parts = line.trim().split('|');
+
+        if (parts.length < 3) continue;
+
+        final surah = int.tryParse(parts[0]);
+        if (surah != widget.surahNumber) continue;
+
+        result.add(parts.sublist(2).join('|'));
+      }
+
+      if (result.isEmpty) {
+        throw Exception('لم يتم العثور على آيات هذه السورة.');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        verses = result;
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        error = 'تعذرت قراءة الملف: $e';
+        loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('سورة ${widget.surahName}'),
+        backgroundColor: const Color(0xFF126B50),
+        foregroundColor: Colors.white,
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      error!,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(18),
+                  children: [
+                    Center(
+                      child: Text(
+                        'سورة ${widget.surahName}',
+                        style: const TextStyle(
+                          fontSize: 27,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF126B50),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (widget.surahNumber != 1 &&
+                        widget.surahNumber != 9)
+                      const Center(
+                        child: Text(
+                          'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+                          style: TextStyle(
+                            fontSize: 23,
+                            height: 2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    Text(
+                      verses.asMap().entries.map((entry) {
+                        return '${entry.value} ۞';
+                      }).join(' '),
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                      style: const TextStyle(
+                        fontSize: 25,
+                        height: 2.2,
+                      ),
+                    ),
+                  ],
+                ),
+    );
+  }
+}
