@@ -408,22 +408,16 @@ class _QuranPageState extends State<QuranPage> {
                 subtitle: const Text('القرآن الكريم'),
                 trailing: const Icon(Icons.menu_book),
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'اخترت سورة ${entry.value}. ستتم إضافة القراءة والتلاوة في المرحلة التالية.',
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => QuranReaderPage(
+        surahNumber: entry.key + 1,
+        surahName: entry.value,
+      ),
+    ),
+  );
+},
 
 class PrayerPage extends StatelessWidget {
   const PrayerPage({super.key});
