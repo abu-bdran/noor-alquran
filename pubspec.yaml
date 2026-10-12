@@ -1,5 +1,4 @@
-true
-: noor_alquran
+name: noor_alquran
 description: تطبيق نور القرآن الإسلامي الشامل
 publish_to: 'none'
 
@@ -20,5 +19,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-    assets:
+  assets:
     - assets/quran/quran-uthmani.txt
