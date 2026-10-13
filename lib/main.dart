@@ -963,6 +963,61 @@ Future<void> _showReciters() async {
     },
   );
 }
+  Future<void> _downloadSurah(Moshaf moshaf) async {
+  final surahNumber = widget.surahNumber;
+
+  if (!moshaf.surahList.contains(surahNumber.toString())) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('هذه السورة غير متوفرة لهذا القارئ'),
+      ),
+    );
+    return;
+  }
+
+  final surahId = surahNumber.toString().padLeft(3, '0');
+
+  final url = '${moshaf.server}$surahId.mp3';
+
+  try {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('جاري تحميل السورة...'),
+      ),
+    );
+
+    final dir = await getApplicationDocumentsDirectory();
+
+    final file = File(
+      '${dir.path}/surah_${surahNumber}_${moshaf.id}.mp3',
+    );
+
+    if (!await file.exists()) {
+      final response = await http.get(
+        Uri.parse(url),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('فشل تحميل السورة');
+      }
+
+      await file.writeAsBytes(response.bodyBytes);
+    }
+
+    await _audioPlayer.setFilePath(file.path);
+
+    await _audioPlayer.play();
+
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تعذر تحميل أو تشغيل السورة'),
+      ),
+    );
+  }
+  }
   void _showAudioControls(String ayah) {
     double speed = 1.0;
 
