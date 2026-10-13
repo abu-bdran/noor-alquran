@@ -495,23 +495,30 @@ fetch('$svgUrl')
     document.getElementById('mushaf').innerHTML = svg;
 
     document.querySelectorAll(
-      '.ayahPolygon'
-    ).forEach(function(element) {
+  '.ayahPolygon'
+).forEach(function(element) {
 
-      element.addEventListener(
-        'click',
-        function() {
+  element.addEventListener(
+    'click',
+    function() {
 
-          const ayah =
-            element.getAttribute('data-ayah');
+      const surah =
+        element.getAttribute('surah');
 
-          if (ayah) {
-            AyahChannel.postMessage(ayah);
-          }
-        }
-      );
+      const ayah =
+        element.getAttribute('ayah');
 
-    });
+      if (surah && ayah) {
+
+        AyahChannel.postMessage(
+          surah + ':' + ayah
+        );
+
+      }
+    }
+  );
+
+});
 
     PageChannel.postMessage(
       pageNumber.toString()
