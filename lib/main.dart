@@ -608,3 +608,107 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
     );
   }
 }
+class AdhkarPage extends StatelessWidget {
+  const AdhkarPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الأذكار'),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          AdhkarCard(
+            title: 'أذكار الصباح',
+            text:
+                'أصبحنا وأصبح الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.',
+          ),
+          AdhkarCard(
+            title: 'أذكار المساء',
+            text:
+                'أمسينا وأمسى الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.',
+          ),
+          AdhkarCard(
+            title: 'ذكر يومي',
+            text:
+                'سبحان الله والحمد لله ولا إله إلا الله والله أكبر.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+class AdhkarCard extends StatelessWidget {
+  final String title;
+  final String text;
+
+  const AdhkarCard({
+    super.key,
+    required this.title,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 15),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              text,
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 18,
+                height: 1.8,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LibraryPage extends StatelessWidget {
+  const LibraryPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('المكتبة'),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.menu_book),
+              title: Text('مكتبة نور القرآن'),
+              subtitle: Text(
+                'سيتم إضافة الكتب والمراجع الإسلامية لاحقًا.',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
