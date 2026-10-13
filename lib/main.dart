@@ -462,19 +462,15 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
     final svgUrl =
         'https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/$p.svg';
 
-    final imageUrl =
-        'https://quran.ksu.edu.sa/tajweed_png/$page.png';
-
     return '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0,
-maximum-scale=4.0, user-scalable=yes">
+  content="width=device-width, initial-scale=1.0,
+  maximum-scale=4.0, user-scalable=yes">
 
 <style>
-
 html, body {
   margin: 0;
   padding: 0;
@@ -487,26 +483,18 @@ html, body {
 #viewer {
   width: 100%;
   height: 100%;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   background: #f7f4e9;
 }
 
-#pageImage {
-  position: absolute;
-  left: 0;
-  top: 0;
+#page {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-}
-
-#overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+  display: block;
+  background: #f7f4e9;
 }
 
 .ayahPolygon {
@@ -522,181 +510,173 @@ html, body {
   fill-opacity: 0.28 !important;
   stroke-width: 1 !important;
 }
-
 </style>
 </head>
 
 <body>
-
-<div id="viewer">
-
-<img
- id="pageImage"
- src="$imageUrl"
- draggable="false">
-
-<div id="overlay"></div>
-
-</div>
+<div id="viewer"></div>
 
 <script>
-
 let currentPage = $page;
 let selectedPolygon = null;
+let audio = null;
 
 async function loadPage() {
-
   try {
-
     const response = await fetch('$svgUrl');
+    if (!response.ok) throw new Error('HTTP ' + response.status);
 
     const svgText = await response.text();
-
     const parser = new DOMParser();
-
-    const doc =
-      parser.parseFromString(svgText, 'image/svg+xml');
-
-    const svg =
-      doc.documentElement;
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svg = doc.documentElement;
 
     svg.removeAttribute('width');
     svg.removeAttribute('height');
-
+    svg.setAttribute('id', 'page');
     svg.style.width = '100%';
     svg.style.height = '100%';
-    svg.style.pointerEvents = 'none';
+    svg.style.display = 'block';
 
-    const old =
-      document.getElementById('overlay');
+    const viewer = document.getElementById('viewer');
+    viewer.innerHTML = '';
+    viewer.appendChild(document.importNode(svg, true));
 
-    old.innerHTML = '';
+    const pageRoot = document.getElementById('page');
+    if (!pageRoot) return;
 
-    old.appendChild(
-      document.importNode(svg, true)
-    );
+    // الصفحة الأولى والثانية لها viewBox خاص في مصحف المدينة.
+    // نُظهر الرسم الفعلي بدون إضافة صورة ثانية فوقه.
+    if (currentPage <= 2) {
+      const polygons = pageRoot.querySelectorAll('.ayahPolygon');
+      polygons.forEach(p => p.style.display = 'none');
 
-    const polygons =
-      document.querySelectorAll('.ayahPolygon');
+      try {
+        const box = pageRoot.getBBox();
+        if (box.width > 0 && box.height > 0) {
+          pageRoot.setAttribute(
+            'viewBox',
+            box.x + ' ' + box.y + ' ' + box.width + ' ' + box.height
+          );
+        }
+      } catch (_) {}
+
+      polygons.forEach(p => p.style.display = '');
+    }
+
+    const polygons = pageRoot.querySelectorAll('.ayahPolygon');
 
     polygons.forEach((polygon) => {
-
       polygon.style.pointerEvents = 'all';
 
-      polygon.addEventListener(
-        'click',
-        function(event) {
+      polygon.addEventListener('click', function(event) {
+        event.stopPropagation();
 
-          event.stopPropagation();
+        polygons.forEach(p => p.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedPolygon = this;
 
-          polygons.forEach(
-            p => p.classList.remove('selected')
-          );
+        const surah = this.getAttribute('surah');
+        const ayah = this.getAttribute('ayah');
 
-          this.classList.add('selected');
-
-          selectedPolygon = this;
-
-          const surah =
-            this.getAttribute('surah');
-
-          const ayah =
-            this.getAttribute('ayah');
-
-          if (surah && ayah) {
-
-            AyahChannel.postMessage(
-              surah + ':' + ayah
-            );
-          }
-
+        if (surah && ayah) {
+          AyahChannel.postMessage(surah + ':' + ayah);
         }
-      );
-
+      });
     });
 
   } catch (e) {
-
     console.log(e);
-
   }
-
 }
 
 let startX = 0;
+let startY = 0;
 
-document.addEventListener(
-  'touchstart',
-  function(e) {
-
-    if (e.touches.length === 1) {
-      startX = e.touches[0].clientX;
-    }
-
+document.addEventListener('touchstart', function(e) {
+  if (e.touches.length === 1) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
   }
-);
+});
 
-document.addEventListener(
-  'touchend',
-  function(e) {
+document.addEventListener('touchend', function(e) {
+  if (!startX) return;
 
-    if (!startX) return;
+  const endX = e.changedTouches[0].clientX;
+  const endY = e.changedTouches[0].clientY;
+  const difference = endX - startX;
+  const verticalDifference = endY - startY;
 
-    const endX =
-      e.changedTouches[0].clientX;
-
-    const difference =
-      endX - startX;
-
-    if (Math.abs(difference) > 80) {
-
-      if (difference < 0) {
-        nextPage();
-      } else {
-        previousPage();
-      }
-
+  if (Math.abs(difference) > 80 &&
+      Math.abs(difference) > Math.abs(verticalDifference) * 1.2) {
+    if (difference < 0) {
+      nextPage();
+    } else {
+      previousPage();
     }
-
-    startX = 0;
-
   }
-);
+
+  startX = 0;
+  startY = 0;
+});
 
 function nextPage() {
-
   if (currentPage < 604) {
-
     currentPage++;
-
-    PageChannel.postMessage(
-      String(currentPage)
-    );
-
+    PageChannel.postMessage(String(currentPage));
     location.reload();
-
   }
-
 }
 
 function previousPage() {
-
   if (currentPage > 1) {
-
     currentPage--;
+    PageChannel.postMessage(String(currentPage));
+    location.reload();
+  }
+}
 
-    PageChannel.postMessage(
-      String(currentPage)
+async function playAyah(surah, ayah, speed) {
+  try {
+    const response = await fetch(
+      'https://api.alquran.cloud/v1/ayah/' +
+      surah + ':' + ayah + '/ar.alafasy'
     );
 
-    location.reload();
+    if (!response.ok) throw new Error('audio');
 
+    const data = await response.json();
+    const audioUrl = data.data.audio;
+
+    if (audio) audio.pause();
+
+    audio = new Audio(audioUrl);
+    audio.playbackRate = Number(speed) || 1.0;
+    audio.play().catch(e => console.log(e));
+  } catch (e) {
+    console.log(e);
   }
+}
 
+function setSpeed(speed) {
+  if (audio) {
+    audio.playbackRate = Number(speed) || 1.0;
+  }
+}
+
+function pauseAyah() {
+  if (audio) audio.pause();
+}
+
+function stopAyah() {
+  if (audio) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
 }
 
 loadPage();
-
 </script>
 
 </body>
@@ -843,9 +823,9 @@ loadPage();
                               ),
                             );
                           } catch (_) {}
-                        },
+                        },                      },
                       ),
-
+                      
                       _actionButton(
                         icon: Icons.share,
                         title: 'مشاركة',
