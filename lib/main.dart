@@ -829,6 +829,61 @@ document.addEventListener('touchend', function(event) {
       ),
     );
   }
+  void _showMoshafList(Reciter reciter) {
+  if (reciter.moshaf.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('لا توجد رواية متاحة لهذا القارئ'),
+      ),
+    );
+    return;
+  }
+
+  showModalBottomSheet(
+    context: context,
+    showDragHandle: true,
+    builder: (context) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                reciter.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                textDirection: TextDirection.rtl,
+              ),
+            ),
+            const Divider(),
+            ...reciter.moshaf.map(
+              (moshaf) {
+                return ListTile(
+                  leading: const Icon(Icons.menu_book),
+                  title: Text(
+                    moshaf.name,
+                    textDirection: TextDirection.rtl,
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_back_ios,
+                    size: 16,
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showMoshafList(reciter);
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+  }
 Future<void> _showReciters() async {
   if (reciters.isEmpty) {
     await _loadReciters();
