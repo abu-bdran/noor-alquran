@@ -346,15 +346,27 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
       )
       ..setBackgroundColor(
         const Color(0xFFF7F1DF),
-      )
+      )  
+..addJavaScriptChannel(
+  'AyahChannel',
+  onMessageReceived: (message) {
+    _showAyahMenu(message.message);
+  },
+)
+..addJavaScriptChannel(
+  'NavigationChannel',
+  onMessageReceived: (message) {
+    final direction = message.message;
+
+    if (direction == 'next') {
+      _changePage(currentPage + 1);
+    } else if (direction == 'prev') {
+      _changePage(currentPage - 1);
+    }
+  },
+)
       ..addJavaScriptChannel(
-        'AyahChannel',
-        onMessageReceived: (message) {
-          _showAyahMenu(message.message);
-        },
-      )
-      ..addJavaScriptChannel(
-        'PageChannel',
+      'PageChannel',
         onMessageReceived: (message) {
           final page = int.tryParse(message.message);
 
