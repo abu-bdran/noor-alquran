@@ -531,7 +531,26 @@ fetch('$svgUrl')
   );
 
 });
+let startX = 0;
 
+document.addEventListener('touchstart', function(event) {
+  startX = event.touches[0].clientX;
+});
+
+document.addEventListener('touchend', function(event) {
+  const endX = event.changedTouches[0].clientX;
+  const difference = endX - startX;
+
+  if (Math.abs(difference) < 80) {
+    return;
+  }
+
+  if (difference < 0) {
+    NavigationChannel.postMessage('next');
+  } else {
+    NavigationChannel.postMessage('prev');
+  }
+});
     PageChannel.postMessage(
       pageNumber.toString()
     );
