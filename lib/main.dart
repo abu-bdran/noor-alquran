@@ -385,6 +385,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
   late WebViewController controller;
 List<Reciter> reciters = [];
 bool loadingReciters = false;
+  AudioPlayer _audioPlayer = AudioPlayer();
   @override
   void initState() {
     super.initState();
