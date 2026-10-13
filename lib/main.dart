@@ -725,7 +725,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
                   children: [
                     Center(
                       child: Text(
-                        'سورة ${widget.surahName}',
+                        'سورة ${surahs[widget.surahNumber - 1]}',
                         style: const TextStyle(
                           fontSize: 27,
                           fontWeight: FontWeight.bold,
