@@ -873,7 +873,7 @@ document.addEventListener('touchend', function(event) {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    _showMoshafList(reciter);
+                    _downloadSurah(moshaf);
                   },
                 );
               },
