@@ -237,7 +237,12 @@ class FeatureCard extends StatelessWidget {
 }
 
 class QuranPage extends StatefulWidget {
-  const QuranPage({super.key});
+  final int surahNumber;
+
+  const QuranPage({
+    super.key,
+    this.surahNumber = 1,
+  });
 
   @override
   State<QuranPage> createState() => _QuranPageState();
