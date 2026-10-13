@@ -745,7 +745,7 @@ document.addEventListener('touchend', function(event) {
                 title: const Text('استماع'),
                 onTap: () {
                   Navigator.pop(context);
-                  _showAudioControls(ayah);
+                  _showReciters();
                 },
               ),
               ListTile(
