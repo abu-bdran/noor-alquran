@@ -5,7 +5,7 @@ void main() {
   runApp(const NoorAlQuranApp());
 }
 
-class NoorAlQuranApp extends StatelessWidget{
+class NoorAlQuranApp extends StatelessWidget {
   const NoorAlQuranApp({super.key});
 
   @override
@@ -227,15 +227,19 @@ class FeatureCard extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+        ),
       ),
     );
   }
 }
-
 class QuranPage extends StatefulWidget {
   final int surahNumber;
 
@@ -251,7 +255,7 @@ class QuranPage extends StatefulWidget {
 class _QuranPageState extends State<QuranPage> {
   final TextEditingController searchController = TextEditingController();
 
-  final List<String> surahs = const [
+  static const List<String> surahs = [
     'الفاتحة',
     'البقرة',
     'آل عمران',
@@ -376,12 +380,11 @@ class _QuranPageState extends State<QuranPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = surahs
-        .asMap()
-        .entries
-        .where((entry) =>
-            entry.value.contains(searchController.text.trim()))
-        .toList();
+    final searchText = searchController.text.trim();
+
+    final filtered = surahs.asMap().entries.where((entry) {
+      return entry.value.contains(searchText);
+    }).toList();
 
     return Column(
       children: [
@@ -396,7 +399,9 @@ class _QuranPageState extends State<QuranPage> {
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              setState(() {});
+            },
           ),
         ),
         Expanded(
@@ -404,232 +409,29 @@ class _QuranPageState extends State<QuranPage> {
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final entry = filtered[index];
+              final number = entry.key + 1;
+              final name = entry.value;
+
               return ListTile(
-  leading: CircleAvatar(
-    child: Text('${entry.key + 1}'),
-  ),
-  title: Text('سورة ${entry.value}'),
-  subtitle: const Text('القرآن الكريم'),
-  trailing: const Icon(Icons.menu_book),
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => QuranReaderPage(
-          surahNumber: entry.key + 1,
-          surahName: entry.value,
-        ),
-      ),
-    );
-  },
-);
-    ),
-  ],
-);
-            }
-class PrayerPage extends StatelessWidget {
-  const PrayerPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const prayers = [
-      'الفجر',
-      'الظهر',
-      'العصر',
-      'المغرب',
-      'العشاء',
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Icon(
-          Icons.mosque,
-          size: 70,
-          color: Color(0xFF126B50),
-        ),
-        const SizedBox(height: 12),
-        const Center(
-          child: Text(
-            'مواقيت الصلاة',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'ستظهر المواقيت الصحيحة بعد ربط التطبيق بالمدينة وطريقة حساب الصلاة.',
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 20),
-        ...prayers.map(
-          (prayer) => Card(
-            child: ListTile(
-              leading: const Icon(
-                Icons.access_time,
-                color: Color(0xFF126B50),
-              ),
-              title: Text(prayer),
-              trailing: const Text('لم يُحدد الوقت'),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class AdhkarPage extends StatelessWidget {
-  const AdhkarPage({super.key});
-
-  final List<Map<String, String>> categories = const [
-    {
-      'title': 'أذكار الصباح',
-      'subtitle': 'أذكار بداية اليوم',
-    },
-    {
-      'title': 'أذكار المساء',
-      'subtitle': 'أذكار نهاية اليوم',
-    },
-    {
-      'title': 'أذكار بعد الصلاة',
-      'subtitle': 'الأذكار الواردة بعد الصلوات',
-    },
-    {
-      'title': 'أذكار النوم',
-      'subtitle': 'أذكار النوم والاستيقاظ',
-    },
-    {
-      'title': 'أدعية القرآن',
-      'subtitle': 'الأدعية الواردة في القرآن الكريم',
-    },
-    {
-      'title': 'أدعية الأنبياء',
-      'subtitle': 'الأدعية الواردة عن الأنبياء في القرآن',
-    },
-    {
-      'title': 'أدعية السفر',
-      'subtitle': 'أذكار السفر والركوب',
-    },
-    {
-      'title': 'الاستغفار والتوبة',
-      'subtitle': 'أذكار الاستغفار والتوبة',
-    },
-    {
-      'title': 'الرقية الشرعية',
-      'subtitle': 'آيات وأدعية الرقية من مصادر موثوقة',
-    },
-    {
-      'title': 'التسبيح',
-      'subtitle': 'عداد إلكتروني للتسبيح',
-    },
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text(
-          'الأذكار والأدعية',
-          style: TextStyle(
-            fontSize: 23,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...categories.map(
-          (category) => Card(
-            child: ListTile(
-              leading: const Icon(
-                Icons.favorite,
-                color: Color(0xFF126B50),
-              ),
-              title: Text(category['title']!),
-              subtitle: Text(category['subtitle']!),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'قسم ${category['title']} سيُجهز بمحتواه الموثق في المرحلة التالية.',
+                leading: CircleAvatar(
+                  child: Text('$number'),
+                ),
+                title: Text('سورة $name'),
+                subtitle: const Text('القرآن الكريم'),
+                trailing: const Icon(Icons.menu_book),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => QuranReaderPage(
+                        surahNumber: number,
+                        surahName: name,
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class LibraryPage extends StatelessWidget {
-  const LibraryPage({super.key});
-
-  final List<Map<String, String>> sections = const [
-    {
-      'title': 'التفسير',
-      'subtitle': 'تفسير الآيات من مصادر معتمدة',
-    },
-    {
-      'title': 'الحديث النبوي',
-      'subtitle': 'الأحاديث مع المصادر ودرجات الصحة',
-    },
-    {
-      'title': 'السيرة النبوية',
-      'subtitle': 'سيرة النبي محمد صلى الله عليه وسلم',
-    },
-    {
-      'title': 'أسماء الله الحسنى',
-      'subtitle': 'الأسماء ومعانيها',
-    },
-    {
-      'title': 'القراء والتلاوات',
-      'subtitle': 'مكتبة القراء والتسجيلات الصوتية',
-    },
-    {
-      'title': 'الإعدادات',
-      'subtitle': 'إعدادات التطبيق والتفضيلات',
-    },
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text(
-          'المكتبة الإسلامية',
-          style: TextStyle(
-            fontSize: 23,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...sections.map(
-          (section) => Card(
-            child: ListTile(
-              leading: const Icon(
-                Icons.auto_stories,
-                color: Color(0xFF126B50),
-              ),
-              title: Text(section['title']!),
-              subtitle: Text(section['subtitle']!),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'سيتم تجهيز قسم ${section['title']} لاحقاً.',
-                    ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              );
+            },
           ),
         ),
       ],
@@ -672,10 +474,15 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
       for (final line in text.split('\n')) {
         final parts = line.trim().split('|');
 
-        if (parts.length < 3) continue;
+        if (parts.length < 3) {
+          continue;
+        }
 
         final surah = int.tryParse(parts[0]);
-        if (surah != widget.surahNumber) continue;
+
+        if (surah != widget.surahNumber) {
+          continue;
+        }
 
         result.add(parts.sublist(2).join('|'));
       }
@@ -684,14 +491,18 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
         throw Exception('لم يتم العثور على آيات هذه السورة.');
       }
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         verses = result;
         loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         error = 'تعذرت قراءة الملف: $e';
@@ -704,12 +515,13 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('سورة ${surahs[widget.surahNumber - 1]}'),
-        backgroundColor: const Color(0xFF126B50),
-        foregroundColor: Colors.white,
+        title: Text('سورة ${widget.surahName}'),
+        centerTitle: true,
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
           : error != null
               ? Center(
                   child: Padding(
@@ -720,46 +532,116 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
                     ),
                   ),
                 )
-              : ListView(
-                  padding: const EdgeInsets.all(18),
-                  children: [
-                    Center(
+              : ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: verses.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
                       child: Text(
-                        'سورة ${surahs[widget.surahNumber - 1]}',
+                        '${index + 1}. ${verses[index]}',
+                        textAlign: TextAlign.right,
+                        textDirection: TextDirection.rtl,
                         style: const TextStyle(
-                          fontSize: 27,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF126B50),
+                          fontSize: 22,
+                          height: 1.8,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (widget.surahNumber != 1 &&
-                        widget.surahNumber != 9)
-                      const Center(
-                        child: Text(
-                          'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-                          style: TextStyle(
-                            fontSize: 23,
-                            height: 2,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    Text(
-                      verses.asMap().entries.map((entry) {
-                        return '${entry.value} ۞';
-                      }).join(' '),
-                      textAlign: TextAlign.center,
-                      textDirection: TextDirection.rtl,
-                      style: const TextStyle(
-                        fontSize: 25,
-                        height: 2.2,
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
+    );
+  }
+}
+
+class PrayerPage extends StatelessWidget {
+  const PrayerPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'أوقات الصلاة',
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+class AdhkarPage extends StatelessWidget {
+  const AdhkarPage({super.key});
+
+  static const List<String> adhkar = [
+    'سبحان الله',
+    'الحمد لله',
+    'الله أكبر',
+    'لا إله إلا الله',
+    'أستغفر الله',
+    'اللهم صل وسلم على نبينا محمد',
+    'سبحان الله وبحمده، سبحان الله العظيم',
+    'لا حول ولا قوة إلا بالله',
+    'حسبي الله لا إله إلا هو، عليه توكلت وهو رب العرش العظيم',
+    'اللهم اغفر لي وارحمني واهدني وعافني وارزقني',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: adhkar.length,
+      itemBuilder: (context, index) {
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Text(
+              adhkar[index],
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              style: const TextStyle(
+                fontSize: 20,
+                height: 1.7,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class LibraryPage extends StatelessWidget {
+  const LibraryPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: const [
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.menu_book),
+            title: Text('القرآن الكريم'),
+            subtitle: Text('قراءة سور القرآن الكريم'),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.favorite),
+            title: Text('الأذكار'),
+            subtitle: Text('مجموعة من الأذكار والأدعية'),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.mosque),
+            title: Text('أوقات الصلاة'),
+            subtitle: Text('مواقيت الصلاة'),
+          ),
+        ),
+      ],
     );
   }
 }
