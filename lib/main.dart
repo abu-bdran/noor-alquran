@@ -383,7 +383,8 @@ class QuranReaderPage extends StatefulWidget {
 class _QuranReaderPageState extends State<QuranReaderPage> {
   late int currentPage;
   late WebViewController controller;
-
+List<Reciter> reciters = [];
+bool loadingReciters = false;
   @override
   void initState() {
     super.initState();
