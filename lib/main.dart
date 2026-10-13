@@ -433,7 +433,45 @@ bool loadingReciters = false;
         _mushafPage(currentPage),
       );
   }
+Future<void> _loadReciters() async {
+  setState(() {
+    loadingReciters = true;
+  });
 
+  try {
+    final response = await http.get(
+      Uri.parse(
+        'https://mp3quran.net/api/v3/reciters?language=ar',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      final List<dynamic> list = data['reciters'] ?? [];
+
+      setState(() {
+        reciters = list
+            .map(
+              (item) => Reciter.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .toList();
+
+        loadingReciters = false;
+      });
+    } else {
+      setState(() {
+        loadingReciters = false;
+      });
+    }
+  } catch (e) {
+    setState(() {
+      loadingReciters = false;
+    });
+  }
+}
   String _mushafPage(int page) {
     final p = page.toString().padLeft(3, '0');
 
