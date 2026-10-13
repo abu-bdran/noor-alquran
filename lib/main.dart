@@ -5,7 +5,7 @@ void main() {
   runApp(const NoorAlQuranApp());
 }
 
-class NoorAlQuranApp extends StatelessWidget {
+class NoorAlQuranApp extends StatelessWidget{
   const NoorAlQuranApp({super.key});
 
   @override
@@ -704,7 +704,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('سورة ${widget.surahName}'),
+        title: Text('سورة ${surahs[widget.surahNumber - 1]}'),
         backgroundColor: const Color(0xFF126B50),
         foregroundColor: Colors.white,
       ),
