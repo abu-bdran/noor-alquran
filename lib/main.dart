@@ -318,6 +318,54 @@ class QuranPage extends StatelessWidget {
     );
   }
 }
+class Moshaf {
+  final String name;
+  final String server;
+  final List<String> surahList;
+
+  Moshaf({
+    required this.name,
+    required this.server,
+    required this.surahList,
+  });
+
+  factory Moshaf.fromJson(Map<String, dynamic> json) {
+    return Moshaf(
+      name: json['name']?.toString() ?? '',
+      server: json['server']?.toString() ?? '',
+      surahList: (json['surah_list']?.toString() ?? '')
+          .split(',')
+          .where((e) => e.isNotEmpty)
+          .toList(),
+    );
+  }
+}
+
+class Reciter {
+  final int id;
+  final String name;
+  final List<Moshaf> moshaf;
+
+  Reciter({
+    required this.id,
+    required this.name,
+    required this.moshaf,
+  });
+
+  factory Reciter.fromJson(Map<String, dynamic> json) {
+    return Reciter(
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      name: json['name']?.toString() ?? '',
+      moshaf: (json['moshaf'] as List? ?? [])
+          .map(
+            (item) => Moshaf.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
 class QuranReaderPage extends StatefulWidget {
   final int surahNumber;
   final String surahName;
