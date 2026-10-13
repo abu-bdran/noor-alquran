@@ -829,7 +829,84 @@ document.addEventListener('touchend', function(event) {
       ),
     );
   }
+Future<void> _showReciters() async {
+  if (reciters.isEmpty) {
+    await _loadReciters();
+  }
 
+  if (!mounted) return;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) {
+      if (loadingReciters) {
+        return const SizedBox(
+          height: 250,
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      if (reciters.isEmpty) {
+        return const SizedBox(
+          height: 250,
+          child: Center(
+            child: Text('تعذر تحميل قائمة القرّاء'),
+          ),
+        );
+      }
+
+      return SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'اختر القارئ',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: reciters.length,
+                  itemBuilder: (context, index) {
+                    final reciter = reciters[index];
+
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.person),
+                      ),
+                      title: Text(
+                        reciter.name,
+                        textDirection: TextDirection.rtl,
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_back_ios,
+                        size: 16,
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
   void _showAudioControls(String ayah) {
     double speed = 1.0;
 
