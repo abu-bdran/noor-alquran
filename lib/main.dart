@@ -1006,6 +1006,7 @@ fetch('$svgUrl')
       tooltip: 'تغيير الصفحة',
     );
   }
+}
   class AdhkarPage extends StatelessWidget {
   const AdhkarPage({super.key});
 
