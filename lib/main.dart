@@ -868,6 +868,25 @@ void dispose() {
 
     _highlightAyah(currentTiming.ayah);
     }
+  void _highlightAyah(String ayah) {
+  final parts = ayah.split(':');
+  if (parts.length != 2) return;
+
+  final surah = parts[0];
+final verse = parts[1];
+    controller.runJavaScript("""
+    document.querySelectorAll('.ayahPolygon').forEach(function(el) {
+      el.classList.remove('selected');
+
+      if (
+        el.getAttribute('surah') === '$surah' &&
+        el.getAttribute('ayah') === '$verse'
+      ) {
+        el.classList.add('selected');
+      }
+    });
+  """);
+  }
     void _showAyahMenu(String ayah) {
     showModalBottomSheet(
       context: context,
@@ -1036,7 +1055,7 @@ void dispose() {
     },
   );
   }
-Future<void> _showReciters() async {
+Future<void> _showReciters(String ayah) async {
   if (reciters.isEmpty) {
     await _loadReciters();
   }
@@ -1102,7 +1121,7 @@ Future<void> _showReciters() async {
   ),
   onTap: () {
     Navigator.pop(context);
-    _showMoshafList(reciter);
+    _showAudioControls(ayah, reciter);
   },
 );
                   },
@@ -1115,60 +1134,44 @@ Future<void> _showReciters() async {
     },
   );
 }
-  Future<void> _downloadSurah(Moshaf moshaf) async {
-  final surahNumber = widget.surahNumber;
+  Future<File> _downloadSurahForRead(
+  TimingRead read, {
+  bool showMessage = true,
+}) async {
+  final dir = await getApplicationDocumentsDirectory();
 
-  if (!moshaf.surahList.contains(surahNumber.toString())) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('هذه السورة غير متوفرة لهذا القارئ'),
-      ),
-    );
-    return;
+  final file = File(
+    '${dir.path}/noor_quran_${widget.surahNumber}_${read.id}.mp3',
+  );
+
+  if (await file.exists()) {
+    return file;
   }
 
-  final surahId = surahNumber.toString().padLeft(3, '0');
-
-  final url = '${moshaf.server}$surahId.mp3';
-
-  try {
+  if (showMessage && mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('جاري تحميل السورة...'),
-      ),
-    );
-
-    final dir = await getApplicationDocumentsDirectory();
-
-    final file = File(
-      '${dir.path}/surah_${surahNumber}_${moshaf.name.hashCode}.mp3',
-    );
-
-    if (!await file.exists()) {
-      final response = await http.get(
-        Uri.parse(url),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('فشل تحميل السورة');
-      }
-
-      await file.writeAsBytes(response.bodyBytes);
-    }
-
-    await _audioPlayer.setFilePath(file.path);
-
-    await _audioPlayer.play();
-
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تعذر تحميل أو تشغيل السورة'),
+        content: Text(
+          'جاري تنزيل الصوت للاستخدام بدون إنترنت...',
+        ),
       ),
     );
   }
+
+  final response = await http.get(
+    Uri.parse(_surahAudioUrl(read)),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('فشل تنزيل الصوت');
+  }
+
+  await file.writeAsBytes(
+    response.bodyBytes,
+    flush: true,
+  );
+
+  return file;
   }
   void _showAudioControls(String ayah) {
     double speed = 1.0;
