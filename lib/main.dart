@@ -955,7 +955,9 @@ Future<void> _showReciters() async {
                         size: 16,
                       ),
                       onTap: () {
-                        Navigator.pop(context);
+  Navigator.pop(context);
+  _showMoshafList(reciter);
+},
                       },
                     );
                   },
