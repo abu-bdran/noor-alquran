@@ -176,7 +176,6 @@ class _HomePageState extends State<HomePage> {
     HomeContent(),
     QuranPage(),
     AdhkarPage(),
-    PrayerTimesPage(),
     LibraryPage(),
   ];
 
@@ -220,10 +219,24 @@ class _HomePageState extends State<HomePage> {
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
-  void _open(BuildContext context, Widget page) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => page),
+  Widget _tile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget page,
+  }) {
+    return Card(
+      child: ListTile(
+        leading: Icon(icon, size: 34),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.arrow_forward_ios),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => page),
+        ),
+      ),
     );
   }
 
@@ -233,140 +246,56 @@ class HomeContent extends StatelessWidget {
       appBar: AppBar(
         title: const Text('نور القرآن'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'الإعدادات',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsPage()),
+            ),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF673AB7), Color(0xFF8E63C7)],
-              ),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'نور القرآن — قرآن، أذكار، أدعية ومواقيت الصلاة',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _HomeFeatureCard(
+          _tile(
+            context,
             icon: Icons.menu_book,
             title: 'القرآن الكريم',
-            subtitle: 'قراءة، استماع، تضليل الآية، تفسير وتنزيل',
-            onTap: () => _open(context, const QuranPage()),
+            subtitle: 'قراءة واستماع وتفسير وتلاوة متزامنة',
+            page: const QuranPage(),
           ),
-          _HomeFeatureCard(
-            icon: Icons.wb_sunny,
-            title: 'أذكار الصباح والمساء',
-            subtitle: 'أذكار مع عدّاد للتكرار',
-            onTap: () => _open(context, const AdhkarPage()),
-          ),
-          _HomeFeatureCard(
-            icon: Icons.auto_awesome,
-            title: 'الأدعية',
-            subtitle: 'أدعية القرآن والأنبياء والأدعية اليومية',
-            onTap: () => _open(context, const DuasPage()),
-          ),
-          _HomeFeatureCard(
-            icon: Icons.access_time_filled,
+          _tile(
+            context,
+            icon: Icons.access_time,
             title: 'مواقيت الصلاة',
-            subtitle: 'الفجر والشروق والظهر والعصر والمغرب والعشاء',
-            onTap: () => _open(context, const PrayerTimesPage()),
+            subtitle: 'مواقيت اليوم حسب المدينة',
+            page: const PrayerTimesPage(),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: _SmallFeatureCard(
-                  icon: Icons.explore,
-                  title: 'القبلة',
-                  onTap: () => _open(context, const QiblaPage()),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _SmallFeatureCard(
-                  icon: Icons.touch_app,
-                  title: 'التسبيح',
-                  onTap: () => _open(context, const TasbihPage()),
-                ),
-              ),
-            ],
+          _tile(
+            context,
+            icon: Icons.favorite,
+            title: 'الأذكار والأدعية',
+            subtitle: 'الصباح والمساء وأدعية مختارة',
+            page: const AdhkarPage(),
+          ),
+          _tile(
+            context,
+            icon: Icons.download,
+            title: 'التنزيلات',
+            subtitle: 'أصوات القراء والتشغيل بدون إنترنت',
+            page: const DownloadsPage(),
+          ),
+          _tile(
+            context,
+            icon: Icons.flag,
+            title: 'ختم القرآن',
+            subtitle: 'متابعة تقدم الختمة',
+            page: const KhatmaPage(),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _HomeFeatureCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _HomeFeatureCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: Icon(icon),
-        ),
-        title: Text(title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, textDirection: TextDirection.rtl),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 17),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
-class _SmallFeatureCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _SmallFeatureCard({required this.icon, required this.title, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          child: Column(
-            children: [
-              Icon(icon, size: 32),
-              const SizedBox(height: 7),
-              Text(title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -447,28 +376,18 @@ class AyahTiming {
   final int ayah;
   final int startTime;
   final int endTime;
-  final String? polygon;
-  final int? page;
 
   const AyahTiming({
     required this.ayah,
     required this.startTime,
     required this.endTime,
-    this.polygon,
-    this.page,
   });
 
   factory AyahTiming.fromJson(Map<String, dynamic> json) {
-    final pageUrl = json['page']?.toString();
-    final pageMatch = pageUrl == null
-        ? null
-        : RegExp(r'/([0-9]{3})\.svg').firstMatch(pageUrl);
     return AyahTiming(
       ayah: int.tryParse(json['ayah']?.toString() ?? '') ?? -1,
       startTime: int.tryParse(json['start_time']?.toString() ?? '') ?? 0,
       endTime: int.tryParse(json['end_time']?.toString() ?? '') ?? 0,
-      polygon: json['polygon']?.toString(),
-      page: int.tryParse(pageMatch?.group(1) ?? ''),
     );
   }
 }
@@ -501,11 +420,6 @@ List<TimingRead> timingReads = [];
   int _repeatCount = 1;
   int _completedRepeats = 0;
   bool _handlingCompletion = false;
-  bool _isFullSurahPlayback = false;
-  String? _lastHighlightedAyah;
-  int? _lastHighlightedPage;
-  StreamSubscription<ProcessingState>? _processingSubscription;
-
   @override
   void initState() {
     super.initState();
@@ -516,7 +430,7 @@ List<TimingRead> timingReads = [];
     _positionSubscription =
         _audioPlayer.positionStream.listen(_onAudioPosition);
 
-    _processingSubscription = _audioPlayer.processingStateStream.listen((state) {
+    _audioPlayer.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) {
         _handleAudioCompleted();
       }
@@ -556,18 +470,6 @@ List<TimingRead> timingReads = [];
             setState(() {
               currentPage = page;
             });
-
-            if (_isFullSurahPlayback && _lastHighlightedAyah != null) {
-              final parts = _lastHighlightedAyah!.split(':');
-              if (parts.length == 2) {
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  if (!mounted) return;
-                  controller.runJavaScript(
-                    "setNoorAyahHighlight('${parts[0]}', '${parts[1]}');",
-                  );
-                });
-              }
-            }
           }
         },
       )
@@ -735,12 +637,10 @@ Future<void> _loadReciters() async {
 
       _selectedAyah = ayah;
       _selectedRead = read;
-      _isFullSurahPlayback = false;
       _speed = speed ?? _speed;
       _repeatCount = repeatCount ?? _repeatCount;
       _completedRepeats = 0;
       _handlingCompletion = false;
-      if (mounted) setState(() {});
 
       await _audioPlayer.stop();
 
@@ -767,7 +667,7 @@ Future<void> _loadReciters() async {
 
       await _audioPlayer.setSpeed(_speed);
 
-      _highlightTiming(timing);
+      _highlightAyah(ayah);
       await _audioPlayer.play();
     } catch (e) {
       if (!mounted) return;
@@ -780,86 +680,45 @@ Future<void> _loadReciters() async {
   }
 
   void _onAudioPosition(Duration position) {
-    if (!_isFullSurahPlayback || _ayahTimings.isEmpty) return;
+    if (_ayahTimings.isEmpty || _selectedRead == null) {
+      return;
+    }
 
     final ms = position.inMilliseconds;
+
     for (final item in _ayahTimings) {
-      if (ms >= item.startTime && ms < item.endTime) {
-        if (_lastHighlightedAyah != '${widget.surahNumber}:${item.ayah}') {
-          _highlightTiming(item);
-        }
-        if (item.page != null && item.page != _lastHighlightedPage) {
-          _lastHighlightedPage = item.page;
-          _changePage(item.page!);
-        }
+      if (ms >= item.startTime &&
+          ms < item.endTime) {
+        _highlightAyah(
+          '${widget.surahNumber}:${item.ayah}',
+        );
         break;
       }
     }
   }
 
-  void _highlightTiming(AyahTiming timing) {
-    _lastHighlightedAyah = '${widget.surahNumber}:${timing.ayah}';
-    controller.runJavaScript(
-      "setNoorAyahHighlight('${widget.surahNumber}', '${timing.ayah}');",
-    );
-  }
+  void _highlightAyah(String ayah) {
+    final parts = ayah.split(':');
+    if (parts.length != 2) return;
 
-  void _clearAyahHighlight() {
-    _lastHighlightedAyah = null;
+    final surah = parts[0].replaceAll("'", "\\'");
+    final verse = parts[1].replaceAll("'", "\\'");
+
     controller.runJavaScript("""
-      window.noorHighlightSurah = null;
-      window.noorHighlightAyah = null;
       document.querySelectorAll('.ayahPolygon').forEach(function(el) {
         el.classList.remove('selected');
-        if (el.dataset.noorOriginalFill) el.style.setProperty('fill', el.dataset.noorOriginalFill, 'important');
-        else el.style.removeProperty('fill');
-        if (el.dataset.noorOriginalStroke) el.style.setProperty('stroke', el.dataset.noorOriginalStroke, 'important');
-        else el.style.removeProperty('stroke');
-        if (el.dataset.noorOriginalStrokeWidth) el.style.setProperty('stroke-width', el.dataset.noorOriginalStrokeWidth, 'important');
-        else el.style.removeProperty('stroke-width');
-        if (el.dataset.noorOriginalFillOpacity) el.style.setProperty('fill-opacity', el.dataset.noorOriginalFillOpacity, 'important');
-        else el.style.removeProperty('fill-opacity');
+        if (
+          el.getAttribute('surah') === '$surah' &&
+          el.getAttribute('ayah') === '$verse'
+        ) {
+          el.classList.add('selected');
+        }
       });
     """);
   }
 
-  Future<void> _playFullSurah(TimingRead read) async {
-    try {
-      _ayahTimings = await _loadAyahTimings(read);
-      if (_ayahTimings.isEmpty) throw Exception('لا توجد توقيتات متاحة لهذه السورة');
-
-      _selectedRead = read;
-      _selectedAyah = null;
-      _isFullSurahPlayback = true;
-      _lastHighlightedPage = null;
-      _completedRepeats = 0;
-      _handlingCompletion = false;
-      if (mounted) setState(() {});
-
-      await _audioPlayer.stop();
-      final offlineFile = await _surahFile(read);
-      if (await offlineFile.exists()) {
-        await _audioPlayer.setFilePath(offlineFile.path);
-      } else {
-        await _audioPlayer.setUrl(_surahAudioUrl(read));
-      }
-      await _audioPlayer.setClip(start: null, end: null);
-      await _audioPlayer.setSpeed(_speed);
-      await _audioPlayer.play();
-
-      final first = _ayahTimings.first;
-      if (first.page != null) {
-        _lastHighlightedPage = first.page;
-        await _changePage(first.page!);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showMessage('تعذر تشغيل السورة: ${e.toString().replaceFirst('Exception: ', '')}');
-    }
-  }
-
   void _handleAudioCompleted() {
-    if (_handlingCompletion || _selectedAyah == null || _isFullSurahPlayback) {
+    if (_handlingCompletion || _selectedAyah == null) {
       return;
     }
 
@@ -930,9 +789,9 @@ body {
 }
 
 .ayahPolygon.selected {
-  fill: rgba(103, 58, 183, 0.30) !important;
-  stroke: none !important;
-  stroke-width: 0 !important;
+  fill: rgba(103, 58, 183, 0.28) !important;
+  stroke: #673AB7 !important;
+  stroke-width: 2 !important;
 }
 </style>
 </head>
@@ -944,39 +803,6 @@ body {
 <script>
 
 const pageNumber = $page;
-
-function setNoorAyahHighlight(surah, ayah) {
-  window.noorHighlightSurah = String(surah);
-  window.noorHighlightAyah = String(ayah);
-  document.querySelectorAll('.ayahPolygon').forEach(function(el) {
-    if (!el.dataset.noorOriginalFill) {
-      el.dataset.noorOriginalFill = el.getAttribute('fill') || '';
-      el.dataset.noorOriginalStroke = el.getAttribute('stroke') || '';
-      el.dataset.noorOriginalStrokeWidth = el.getAttribute('stroke-width') || '';
-      el.dataset.noorOriginalFillOpacity = el.getAttribute('fill-opacity') || '';
-    }
-    const match = el.getAttribute('surah') === String(surah) &&
-                  el.getAttribute('ayah') === String(ayah);
-    if (match) {
-      el.classList.add('selected');
-      el.style.setProperty('fill', 'rgba(103,58,183,0.30)', 'important');
-      el.style.setProperty('fill-opacity', '1', 'important');
-      el.style.setProperty('stroke', 'none', 'important');
-      el.style.setProperty('stroke-width', '0', 'important');
-    } else {
-      el.classList.remove('selected');
-      if (el.dataset.noorOriginalFill) el.style.setProperty('fill', el.dataset.noorOriginalFill, 'important');
-      else el.style.removeProperty('fill');
-      if (el.dataset.noorOriginalStroke) el.style.setProperty('stroke', el.dataset.noorOriginalStroke, 'important');
-      else el.style.removeProperty('stroke');
-      if (el.dataset.noorOriginalStrokeWidth) el.style.setProperty('stroke-width', el.dataset.noorOriginalStrokeWidth, 'important');
-      else el.style.removeProperty('stroke-width');
-      if (el.dataset.noorOriginalFillOpacity) el.style.setProperty('fill-opacity', el.dataset.noorOriginalFillOpacity, 'important');
-      else el.style.removeProperty('fill-opacity');
-    }
-  });
-}
-window.setNoorAyahHighlight = setNoorAyahHighlight;
 
 fetch('$svgUrl')
   .then(response => response.text())
@@ -1032,11 +858,6 @@ document.addEventListener('touchend', function(event) {
     PageChannel.postMessage(
       pageNumber.toString()
     );
-    if (window.noorHighlightSurah && window.noorHighlightAyah) {
-      setTimeout(function() {
-        setNoorAyahHighlight(window.noorHighlightSurah, window.noorHighlightAyah);
-      }, 80);
-    }
   })
   .catch(function(error) {
 
@@ -1060,36 +881,63 @@ document.addEventListener('touchend', function(event) {
           'سورة ${widget.surahName}',
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'اختيار القارئ',
+            icon: const Icon(Icons.headphones),
+            onPressed: () => _showReciters(
+              _selectedAyah ?? '${widget.surahNumber}:1',
+            ),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'tafsir') {
+                _showTafsir(
+                  _selectedAyah ?? '${widget.surahNumber}:1',
+                );
+              } else if (value == 'info') {
+                _showInfo(
+                  _selectedAyah ?? '${widget.surahNumber}:1',
+                );
+              } else if (value == 'settings') {
+                _showPlaybackSettings();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'tafsir',
+                child: Text('التفسير / الترجمة'),
+              ),
+              PopupMenuItem(
+                value: 'info',
+                child: Text('معلومات الآية'),
+              ),
+              PopupMenuItem(
+                value: 'settings',
+                child: Text('إعدادات التلاوة'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: WebViewWidget(
         controller: controller,
       ),
       bottomNavigationBar: SafeArea(
-        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (_selectedRead != null) _buildAudioBar(),
+            if (_selectedRead != null && _showPlayerBar)
+              _buildPlayerBar(),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'الصفحة $currentPage',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'الجزء ${_juz(currentPage)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text('الصفحة $currentPage',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('الجزء ${_juz(currentPage)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -1099,82 +947,67 @@ document.addEventListener('touchend', function(event) {
     );
   }
 
-  Widget _buildAudioBar() {
-    final read = _selectedRead;
-    if (read == null) return const SizedBox.shrink();
 
+  Widget _buildPlayerBar() {
     return StreamBuilder<PlayerState>(
       stream: _audioPlayer.playerStateStream,
       builder: (context, snapshot) {
-        final playerState = snapshot.data;
-        final isPlaying = playerState?.playing ?? false;
-
+        final playing = snapshot.data?.playing ?? _audioPlayer.playing;
         return Container(
-          margin: const EdgeInsets.fromLTRB(10, 6, 10, 4),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          margin: const EdgeInsets.fromLTRB(10, 5, 10, 4),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
           decoration: BoxDecoration(
-            color: const Color(0xFF8E63C7),
+            color: const Color(0xFF673AB7),
             borderRadius: BorderRadius.circular(28),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 8,
-                offset: Offset(0, 3),
-                color: Color(0x33000000),
-              ),
-            ],
           ),
           child: Row(
             children: [
-              _audioBarButton(
-                Icons.skip_previous_rounded,
-                'الآية السابقة',
-                () => _moveAudioAyah(-1),
+              IconButton(
+                color: Colors.white,
+                tooltip: 'السابق',
+                onPressed: _playPreviousAyah,
+                icon: const Icon(Icons.skip_previous_rounded),
               ),
-              _audioBarButton(
-                Icons.stop_rounded,
-                'إيقاف',
-                () async {
-                  _isFullSurahPlayback = false;
-                  _selectedAyah = null;
-                  _selectedRead = null;
+              IconButton(
+                color: Colors.white,
+                tooltip: 'إيقاف',
+                onPressed: () async {
                   await _audioPlayer.stop();
-                  _clearAyahHighlight();
                   if (mounted) setState(() {});
                 },
+                icon: const Icon(Icons.stop_circle_outlined),
               ),
               Expanded(
                 child: IconButton(
+                  color: Colors.white,
+                  iconSize: 34,
+                  tooltip: playing ? 'إيقاف مؤقت' : 'تشغيل',
                   onPressed: () async {
-                    if (isPlaying) {
+                    if (playing) {
                       await _audioPlayer.pause();
                     } else {
                       await _audioPlayer.play();
                     }
+                    if (mounted) setState(() {});
                   },
-                  iconSize: 42,
-                  color: Colors.white,
-                  tooltip: isPlaying ? 'إيقاف مؤقت' : 'تشغيل',
                   icon: Icon(
-                    isPlaying
-                        ? Icons.pause_circle_filled_rounded
-                        : Icons.play_circle_fill_rounded,
+                    playing
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_fill,
                   ),
                 ),
               ),
-              _audioBarButton(
-                Icons.skip_next_rounded,
-                'الآية التالية',
-                () => _moveAudioAyah(1),
+              IconButton(
+                color: Colors.white,
+                tooltip: 'التالي',
+                onPressed: _playNextAyah,
+                icon: const Icon(Icons.skip_next_rounded),
               ),
               IconButton(
-                onPressed: () => _showAudioControls(
-                  _selectedAyah ?? '${widget.surahNumber}:1',
-                  read,
-                ),
-                iconSize: 32,
                 color: Colors.white,
-                tooltip: 'إعدادات الصوت',
-                icon: const Icon(Icons.settings_rounded),
+                tooltip: 'إعدادات التلاوة',
+                onPressed: _showPlaybackSettings,
+                icon: const Icon(Icons.settings_outlined),
               ),
             ],
           ),
@@ -1183,60 +1016,142 @@ document.addEventListener('touchend', function(event) {
     );
   }
 
-  Widget _audioBarButton(
-    IconData icon,
-    String tooltip,
-    VoidCallback onPressed,
-  ) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      iconSize: 34,
-      color: Colors.white,
-      tooltip: tooltip,
-    );
-  }
-
-  Future<void> _moveAudioAyah(int delta) async {
-    if (_selectedRead == null || _ayahTimings.isEmpty) return;
-
-    int currentAyah;
-    if (_lastHighlightedAyah != null) {
-      final parts = _lastHighlightedAyah!.split(':');
-      currentAyah = int.tryParse(parts.length == 2 ? parts[1] : '') ?? 1;
-    } else if (_selectedAyah != null) {
-      final parts = _selectedAyah!.split(':');
-      currentAyah = int.tryParse(parts.length == 2 ? parts[1] : '') ?? 1;
-    } else {
-      currentAyah = _ayahTimings.first.ayah;
+  Future<void> _playPreviousAyah() async {
+    if (_selectedRead == null) return;
+    if (_ayahTimings.isEmpty) {
+      _ayahTimings = await _loadAyahTimings(_selectedRead!);
     }
-
-    final index = _ayahTimings.indexWhere((e) => e.ayah == currentAyah);
-    if (index < 0) return;
-
-    final nextIndex = index + delta;
-    if (nextIndex < 0 || nextIndex >= _ayahTimings.length) return;
-
-    final timing = _ayahTimings[nextIndex];
+    int current = 1;
+    if (_lastHighlightedAyah != null) {
+      current = int.tryParse(_lastHighlightedAyah!.split(':').last) ?? 1;
+    }
+    final index = _ayahTimings.indexWhere((e) => e.ayah == current);
+    final target = index > 0 ? _ayahTimings[index - 1] : _ayahTimings.first;
 
     if (_isFullSurahPlayback) {
-      await _audioPlayer.seek(Duration(milliseconds: timing.startTime));
-      _highlightTiming(timing);
-      if (timing.page != null && timing.page != currentPage) {
-        _lastHighlightedPage = timing.page;
-        await _changePage(timing.page!);
+      await _audioPlayer.seek(Duration(milliseconds: target.startTime));
+      _highlightTiming(target);
+      if (target.page != null && target.page != currentPage) {
+        await _changePage(target.page!);
       }
-      if (!_audioPlayer.playing) {
-        await _audioPlayer.play();
-      }
-      return;
+    } else {
+      await _prepareAndPlayAyah(
+        '${widget.surahNumber}:${target.ayah}',
+        _selectedRead!,
+      );
     }
+  }
 
-    await _prepareAndPlayAyah(
-      '${widget.surahNumber}:${timing.ayah}',
-      _selectedRead!,
-      repeatCount: _repeatCount,
-      speed: _speed,
+  Future<void> _playNextAyah() async {
+    if (_selectedRead == null) return;
+    if (_ayahTimings.isEmpty) {
+      _ayahTimings = await _loadAyahTimings(_selectedRead!);
+    }
+    int current = 0;
+    if (_lastHighlightedAyah != null) {
+      current = int.tryParse(_lastHighlightedAyah!.split(':').last) ?? 0;
+    }
+    final index = _ayahTimings.indexWhere((e) => e.ayah == current);
+    final target = index >= 0 && index + 1 < _ayahTimings.length
+        ? _ayahTimings[index + 1]
+        : _ayahTimings.last;
+
+    if (_isFullSurahPlayback) {
+      await _audioPlayer.seek(Duration(milliseconds: target.startTime));
+      _highlightTiming(target);
+      if (target.page != null && target.page != currentPage) {
+        await _changePage(target.page!);
+      }
+    } else {
+      await _prepareAndPlayAyah(
+        '${widget.surahNumber}:${target.ayah}',
+        _selectedRead!,
+      );
+    }
+  }
+
+  void _showPlaybackSettings() {
+    if (_selectedRead == null) return;
+    double speed = _speed;
+    int repeat = _repeatCount;
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'إعدادات التلاوة',
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                const Text('سرعة التلاوة', textDirection: TextDirection.rtl),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final v in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+                      ChoiceChip(
+                        label: Text('${v}x'),
+                        selected: speed == v,
+                        onSelected: (_) {
+                          setSheetState(() => speed = v);
+                          _speed = v;
+                          _audioPlayer.setSpeed(v);
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text('تكرار الآية', textDirection: TextDirection.rtl),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final v in [1, 2, 3, 5, 10, 0])
+                      ChoiceChip(
+                        label: Text(v == 0 ? '∞' : '$v'),
+                        selected: repeat == v,
+                        onSelected: (_) {
+                          setSheetState(() => repeat = v);
+                          _repeatCount = v;
+                        },
+                      ),
+                  ],
+                ),
+                ListTile(
+                  leading: const Icon(Icons.download),
+                  title: const Text('تنزيل صوت السورة'),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      await _downloadSurahForRead(_selectedRead!);
+                      _showMessage('تم التنزيل ويمكن التشغيل بدون إنترنت');
+                    } catch (_) {
+                      _showMessage('تعذر تنزيل الصوت');
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: const Text('تغيير القارئ'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showReciters(
+                      _selectedAyah ?? '${widget.surahNumber}:1',
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1259,7 +1174,6 @@ document.addEventListener('touchend', function(event) {
   @override
 void dispose() {
     _positionSubscription?.cancel();
-    _processingSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -1471,6 +1385,8 @@ void dispose() {
     String ayah,
     TimingRead read,
   ) {
+    _selectedRead = read;
+    _selectedAyah = ayah;
     double speed = _speed;
     int repeat = _repeatCount;
 
@@ -1549,14 +1465,8 @@ void dispose() {
                         IconButton(
                           iconSize: 38,
                           tooltip: 'إيقاف',
-                          onPressed: () async {
-                            _isFullSurahPlayback = false;
-                            _selectedAyah = null;
-                            _selectedRead = null;
-                            await _audioPlayer.stop();
-                            _clearAyahHighlight();
-                            if (mounted) setState(() {});
-                          },
+                          onPressed: () =>
+                              _audioPlayer.stop(),
                           icon: const Icon(
                             Icons.stop_circle,
                           ),
@@ -1590,15 +1500,6 @@ void dispose() {
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(sheetContext);
-                        await _playFullSurah(read);
-                      },
-                      icon: const Icon(Icons.library_music),
-                      label: const Text('تشغيل السورة كاملة مع التضليل'),
                     ),
                     const SizedBox(height: 12),
                     const Align(
@@ -1918,11 +1819,193 @@ void dispose() {
     );
   }
 }
-  class AdhkarItem {
-  final String title;
-  final String text;
-  final int count;
-  const AdhkarItem(this.title, this.text, this.count);
+  
+class PrayerTimesPage extends StatefulWidget {
+  const PrayerTimesPage({super.key});
+
+  @override
+  State<PrayerTimesPage> createState() => _PrayerTimesPageState();
+}
+
+class _PrayerTimesPageState extends State<PrayerTimesPage> {
+  String city = 'Baghdad';
+  String country = 'Iraq';
+  Map<String, String> times = {};
+  String? hijri;
+  bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => loading = true);
+    final now = DateTime.now();
+    final date =
+        '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
+    try {
+      final uri = Uri.https(
+        'api.aladhan.com',
+        '/v1/timingsByCity/$date',
+        {
+          'city': city,
+          'country': country,
+          'method': '3',
+          'school': '0',
+        },
+      );
+      final response = await http.get(uri);
+      if (response.statusCode != 200) throw Exception();
+      final data = jsonDecode(response.body);
+      final raw =
+          Map<String, dynamic>.from(data['data']['timings'] ?? {});
+      const wanted = [
+        'Fajr',
+        'Sunrise',
+        'Dhuhr',
+        'Asr',
+        'Maghrib',
+        'Isha',
+      ];
+      times = {
+        for (final key in wanted)
+          key: raw[key]?.toString().split(' ').first ?? '--:--',
+      };
+      hijri = data['data']?['date']?['hijri']?['date']?.toString();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر جلب المواقيت. تحقق من المدينة والإنترنت.'),
+          ),
+        );
+      }
+    }
+    if (mounted) setState(() => loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = {
+      'Fajr': 'الفجر',
+      'Sunrise': 'الشروق',
+      'Dhuhr': 'الظهر',
+      'Asr': 'العصر',
+      'Maghrib': 'المغرب',
+      'Isha': 'العشاء',
+    };
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('مواقيت الصلاة'),
+        centerTitle: true,
+        actions: [
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+        ],
+      ),
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.location_city),
+                title: Text('$city، $country'),
+                subtitle: Text(hijri == null ? 'اليوم' : 'التاريخ الهجري: $hijri'),
+                trailing: const Icon(Icons.edit),
+                onTap: _editLocation,
+              ),
+            ),
+            if (loading)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            for (final entry in times.entries)
+              Card(
+                child: ListTile(
+                  leading: Icon(_iconForPrayer(entry.key)),
+                  title: Text(
+                    labels[entry.key] ?? entry.key,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  trailing: Text(
+                    entry.value,
+                    style: const TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
+            const Text(
+              'المواقيت محسوبة آلياً وقد تختلف قليلاً عن التوقيت الرسمي المحلي؛ يمكن تعديلها لاحقاً.',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _iconForPrayer(String key) {
+    switch (key) {
+      case 'Fajr':
+        return Icons.nightlight;
+      case 'Sunrise':
+        return Icons.wb_sunny_outlined;
+      case 'Dhuhr':
+        return Icons.light_mode;
+      case 'Asr':
+        return Icons.wb_sunny;
+      case 'Maghrib':
+        return Icons.brightness_4;
+      default:
+        return Icons.nights_stay;
+    }
+  }
+
+  void _editLocation() {
+    final cityController = TextEditingController(text: city);
+    final countryController = TextEditingController(text: country);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('موقع المواقيت'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: cityController,
+              decoration: const InputDecoration(labelText: 'المدينة'),
+            ),
+            TextField(
+              controller: countryController,
+              decoration: const InputDecoration(labelText: 'الدولة'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              city = cityController.text.trim();
+              country = countryController.text.trim();
+              Navigator.pop(ctx);
+              _load();
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class AdhkarPage extends StatefulWidget {
@@ -1933,366 +2016,231 @@ class AdhkarPage extends StatefulWidget {
 }
 
 class _AdhkarPageState extends State<AdhkarPage> {
-  int category = 0;
-  final categories = const ['الصباح', 'المساء', 'بعد الصلاة', 'النوم'];
+  int tab = 0;
+  final Map<String, int> counts = {};
 
-  final List<List<AdhkarItem>> data = const [
-    [
-      AdhkarItem('ذكر', 'أصبحنا وأصبح الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 1),
-      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
-      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
-      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
-      AdhkarItem('الصلاة على النبي', 'اللهم صل وسلم وبارك على نبينا محمد.', 10),
-    ],
-    [
-      AdhkarItem('ذكر', 'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.', 1),
-      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
-      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
-      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
-    ],
-    [
-      AdhkarItem('الاستغفار', 'أستغفر الله.', 3),
-      AdhkarItem('التسبيح', 'سبحان الله.', 33),
-      AdhkarItem('الحمد', 'الحمد لله.', 33),
-      AdhkarItem('التكبير', 'الله أكبر.', 34),
-    ],
-    [
-      AdhkarItem('دعاء النوم', 'باسمك اللهم أموت وأحيا.', 1),
-      AdhkarItem('التسبيح', 'سبحان الله.', 33),
-      AdhkarItem('الحمد', 'الحمد لله.', 33),
-      AdhkarItem('التكبير', 'الله أكبر.', 34),
-    ],
+  static const morning = [
+    'أصبحنا وأصبح الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.',
+    'اللهم بك أصبحنا وبك أمسينا وبك نحيا وبك نموت وإليك النشور.',
+    'رضيت بالله رباً وبالإسلام ديناً وبمحمد ﷺ نبياً.',
+    'سبحان الله وبحمده.',
   ];
+
+  static const evening = [
+    'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.',
+    'اللهم إني أمسيت أشهدك وأشهد حملة عرشك وملائكتك وجميع خلقك.',
+    'أعوذ بكلمات الله التامات من شر ما خلق.',
+    'سبحان الله وبحمده.',
+  ];
+
+  static const duas = [
+    'ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار.',
+    'رب ارحمهما كما ربياني صغيراً.',
+    'رب اغفر لي وتب علي إنك أنت التواب الرحيم.',
+    'لا إله إلا الله العظيم الحليم، لا إله إلا الله رب العرش العظيم.',
+  ];
+
+  List<String> get items {
+    if (tab == 0) return morning;
+    if (tab == 1) return evening;
+    return duas;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final items = data[category];
     return Scaffold(
-      appBar: AppBar(title: const Text('الأذكار'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('الأذكار والأدعية'),
+        centerTitle: true,
+      ),
       body: Column(
         children: [
-          SizedBox(
-            height: 58,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              itemCount: categories.length,
-              itemBuilder: (_, index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: ChoiceChip(
-                  label: Text(categories[index]),
-                  selected: category == index,
-                  onSelected: (_) => setState(() => category = index),
-                ),
-              ),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('الصباح')),
+                ButtonSegment(value: 1, label: Text('المساء')),
+                ButtonSegment(value: 2, label: Text('الأدعية')),
+              ],
+              selected: {tab},
+              onSelectionChanged: (v) => setState(() => tab = v.first),
             ),
           ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: items.length,
-              itemBuilder: (_, index) => _DhikrCard(item: items[index]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DhikrCard extends StatefulWidget {
-  final AdhkarItem item;
-  const _DhikrCard({required this.item});
-
-  @override
-  State<_DhikrCard> createState() => _DhikrCardState();
-}
-
-class _DhikrCardState extends State<_DhikrCard> {
-  late int remaining;
-
-  @override
-  void initState() {
-    super.initState();
-    remaining = widget.item.count;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final done = remaining == 0;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: done ? null : () => setState(() => remaining--),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(widget.item.title, textDirection: TextDirection.rtl, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Text(widget.item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.8)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(done ? 'تم ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  TextButton.icon(
-                    onPressed: () => setState(() => remaining = widget.item.count),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('إعادة'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class DuasPage extends StatelessWidget {
-  const DuasPage({super.key});
-
-  static const List<Map<String, String>> duas = [
-    {'title': 'دعاء ربنا آتنا', 'text': 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ.'},
-    {'title': 'دعاء الهداية', 'text': 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ.'},
-    {'title': 'دعاء العلم', 'text': 'رَبِّ زِدْنِي عِلْمًا.'},
-    {'title': 'دعاء الوالدين', 'text': 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا.'},
-    {'title': 'دعاء التيسير', 'text': 'رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي.'},
-    {'title': 'دعاء المغفرة', 'text': 'رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا الَّذِينَ سَبَقُونَا بِالْإِيمَانِ.'},
-    {'title': 'دعاء الثبات', 'text': 'يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ.'},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('الأدعية'), centerTitle: true),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: duas.length,
-        itemBuilder: (_, index) {
-          final dua = duas[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(dua['title']!, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 10),
-                  Text(dua['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      tooltip: 'نسخ الدعاء',
-                      icon: const Icon(Icons.copy),
-                      onPressed: () async {
-                        await Clipboard.setData(ClipboardData(text: dua['text']!));
-                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ الدعاء')));
-                      },
+              itemBuilder: (_, i) {
+                final key = '$tab-$i';
+                final count = counts[key] ?? 0;
+                return Card(
+                  child: InkWell(
+                    onTap: () => setState(() => counts[key] = count + 1),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              items[i],
+                              textDirection: TextDirection.rtl,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                height: 1.8,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          CircleAvatar(child: Text('$count')),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class PrayerTimesPage extends StatefulWidget {
-  const PrayerTimesPage({super.key});
-
-  @override
-  State<PrayerTimesPage> createState() => _PrayerTimesPageState();
-}
-
-class _PrayerTimesPageState extends State<PrayerTimesPage> {
-  String city = 'Samarra';
-  bool loading = false;
-  String? error;
-  Map<String, String> times = {};
-  String dateText = '';
-
-  static const cities = <String, String>{
-    'Samarra': 'سامراء',
-    'Baghdad': 'بغداد',
-    'Mosul': 'الموصل',
-    'Kirkuk': 'كركوك',
-    'Erbil': 'أربيل',
-    'Sulaymaniyah': 'السليمانية',
-    'Duhok': 'دهوك',
-    'Najaf': 'النجف',
-    'Karbala': 'كربلاء',
-    'Basra': 'البصرة',
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPrayerTimes();
-  }
-
-  Future<void> _loadPrayerTimes() async {
-    setState(() { loading = true; error = null; });
-    try {
-      final now = DateTime.now();
-      final url = Uri.parse(
-        'https://api.aladhan.com/v1/timingsByCity/${now.day}-${now.month}-${now.year}'
-        '?city=${Uri.encodeComponent(city)}&country=Iraq&method=8',
-      );
-      final response = await http.get(url);
-      if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
-      final body = jsonDecode(response.body);
-      final timings = Map<String, dynamic>.from(body['data']['timings']);
-      final metaDate = body['data']['date'];
-      if (!mounted) return;
-      setState(() {
-        times = {
-          'الفجر': timings['Fajr']?.toString() ?? '--:--',
-          'الشروق': timings['Sunrise']?.toString() ?? '--:--',
-          'الظهر': timings['Dhuhr']?.toString() ?? '--:--',
-          'العصر': timings['Asr']?.toString() ?? '--:--',
-          'المغرب': timings['Maghrib']?.toString() ?? '--:--',
-          'العشاء': timings['Isha']?.toString() ?? '--:--',
-        };
-        dateText = '${metaDate?['gregorian']?['date'] ?? ''}  •  ${metaDate?['hijri']?['date'] ?? ''} هـ';
-        loading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() { loading = false; error = 'تعذر تحميل المواقيت. تحقق من الإنترنت.'; });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('مواقيت الصلاة'), centerTitle: true),
-      body: RefreshIndicator(
-        onRefresh: _loadPrayerTimes,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            DropdownButtonFormField<String>(
-              value: city,
-              decoration: const InputDecoration(labelText: 'المدينة', border: OutlineInputBorder(), prefixIcon: Icon(Icons.location_city)),
-              items: cities.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, textDirection: TextDirection.rtl))).toList(),
-              onChanged: (value) { if (value != null) { setState(() => city = value); _loadPrayerTimes(); } },
-            ),
-            const SizedBox(height: 14),
-            if (dateText.isNotEmpty) Center(child: Text(dateText, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold))),
-            const SizedBox(height: 14),
-            if (loading) const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator())),
-            if (error != null) Card(child: Padding(padding: const EdgeInsets.all(20), child: Text(error!, textDirection: TextDirection.rtl, textAlign: TextAlign.center))),
-            ...times.entries.map((entry) => Card(
-              child: ListTile(
-                leading: Icon(_prayerIcon(entry.key), size: 30),
-                title: Text(entry.key, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-                trailing: Text(entry.value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              ),
-            )),
-            const SizedBox(height: 8),
-            const Text('المواقيت تُجلب حسب المدينة المختارة ويمكن تحديثها بالسحب للأسفل.', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _prayerIcon(String name) {
-    switch (name) {
-      case 'الفجر': return Icons.nightlight_round;
-      case 'الشروق': return Icons.wb_sunny_outlined;
-      case 'الظهر': return Icons.wb_sunny;
-      case 'العصر': return Icons.sunny_snowing;
-      case 'المغرب': return Icons.wb_twilight;
-      default: return Icons.nights_stay;
-    }
-  }
-}
-
-class QiblaPage extends StatelessWidget {
-  const QiblaPage({super.key});
-
-  static const cityBearing = <String, double>{
-    'سامراء': 196.0,
-    'بغداد': 196.5,
-    'الموصل': 179.0,
-    'كركوك': 191.0,
-    'أربيل': 192.0,
-    'السليمانية': 202.0,
-    'دهوك': 169.0,
-    'النجف': 207.0,
-    'كربلاء': 203.0,
-    'البصرة': 225.0,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('القبلة'), centerTitle: true),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          const Icon(Icons.explore, size: 110),
-          const SizedBox(height: 20),
-          const Text('اتجاه القبلة التقريبي حسب المدينة', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 18),
-          ...cityBearing.entries.map((e) => Card(child: ListTile(title: Text(e.key, textDirection: TextDirection.rtl), trailing: Text('${e.value.toStringAsFixed(1)}°')))),
-          const SizedBox(height: 12),
-          const Text('هذه نسخة بدون حساس البوصلة. لاحقًا يمكن إضافة بوصلة حية عند إضافة حزمة المستشعرات.', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          ),
         ],
       ),
     );
   }
 }
 
-class TasbihPage extends StatefulWidget {
-  const TasbihPage({super.key});
-
-  @override
-  State<TasbihPage> createState() => _TasbihPageState();
-}
-
-class _TasbihPageState extends State<TasbihPage> {
-  int count = 0;
-  int target = 33;
+class DownloadsPage extends StatelessWidget {
+  const DownloadsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('التسبيح'), centerTitle: true, actions: [IconButton(onPressed: () => setState(() => count = 0), icon: const Icon(Icons.refresh))]),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('سبحان الله', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 18),
-            Text('$count', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold)),
-            Text('من $target', textDirection: TextDirection.rtl),
-            const SizedBox(height: 30),
-            GestureDetector(
-              onTap: () => setState(() => count = (count + 1) % (target + 1)),
-              child: Container(
-                width: 190,
-                height: 190,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.primaryContainer),
-                child: const Center(child: Icon(Icons.touch_app, size: 70)),
+      appBar: AppBar(title: const Text('التنزيلات'), centerTitle: true),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.headphones),
+              title: Text('أصوات القراء'),
+              subtitle: Text(
+                'تنزيل صوت السورة يتم من صفحة الاستماع داخل المصحف، وبعد التنزيل يعمل بدون إنترنت.',
               ),
             ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              children: [33, 100, 1000].map((v) => ChoiceChip(label: Text('$v'), selected: target == v, onSelected: (_) => setState(() { target = v; count = 0; }))).toList(),
+          ),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.menu_book),
+              title: Text('المصاحف'),
+              subtitle: Text('قسم جاهز لإضافة تنزيل المصحف المفضل لاحقاً.'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class KhatmaPage extends StatefulWidget {
+  const KhatmaPage({super.key});
+
+  @override
+  State<KhatmaPage> createState() => _KhatmaPageState();
+}
+
+class _KhatmaPageState extends State<KhatmaPage> {
+  int pages = 0;
+  static const total = 604;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = (pages / total).clamp(0.0, 1.0);
+    return Scaffold(
+      appBar: AppBar(title: const Text('ختم القرآن'), centerTitle: true),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Icon(Icons.flag, size: 60),
+            const SizedBox(height: 12),
+            Text(
+              '$pages من $total صفحة',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(value: value, minHeight: 10),
+            const SizedBox(height: 12),
+            Text('${(value * 100).toStringAsFixed(1)}%'),
+            Slider(
+              value: pages.toDouble(),
+              min: 0,
+              max: total.toDouble(),
+              divisions: total,
+              onChanged: (v) => setState(() => pages = v.round()),
+            ),
+            FilledButton.icon(
+              onPressed: () => setState(() => pages = 0),
+              icon: const Icon(Icons.refresh),
+              label: const Text('بدء ختمة جديدة'),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool night = false;
+  bool keepScreen = true;
+  bool notifications = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الإعدادات'), centerTitle: true),
+      body: ListView(
+        children: [
+          SwitchListTile(
+            title: const Text('الوضع الليلي'),
+            value: night,
+            onChanged: (v) => setState(() => night = v),
+          ),
+          SwitchListTile(
+            title: const Text('إبقاء الشاشة مضاءة'),
+            value: keepScreen,
+            onChanged: (v) => setState(() => keepScreen = v),
+          ),
+          SwitchListTile(
+            title: const Text('تنبيهات الأذكار والمواقيت'),
+            value: notifications,
+            onChanged: (v) => setState(() => notifications = v),
+          ),
+          const ListTile(
+            leading: Icon(Icons.display_settings),
+            title: Text('خصائص العرض'),
+            subtitle: Text('يمكن توسيعها لاحقاً لإضافة ألوان وخيارات المصحف.'),
+          ),
+          const ListTile(
+            leading: Icon(Icons.language),
+            title: Text('اللغة'),
+            subtitle: Text('العربية'),
+          ),
+          const ListTile(
+            leading: Icon(Icons.info_outline),
+            title: Text('عن نور القرآن'),
+            subtitle: Text('تطبيق قرآن متعدد الميزات.'),
+          ),
+        ],
       ),
     );
   }
@@ -2301,10 +2249,6 @@ class _TasbihPageState extends State<TasbihPage> {
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
 
-  void _open(BuildContext context, Widget page) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2312,12 +2256,71 @@ class LibraryPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(child: ListTile(leading: const Icon(Icons.menu_book, size: 35), title: const Text('القرآن الكريم', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('قراءة واستماع وحفظ الآيات', textDirection: TextDirection.rtl), onTap: () => _open(context, const QuranPage()))),
-          Card(child: ListTile(leading: const Icon(Icons.favorite, size: 35), title: const Text('الأذكار', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('الصباح والمساء وبعد الصلاة والنوم', textDirection: TextDirection.rtl), onTap: () => _open(context, const AdhkarPage()))),
-          Card(child: ListTile(leading: const Icon(Icons.auto_awesome, size: 35), title: const Text('الأدعية', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('أدعية مختارة', textDirection: TextDirection.rtl), onTap: () => _open(context, const DuasPage()))),
-          Card(child: ListTile(leading: const Icon(Icons.access_time_filled, size: 35), title: const Text('مواقيت الصلاة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('اختر مدينتك', textDirection: TextDirection.rtl), onTap: () => _open(context, const PrayerTimesPage()))),
-          Card(child: ListTile(leading: const Icon(Icons.explore, size: 35), title: const Text('القبلة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const QiblaPage()))),
-          Card(child: ListTile(leading: const Icon(Icons.touch_app, size: 35), title: const Text('التسبيح الإلكتروني', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const TasbihPage()))),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.menu_book, size: 35),
+              title: const Text('القرآن الكريم'),
+              subtitle: const Text('قراءة واستماع وتفسير'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QuranPage()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.favorite, size: 35),
+              title: const Text('الأذكار والأدعية'),
+              subtitle: const Text('الصباح والمساء والأدعية'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdhkarPage()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.access_time, size: 35),
+              title: const Text('مواقيت الصلاة'),
+              subtitle: const Text('مواقيت اليوم حسب المدينة'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrayerTimesPage()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.download, size: 35),
+              title: const Text('التنزيلات'),
+              subtitle: const Text('الأصوات والمحتوى المتاح بدون إنترنت'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DownloadsPage()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.flag, size: 35),
+              title: const Text('ختم القرآن'),
+              subtitle: const Text('متابعة التقدم'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const KhatmaPage()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.settings, size: 35),
+              title: const Text('الإعدادات'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              ),
+            ),
+          ),
         ],
       ),
     );
