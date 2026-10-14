@@ -22,11 +22,10 @@ class NoorAlQuranApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'نور القرآن',
-      locale: const Locale('ar'),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F766E),
+          seedColor: const Color(0xFF673AB7),
         ),
       ),
       home: const HomePage(),
@@ -211,7 +210,7 @@ class _HomePageState extends State<HomePage> {
           NavigationDestination(
             icon: Icon(Icons.library_books_outlined),
             selectedIcon: Icon(Icons.library_books),
-            label: 'المزيد',
+            label: 'المكتبة',
           ),
         ],
       ),
@@ -281,12 +280,6 @@ class HomeContent extends StatelessWidget {
             title: 'الأدعية',
             subtitle: 'أدعية القرآن والأنبياء والأدعية اليومية',
             onTap: () => _open(context, const DuasPage()),
-          ),
-          _HomeFeatureCard(
-            icon: Icons.mosque,
-            title: 'الحج والعمرة',
-            subtitle: 'دليل المناسك خطوة بخطوة مع الأذكار والأدعية',
-            onTap: () => _open(context, const HajjUmrahPage()),
           ),
           _HomeFeatureCard(
             icon: Icons.access_time_filled,
@@ -379,185 +372,51 @@ class _SmallFeatureCard extends StatelessWidget {
   }
 }
 
-class QuranPage extends StatefulWidget {
+class QuranPage extends StatelessWidget {
   const QuranPage({super.key});
 
   @override
-  State<QuranPage> createState() => _QuranPageState();
-}
-
-class _QuranPageState extends State<QuranPage> {
-  final TextEditingController _search = TextEditingController();
-  String mode = 'السور';
-  int selectedJuz = 1;
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
-
-  void _openSurah(BuildContext context, int number) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => QuranReaderPage(
-          surahNumber: number,
-          surahName: surahNames[number - 1],
-        ),
-      ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final query = _search.text.trim();
-    final indices = List<int>.generate(114, (i) => i).where((i) {
-      if (query.isEmpty) return true;
-      return surahNames[i].contains(query) || '${i + 1}'.contains(query);
-    }).toList();
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('القرآن الكريم', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('القرآن الكريم'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: 'صفحة المصحف',
-            icon: const Icon(Icons.menu_book_outlined),
-            onPressed: () async {
-              final controller = TextEditingController(text: '1');
-              final page = await showDialog<int>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('الانتقال إلى صفحة', textDirection: TextDirection.rtl),
-                  content: TextField(
-                    controller: controller,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    decoration: const InputDecoration(hintText: '1 - 604'),
-                  ),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-                    FilledButton(
-                      onPressed: () {
-                        final n = int.tryParse(controller.text);
-                        if (n != null && n >= 1 && n <= 604) Navigator.pop(context, n);
-                      },
-                      child: const Text('فتح'),
-                    ),
-                  ],
-                ),
-              );
-              controller.dispose();
-              if (page == null || !context.mounted) return;
+      ),
+      body: ListView.builder(
+        itemCount: surahNames.length,
+        itemBuilder: (context, index) {
+          final surahNumber = index + 1;
+
+          return ListTile(
+            leading: CircleAvatar(
+              child: Text('$surahNumber'),
+            ),
+            title: Text(
+              'سورة ${surahNames[index]}',
+              textDirection: TextDirection.rtl,
+            ),
+            subtitle: Text(
+              'صفحة ${surahStartPages[index]}',
+              textDirection: TextDirection.rtl,
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => QuranReaderPage(surahNumber: 1, surahName: 'المصحف', initialPage: page),
+                  builder: (_) => QuranReaderPage(
+                    surahNumber: surahNumber,
+                    surahName: surahNames[index],
+                  ),
                 ),
               );
             },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: const LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [Color(0xFF0F766E), Color(0xFF164E63)],
-              ),
-              boxShadow: const [BoxShadow(blurRadius: 18, offset: Offset(0, 8), color: Color(0x22000000))],
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('القرآن الكريم', textDirection: TextDirection.rtl, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
-                SizedBox(height: 6),
-                Text('قراءة المصحف • استماع • تلاوة متزامنة • تكرار • تحميل', textDirection: TextDirection.rtl, style: TextStyle(color: Colors.white70, fontSize: 13)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _search,
-            textDirection: TextDirection.rtl,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: 'ابحث باسم السورة أو رقمها...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _search.text.isEmpty ? null : IconButton(onPressed: () { _search.clear(); setState(() {}); }, icon: const Icon(Icons.clear)),
-              filled: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'السور', label: Text('السور'), icon: Icon(Icons.view_list)),
-              ButtonSegment(value: 'الأجزاء', label: Text('الأجزاء'), icon: Icon(Icons.grid_view)),
-            ],
-            selected: {mode},
-            onSelectionChanged: (v) => setState(() => mode = v.first),
-          ),
-          const SizedBox(height: 12),
-          if (mode == 'السور') ...[
-            Text('${indices.length} سورة', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            ...indices.map((i) {
-              final n = i + 1;
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                elevation: 0,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  leading: CircleAvatar(child: Text('$n')),
-                  title: Text('سورة ${surahNames[i]}', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('صفحة ${surahStartPages[i]}  •  الجزء ${((surahStartPages[i] - 1) ~/ 20) + 1}', textDirection: TextDirection.rtl),
-                  trailing: const Icon(Icons.chevron_left),
-                  onTap: () => _openSurah(context, n),
-                ),
-              );
-            }),
-          ] else ...[
-            const Text('اختر الجزء', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 30,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 1.45, crossAxisSpacing: 8, mainAxisSpacing: 8),
-              itemBuilder: (_, i) => Card(
-                elevation: 0,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () => setState(() => selectedJuz = i + 1),
-                  child: Center(child: Text('الجزء ${i + 1}', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold, color: selectedJuz == i + 1 ? Theme.of(context).colorScheme.primary : null))),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                title: Text('الجزء $selectedJuz', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('يمكنك متابعة القراءة من صفحات المصحف والتنقل بالسحب', textDirection: TextDirection.rtl),
-                trailing: const Icon(Icons.arrow_back_ios_new, size: 17),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuranReaderPage(surahNumber: 1, surahName: 'الجزء $selectedJuz', initialPage: (((selectedJuz - 1) * 20) + 1).clamp(1, 604)))),
-              ),
-            ),
-          ],
-        ],
+          );
+        },
       ),
     );
   }
 }
-
 class TimingRead {
   final int id;
   final String name;
@@ -617,13 +476,11 @@ class AyahTiming {
 class QuranReaderPage extends StatefulWidget {
   final int surahNumber;
   final String surahName;
-  final int? initialPage;
 
   const QuranReaderPage({
     super.key,
     required this.surahNumber,
     required this.surahName,
-    this.initialPage,
   });
 
   @override
@@ -653,7 +510,8 @@ List<TimingRead> timingReads = [];
   void initState() {
     super.initState();
 
-    currentPage = widget.initialPage ?? surahStartPages[widget.surahNumber - 1];
+    currentPage =
+        surahStartPages[widget.surahNumber - 1];
 
     _positionSubscription =
         _audioPlayer.positionStream.listen(_onAudioPosition);
@@ -665,57 +523,42 @@ List<TimingRead> timingReads = [];
     });
 
     controller = WebViewController()
-      ..setJavaScriptMode(
-        JavaScriptMode.unrestricted,
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFFF7F1DF))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            _installMushafInteractions();
+          },
+        ),
       )
-      ..setBackgroundColor(
-        const Color(0xFFF7F1DF),
-      )  
-..addJavaScriptChannel(
-  'AyahChannel',
-  onMessageReceived: (message) {
-    _showAyahMenu(message.message);
-  },
-)
-..addJavaScriptChannel(
-  'NavigationChannel',
-  onMessageReceived: (message) {
-    final direction = message.message;
-
-    if (direction == 'next') {
-      _changePage(currentPage + 1);
-    } else if (direction == 'prev') {
-      _changePage(currentPage - 1);
-    }
-  },
-)
       ..addJavaScriptChannel(
-      'PageChannel',
+        'AyahChannel',
         onMessageReceived: (message) {
-          final page = int.tryParse(message.message);
-
-          if (page != null) {
-            setState(() {
-              currentPage = page;
-            });
-
-            if (_isFullSurahPlayback && _lastHighlightedAyah != null) {
-              final parts = _lastHighlightedAyah!.split(':');
-              if (parts.length == 2) {
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  if (!mounted) return;
-                  controller.runJavaScript(
-                    "setNoorAyahHighlight('${parts[0]}', '${parts[1]}');",
-                  );
-                });
-              }
-            }
+          _showAyahMenu(message.message);
+        },
+      )
+      ..addJavaScriptChannel(
+        'NavigationChannel',
+        onMessageReceived: (message) {
+          if (message.message == 'next') {
+            _changePage(currentPage + 1);
+          } else if (message.message == 'prev') {
+            _changePage(currentPage - 1);
           }
         },
       )
-      ..loadHtmlString(
-        _mushafPage(currentPage),
+      ..addJavaScriptChannel(
+        'PageChannel',
+        onMessageReceived: (message) {
+          final page = int.tryParse(message.message);
+          if (page != null && mounted) {
+            setState(() => currentPage = page);
+          }
+        },
       );
+
+    _loadMushafPage(currentPage);
   }
 Future<void> _loadReciters() async {
     setState(() {
@@ -1023,175 +866,6 @@ Future<void> _loadReciters() async {
       _completedRepeats = 0;
       _handlingCompletion = false;
     }
-  }
-
-  String _mushafPage(int page) {
-    final p = page.toString().padLeft(3, '0');
-
-    final svgUrl =
-        'https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/$p.svg';
-
-    return '''
-<!DOCTYPE html>
-<html dir="rtl">
-<head>
-<meta name="viewport"
-      content="width=device-width,
-      initial-scale=1.0,
-      maximum-scale=1.0">
-
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #f7f1df;
-}
-
-body {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-}
-
-#mushaf {
-  width: 100%;
-  max-width: 900px;
-  padding: 10px;
-  box-sizing: border-box;
-}
-
-#mushaf svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.ayahPolygon {
-  cursor: pointer;
-}
-
-.ayahPolygon.selected {
-  fill: rgba(103, 58, 183, 0.30) !important;
-  stroke: none !important;
-  stroke-width: 0 !important;
-}
-</style>
-</head>
-
-<body>
-
-<div id="mushaf"></div>
-
-<script>
-
-const pageNumber = $page;
-
-function setNoorAyahHighlight(surah, ayah) {
-  window.noorHighlightSurah = String(surah);
-  window.noorHighlightAyah = String(ayah);
-  document.querySelectorAll('.ayahPolygon').forEach(function(el) {
-    if (!el.dataset.noorOriginalFill) {
-      el.dataset.noorOriginalFill = el.getAttribute('fill') || '';
-      el.dataset.noorOriginalStroke = el.getAttribute('stroke') || '';
-      el.dataset.noorOriginalStrokeWidth = el.getAttribute('stroke-width') || '';
-      el.dataset.noorOriginalFillOpacity = el.getAttribute('fill-opacity') || '';
-    }
-    const match = el.getAttribute('surah') === String(surah) &&
-                  el.getAttribute('ayah') === String(ayah);
-    if (match) {
-      el.classList.add('selected');
-      el.style.setProperty('fill', 'rgba(103,58,183,0.30)', 'important');
-      el.style.setProperty('fill-opacity', '1', 'important');
-      el.style.setProperty('stroke', 'none', 'important');
-      el.style.setProperty('stroke-width', '0', 'important');
-    } else {
-      el.classList.remove('selected');
-      if (el.dataset.noorOriginalFill) el.style.setProperty('fill', el.dataset.noorOriginalFill, 'important');
-      else el.style.removeProperty('fill');
-      if (el.dataset.noorOriginalStroke) el.style.setProperty('stroke', el.dataset.noorOriginalStroke, 'important');
-      else el.style.removeProperty('stroke');
-      if (el.dataset.noorOriginalStrokeWidth) el.style.setProperty('stroke-width', el.dataset.noorOriginalStrokeWidth, 'important');
-      else el.style.removeProperty('stroke-width');
-      if (el.dataset.noorOriginalFillOpacity) el.style.setProperty('fill-opacity', el.dataset.noorOriginalFillOpacity, 'important');
-      else el.style.removeProperty('fill-opacity');
-    }
-  });
-}
-window.setNoorAyahHighlight = setNoorAyahHighlight;
-
-fetch('$svgUrl')
-  .then(response => response.text())
-  .then(svg => {
-
-    document.getElementById('mushaf').innerHTML = svg;
-
-    document.querySelectorAll(
-  '.ayahPolygon'
-).forEach(function(element) {
-
-  element.addEventListener(
-    'click',
-    function() {
-
-      const surah =
-        element.getAttribute('surah');
-
-      const ayah =
-        element.getAttribute('ayah');
-
-      if (surah && ayah) {
-
-        AyahChannel.postMessage(
-          surah + ':' + ayah
-        );
-
-      }
-    }
-  );
-
-});
-let startX = 0;
-
-document.addEventListener('touchstart', function(event) {
-  startX = event.touches[0].clientX;
-});
-
-document.addEventListener('touchend', function(event) {
-  const endX = event.changedTouches[0].clientX;
-  const difference = endX - startX;
-
-  if (Math.abs(difference) < 80) {
-    return;
-  }
-
-  if (difference < 0) {
-    NavigationChannel.postMessage('next');
-  } else {
-    NavigationChannel.postMessage('prev');
-  }
-});
-    PageChannel.postMessage(
-      pageNumber.toString()
-    );
-    if (window.noorHighlightSurah && window.noorHighlightAyah) {
-      setTimeout(function() {
-        setNoorAyahHighlight(window.noorHighlightSurah, window.noorHighlightAyah);
-      }, 80);
-    }
-  })
-  .catch(function(error) {
-
-    document.getElementById('mushaf').innerHTML =
-      '<div style="padding:40px;text-align:center;font-family:sans-serif;">' +
-      'تعذر تحميل صفحة المصحف' +
-      '</div>';
-  });
-</script>
-
-</body>
-</html>
-''';
   }
 
   @override
@@ -2035,6 +1709,86 @@ void dispose() {
       ),
     );
   }
+  Future<void> _loadMushafPage(int page) async {
+    final p = page.toString().padLeft(3, '0');
+    final url = Uri.parse(
+      'https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/$p.svg',
+    );
+    try {
+      await controller.loadRequest(url);
+    } catch (e) {
+      if (mounted) {
+        _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
+      }
+    }
+  }
+
+  Future<void> _installMushafInteractions() async {
+    try {
+      await controller.runJavaScript('''
+        (function() {
+          document.documentElement.style.background = '#f7f1df';
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          document.body.style.background = '#f7f1df';
+          var svg = document.querySelector('svg');
+          if (svg) {
+            svg.style.width = '100%';
+            svg.style.height = 'auto';
+            svg.style.display = 'block';
+          }
+
+          window.setNoorAyahHighlight = function(surah, ayah) {
+            document.querySelectorAll('.ayahPolygon').forEach(function(el) {
+              var match = el.getAttribute('surah') === String(surah) &&
+                          el.getAttribute('ayah') === String(ayah);
+              if (match) {
+                el.style.setProperty('fill', '#7652d6', 'important');
+                el.style.setProperty('fill-opacity', '0.35', 'important');
+              } else {
+                el.style.removeProperty('fill');
+                el.style.removeProperty('fill-opacity');
+              }
+            });
+          };
+
+          document.querySelectorAll('.ayahPolygon').forEach(function(el) {
+            el.style.cursor = 'pointer';
+            el.onclick = function() {
+              var surah = el.getAttribute('surah');
+              var ayah = el.getAttribute('ayah');
+              if (surah && ayah) AyahChannel.postMessage(surah + ':' + ayah);
+            };
+          });
+
+          var startX = null;
+          document.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+          }, {passive: true});
+          document.addEventListener('touchend', function(e) {
+            if (startX === null) return;
+            var dx = e.changedTouches[0].clientX - startX;
+            startX = null;
+            if (Math.abs(dx) > 80) {
+              NavigationChannel.postMessage(dx < 0 ? 'next' : 'prev');
+            }
+          }, {passive: true});
+          PageChannel.postMessage(String(%PAGE%));
+        })();
+      '''.replaceAll('%PAGE%', '$page'),
+      );
+
+      if (_lastHighlightedAyah != null) {
+        final parts = _lastHighlightedAyah!.split(':');
+        if (parts.length == 2) {
+          await controller.runJavaScript(
+            "setNoorAyahHighlight('${parts[0]}','${parts[1]}');",
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
     Future<void> _changePage(int newPage) async {
     if (newPage < 1 || newPage > 604) {
       return;
@@ -2044,9 +1798,7 @@ void dispose() {
       currentPage = newPage;
     });
 
-    await controller.loadHtmlString(
-      _mushafPage(newPage),
-    );
+    await _loadMushafPage(newPage);
   }
 
   Widget _pageButton({
@@ -2064,98 +1816,8 @@ void dispose() {
   final String title;
   final String text;
   final int count;
-  final String source;
-  final String category;
-  const AdhkarItem(this.title, this.text, this.count, this.source, this.category);
+  const AdhkarItem(this.title, this.text, this.count);
 }
-
-const List<AdhkarItem> allAdhkar = [
-  AdhkarItem('آية الكرسي', 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ.', 1, 'القرآن الكريم — البقرة: 255', 'الصباح والمساء'),
-  AdhkarItem('سورة الإخلاص', 'قُلْ هُوَ اللَّهُ أَحَدٌ  اللَّهُ الصَّمَدُ  لَمْ يَلِدْ وَلَمْ يُولَدْ  وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ.', 3, 'من أذكار الكتاب والسنة', 'الصباح والمساء'),
-  AdhkarItem('سورة الفلق', 'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ  مِنْ شَرِّ مَا خَلَقَ  وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ  وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ  وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ.', 3, 'من أذكار الكتاب والسنة', 'الصباح والمساء'),
-  AdhkarItem('سورة الناس', 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ  مَلِكِ النَّاسِ  إِلَٰهِ النَّاسِ  مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ  الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ  مِنَ الْجِنَّةِ وَالنَّاسِ.', 3, 'من أذكار الكتاب والسنة', 'الصباح والمساء'),
-  AdhkarItem('ذكر الصباح', 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.', 1, 'حصن المسلم — أذكار الصباح والمساء', 'الصباح والمساء'),
-  AdhkarItem('ذكر المساء', 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.', 1, 'حصن المسلم — أذكار الصباح والمساء', 'الصباح والمساء'),
-  AdhkarItem('العفو والعافية', 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالْآخِرَةِ.', 1, 'حصن المسلم', 'الصباح والمساء'),
-  AdhkarItem('رضيت بالله ربًا', 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا.', 3, 'حصن المسلم', 'الصباح والمساء'),
-  AdhkarItem('حسبي الله', 'حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ، وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ.', 7, 'حصن المسلم', 'الصباح والمساء'),
-  AdhkarItem('سبحان الله وبحمده', 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ.', 100, 'حصن المسلم', 'الصباح والمساء'),
-  AdhkarItem('لا إله إلا الله وحده', 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.', 10, 'حصن المسلم', 'الصباح والمساء'),
-  AdhkarItem('الاستغفار', 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ.', 100, 'حصن المسلم', 'الصباح والمساء'),
-  AdhkarItem('سيد الاستغفار', 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَ بِذَنْبِي، فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ.', 1, 'حصن المسلم', 'الصباح والمساء'),
-  AdhkarItem('بعد الصلاة: الاستغفار', 'أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ.', 3, 'صحيح مسلم', 'بعد الصلاة'),
-  AdhkarItem('بعد الصلاة: السلام', 'اللَّهُمَّ أَنْتَ السَّلَامُ، وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ.', 1, 'صحيح مسلم', 'بعد الصلاة'),
-  AdhkarItem('بعد الصلاة: التسبيح', 'سُبْحَانَ اللَّهِ.', 33, 'صحيح مسلم', 'بعد الصلاة'),
-  AdhkarItem('بعد الصلاة: الحمد', 'الْحَمْدُ لِلَّهِ.', 33, 'صحيح مسلم', 'بعد الصلاة'),
-  AdhkarItem('بعد الصلاة: التكبير', 'اللَّهُ أَكْبَرُ.', 33, 'صحيح مسلم', 'بعد الصلاة'),
-  AdhkarItem('ختام التسبيح بعد الصلاة', 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.', 1, 'صحيح مسلم', 'بعد الصلاة'),
-  AdhkarItem('دعاء النوم', 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا.', 1, 'صحيح البخاري', 'النوم'),
-  AdhkarItem('قبل النوم: آية الكرسي', 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ.', 1, 'صحيح البخاري — مع قراءة آية الكرسي كاملة', 'النوم'),
-  AdhkarItem('قبل النوم: التسبيح والتحميد والتكبير', 'سُبْحَانَ اللَّهِ 33، وَالْحَمْدُ لِلَّهِ 33، وَاللَّهُ أَكْبَرُ 34.', 1, 'صحيح البخاري وصحيح مسلم', 'النوم'),
-  AdhkarItem('الاستيقاظ من النوم', 'الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ.', 1, 'صحيح البخاري', 'الاستيقاظ'),
-  AdhkarItem('دخول الخلاء', 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ.', 1, 'صحيح البخاري وصحيح مسلم', 'اليوم والليلة'),
-  AdhkarItem('الخروج من الخلاء', 'غُفْرَانَكَ.', 1, 'سنن أبي داود والترمذي', 'اليوم والليلة'),
-  AdhkarItem('قبل الوضوء', 'بِسْمِ اللَّهِ.', 1, 'من الأذكار المشروعة', 'الوضوء'),
-  AdhkarItem('بعد الوضوء', 'أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ.', 1, 'صحيح مسلم', 'الوضوء'),
-  AdhkarItem('دخول المنزل', 'بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا.', 1, 'سنن أبي داود', 'اليوم والليلة'),
-  AdhkarItem('الخروج من المنزل', 'بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ.', 1, 'سنن أبي داود والترمذي', 'اليوم والليلة'),
-  AdhkarItem('دخول المسجد', 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ.', 1, 'صحيح مسلم', 'المسجد'),
-  AdhkarItem('الخروج من المسجد', 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ.', 1, 'صحيح مسلم', 'المسجد'),
-  AdhkarItem('بعد الأذان', 'اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ مَقَامًا مَحْمُودًا الَّذِي وَعَدْتَهُ.', 1, 'صحيح البخاري', 'المسجد'),
-  AdhkarItem('عند الكرب', 'لَا إِلَهَ إِلَّا اللَّهُ الْعَظِيمُ الْحَلِيمُ، لَا إِلَهَ إِلَّا اللَّهُ رَبُّ الْعَرْشِ الْعَظِيمِ، لَا إِلَهَ إِلَّا اللَّهُ رَبُّ السَّمَاوَاتِ وَرَبُّ الْأَرْضِ وَرَبُّ الْعَرْشِ الْكَرِيمِ.', 1, 'صحيح البخاري وصحيح مسلم', 'الكرب والهم'),
-  AdhkarItem('عند الهم والحزن', 'اللَّهُمَّ إِنِّي عَبْدُكَ، ابْنُ عَبْدِكَ، ابْنُ أَمَتِكَ، نَاصِيَتِي بِيَدِكَ، مَاضٍ فِيَّ حُكْمُكَ، عَدْلٌ فِيَّ قَضَاؤُكَ، أَسْأَلُكَ بِكُلِّ اسْمٍ هُوَ لَكَ، سَمَّيْتَ بِهِ نَفْسَكَ، أَوْ أَنْزَلْتَهُ فِي كِتَابِكَ، أَوْ عَلَّمْتَهُ أَحَدًا مِنْ خَلْقِكَ، أَوِ اسْتَأْثَرْتَ بِهِ فِي عِلْمِ الْغَيْبِ عِنْدَكَ، أَنْ تَجْعَلَ الْقُرْآنَ رَبِيعَ قَلْبِي، وَنُورَ صَدْرِي، وَجَلَاءَ حُزْنِي، وَذَهَابَ هَمِّي.', 1, 'مسند أحمد — دعاء الهم والحزن', 'الكرب والهم'),
-  AdhkarItem('عند المرض', 'أَسْأَلُ اللَّهَ الْعَظِيمَ رَبَّ الْعَرْشِ الْعَظِيمِ أَنْ يَشْفِيَكَ.', 7, 'سنن أبي داود والترمذي', 'المرض'),
-  AdhkarItem('للمريض', 'اللَّهُمَّ رَبَّ النَّاسِ، أَذْهِبِ الْبَأْسَ، اشْفِ أَنْتَ الشَّافِي، لَا شِفَاءَ إِلَّا شِفَاؤُكَ، شِفَاءً لَا يُغَادِرُ سَقَمًا.', 1, 'صحيح البخاري وصحيح مسلم', 'المرض'),
-  AdhkarItem('عند المصيبة', 'إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ، اللَّهُمَّ أْجُرْنِي فِي مُصِيبَتِي، وَأَخْلِفْ لِي خَيْرًا مِنْهَا.', 1, 'صحيح مسلم', 'المصائب'),
-  AdhkarItem('عند الغضب', 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ.', 1, 'صحيح البخاري وصحيح مسلم', 'الكرب والهم'),
-  AdhkarItem('عند نزول المطر', 'اللَّهُمَّ صَيِّبًا نَافِعًا.', 1, 'صحيح البخاري', 'المطر'),
-  AdhkarItem('بعد نزول المطر', 'مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ.', 1, 'صحيح البخاري وصحيح مسلم', 'المطر'),
-  AdhkarItem('دعاء السفر', 'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ.', 1, 'صحيح مسلم', 'السفر'),
-  AdhkarItem('دعاء السفر المختصر', 'اللَّهُمَّ هَوِّنْ عَلَيْنَا سَفَرَنَا هَذَا وَاطْوِ عَنَّا بُعْدَهُ، اللَّهُمَّ أَنْتَ الصَّاحِبُ فِي السَّفَرِ وَالْخَلِيفَةُ فِي الْأَهْلِ.', 1, 'صحيح مسلم', 'السفر'),
-  AdhkarItem('عند رؤية ما يعجب', 'اللَّهُمَّ بَارِكْ لَهُ.', 1, 'من الدعاء المشروع عند الإعجاب', 'اليوم والليلة'),
-  AdhkarItem('لبس الثوب', 'الْحَمْدُ لِلَّهِ الَّذِي كَسَانِي هَذَا الثَّوْبَ وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ.', 1, 'سنن أبي داود والترمذي', 'اليوم والليلة'),
-  AdhkarItem('لبس الثوب الجديد', 'اللَّهُمَّ لَكَ الْحَمْدُ أَنْتَ كَسَوْتَنِيهِ، أَسْأَلُكَ خَيْرَهُ وَخَيْرَ مَا صُنِعَ لَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّهِ وَشَرِّ مَا صُنِعَ لَهُ.', 1, 'سنن أبي داود والترمذي', 'اليوم والليلة'),
-  AdhkarItem('لمن لبس ثوبًا جديدًا', 'تُبْلِي وَيُخْلِفُ اللَّهُ تَعَالَى.', 1, 'سنن أبي داود', 'اليوم والليلة'),
-  AdhkarItem('دعاء الذهاب إلى المسجد', 'اللَّهُمَّ اجْعَلْ فِي قَلْبِي نُورًا، وَفِي بَصَرِي نُورًا، وَفِي سَمْعِي نُورًا، وَعَنْ يَمِينِي نُورًا، وَعَنْ شِمَالِي نُورًا، وَفَوْقِي نُورًا، وَتَحْتِي نُورًا، وَأَمَامِي نُورًا، وَخَلْفِي نُورًا، وَأَعْظِمْ لِي نُورًا.', 1, 'صحيح البخاري وصحيح مسلم', 'المسجد'),
-  AdhkarItem('دعاء الاستفتاح', 'اللَّهُمَّ بَاعِدْ بَيْنِي وَبَيْنَ خَطَايَايَ كَمَا بَاعَدْتَ بَيْنَ الْمَشْرِقِ وَالْمَغْرِبِ، اللَّهُمَّ نَقِّنِي مِنْ خَطَايَايَ كَمَا نُقِّيَ الثَّوْبُ الْأَبْيَضُ مِنَ الدَّنَسِ، اللَّهُمَّ اغْسِلْنِي مِنْ خَطَايَايَ بِالثَّلْجِ وَالْمَاءِ وَالْبَرَدِ.', 1, 'صحيح البخاري وصحيح مسلم', 'الصلاة'),
-  AdhkarItem('دعاء الركوع', 'سُبْحَانَ رَبِّيَ الْعَظِيمِ.', 3, 'صحيح مسلم', 'الصلاة'),
-  AdhkarItem('دعاء السجود', 'سُبْحَانَ رَبِّيَ الْأَعْلَى.', 3, 'صحيح مسلم', 'الصلاة'),
-  AdhkarItem('دعاء بين السجدتين', 'رَبِّ اغْفِرْ لِي، رَبِّ اغْفِرْ لِي.', 1, 'سنن أبي داود', 'الصلاة'),
-  AdhkarItem('دعاء بعد الرفع من الركوع', 'رَبَّنَا وَلَكَ الْحَمْدُ حَمْدًا كَثِيرًا طَيِّبًا مُبَارَكًا فِيهِ.', 1, 'صحيح البخاري', 'الصلاة'),
-  AdhkarItem('الصلاة على النبي', 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ، كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ، إِنَّكَ حَمِيدٌ مَجِيدٌ.', 1, 'صحيح البخاري وصحيح مسلم', 'الصلاة'),
-  AdhkarItem('دعاء سيد الاستغفار', 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَ بِذَنْبِي، فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ.', 1, 'صحيح البخاري', 'الاستغفار'),
-  AdhkarItem('دعاء قنوت الوتر', 'اللَّهُمَّ اهْدِنِي فِيمَنْ هَدَيْتَ، وَعَافِنِي فِيمَنْ عَافَيْتَ، وَتَوَلَّنِي فِيمَنْ تَوَلَّيْتَ، وَبَارِكْ لِي فِيمَا أَعْطَيْتَ، وَقِنِي شَرَّ مَا قَضَيْتَ، فَإِنَّكَ تَقْضِي وَلَا يُقْضَى عَلَيْكَ، إِنَّهُ لَا يَذِلُّ مَنْ وَالَيْتَ، وَلَا يَعِزُّ مَنْ عَادَيْتَ، تَبَارَكْتَ رَبَّنَا وَتَعَالَيْتَ.', 1, 'سنن أبي داود والترمذي والنسائي', 'الصلاة'),
-  AdhkarItem('دعاء الاستخارة', 'اللَّهُمَّ إِنِّي أَسْتَخِيرُكَ بِعِلْمِكَ، وَأَسْتَقْدِرُكَ بِقُدْرَتِكَ، وَأَسْأَلُكَ مِنْ فَضْلِكَ الْعَظِيمِ، فَإِنَّكَ تَقْدِرُ وَلَا أَقْدِرُ، وَتَعْلَمُ وَلَا أَعْلَمُ، وَأَنْتَ عَلَّامُ الْغُيُوبِ.', 1, 'صحيح البخاري', 'الاستخارة'),
-  AdhkarItem('عند استصعاب أمر', 'اللَّهُمَّ لَا سَهْلَ إِلَّا مَا جَعَلْتَهُ سَهْلًا، وَأَنْتَ تَجْعَلُ الْحَزْنَ إِذَا شِئْتَ سَهْلًا.', 1, 'صحيح ابن حبان', 'الحاجة والكرب'),
-  AdhkarItem('قضاء الدين', 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَأَعُوذُ بِكَ مِنَ الْعَجْزِ وَالْكَسَلِ، وَأَعُوذُ بِكَ مِنَ الْجُبْنِ وَالْبُخْلِ، وَأَعُوذُ بِكَ مِنْ غَلَبَةِ الدَّيْنِ وَقَهْرِ الرِّجَالِ.', 1, 'صحيح البخاري', 'الرزق والدين'),
-  AdhkarItem('دعاء الدين', 'اللَّهُمَّ اكْفِنِي بِحَلَالِكَ عَنْ حَرَامِكَ، وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ.', 1, 'سنن الترمذي', 'الرزق والدين'),
-  AdhkarItem('عند الوسوسة', 'آمَنْتُ بِاللَّهِ وَرُسُلِهِ.', 1, 'صحيح مسلم', 'الوسوسة'),
-  AdhkarItem('طرد الشيطان', 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ.', 1, 'من الأذكار المشروعة', 'الوسوسة'),
-  AdhkarItem('عند سماع نباح الكلاب', 'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ.', 1, 'صحيح أبي داود', 'اليوم والليلة'),
-  AdhkarItem('عند صياح الديك', 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ.', 1, 'صحيح البخاري وصحيح مسلم', 'اليوم والليلة'),
-  AdhkarItem('عند هبوب الريح', 'اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَهَا، وَخَيْرَ مَا فِيهَا، وَخَيْرَ مَا أُرْسِلَتْ بِهِ، وَأَعُوذُ بِكَ مِنْ شَرِّهَا، وَشَرِّ مَا فِيهَا، وَشَرِّ مَا أُرْسِلَتْ بِهِ.', 1, 'صحيح مسلم', 'المطر والريح'),
-  AdhkarItem('رؤية الهلال', 'اللَّهُمَّ أَهِلَّهُ عَلَيْنَا بِالْأَمْنِ وَالْإِيمَانِ، وَالسَّلَامَةِ وَالْإِسْلَامِ، رَبِّي وَرَبُّكَ اللَّهُ.', 1, 'سنن الترمذي', 'اليوم والليلة'),
-  AdhkarItem('عند الإفطار', 'ذَهَبَ الظَّمَأُ، وَابْتَلَّتِ الْعُرُوقُ، وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ.', 1, 'سنن أبي داود', 'الصيام'),
-  AdhkarItem('ليلة القدر', 'اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي.', 1, 'سنن الترمذي', 'رمضان'),
-  AdhkarItem('تهنئة المولود', 'بَارَكَ اللَّهُ لَكَ فِي الْمَوْهُوبِ لَكَ، وَشَكَرْتَ الْوَاهِبَ، وَبَلَغَ أَشُدَّهُ، وَرُزِقْتَ بِرَّهُ.', 1, 'ورد عن السلف', 'الأسرة'),
-  AdhkarItem('تعزية المصاب', 'إِنَّ لِلَّهِ مَا أَخَذَ، وَلَهُ مَا أَعْطَى، وَكُلُّ شَيْءٍ عِنْدَهُ بِأَجَلٍ مُسَمًّى، فَلْتَصْبِرْ وَلْتَحْتَسِبْ.', 1, 'صحيح البخاري وصحيح مسلم', 'المصائب'),
-  AdhkarItem('للمحبة في الله', 'أَحَبَّكَ الَّذِي أَحْبَبْتَنِي لَهُ.', 1, 'سنن أبي داود', 'الآداب'),
-  AdhkarItem('لمن صنع إليك معروفًا', 'جَزَاكَ اللَّهُ خَيْرًا.', 1, 'سنن الترمذي', 'الآداب'),
-  AdhkarItem('عطاس المسلم', 'يَرْحَمُكَ اللَّهُ.', 1, 'صحيح البخاري وصحيح مسلم', 'الآداب'),
-  AdhkarItem('رد العاطس', 'يَهْدِيكُمُ اللَّهُ وَيُصْلِحُ بَالَكُمْ.', 1, 'صحيح البخاري', 'الآداب'),
-  AdhkarItem('عند رؤية مبتلى', 'الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي مِمَّا ابْتَلَاكَ بِهِ، وَفَضَّلَنِي عَلَى كَثِيرٍ مِمَّنْ خَلَقَ تَفْضِيلًا.', 1, 'سنن الترمذي', 'اليوم والليلة'),
-  AdhkarItem('دعاء الريح النافعة', 'اللَّهُمَّ اجْعَلْهَا رِيَاحًا وَلَا تَجْعَلْهَا رِيحًا.', 1, 'ورد في الدعاء عند الريح', 'المطر والريح'),
-  AdhkarItem('ذكر عند رؤية النعمة', 'مَا شَاءَ اللَّهُ، لَا قُوَّةَ إِلَّا بِاللَّهِ.', 1, 'القرآن الكريم — الكهف: 39', 'النعمة'),
-  AdhkarItem('عند الخوف من قوم', 'اللَّهُمَّ إِنَّا نَجْعَلُكَ فِي نُحُورِهِمْ، وَنَعُوذُ بِكَ مِنْ شُرُورِهِمْ.', 1, 'سنن أبي داود', 'الخوف'),
-  AdhkarItem('دعاء الثبات', 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ.', 1, 'القرآن الكريم — آل عمران: 8', 'الهداية'),
-  AdhkarItem('دعاء حسن العبادة', 'اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ.', 1, 'سنن أبي داود والنسائي', 'العبادة'),
-  AdhkarItem('دعاء صلاح القلب', 'يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ.', 1, 'سنن الترمذي', 'الهداية'),
-  AdhkarItem('دعاء العلم النافع', 'اللَّهُمَّ انْفَعْنِي بِمَا عَلَّمْتَنِي، وَعَلِّمْنِي مَا يَنْفَعُنِي، وَزِدْنِي عِلْمًا.', 1, 'سنن الترمذي وما ورد في الدعاء بالعلم النافع', 'العلم'),
-  AdhkarItem('طلب الهداية', 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى.', 1, 'صحيح مسلم', 'الهداية'),
-  AdhkarItem('دعاء العفو', 'اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي.', 1, 'سنن الترمذي', 'المغفرة'),
-  AdhkarItem('دعاء جامع من خير الدنيا والآخرة', 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً، وَفِي الْآخِرَةِ حَسَنَةً، وَقِنَا عَذَابَ النَّارِ.', 1, 'القرآن الكريم — البقرة: 201', 'أدعية جامعة'),
-
-];
 
 class AdhkarPage extends StatefulWidget {
   const AdhkarPage({super.key});
@@ -2165,90 +1827,66 @@ class AdhkarPage extends StatefulWidget {
 }
 
 class _AdhkarPageState extends State<AdhkarPage> {
-  final TextEditingController _searchController = TextEditingController();
-  String selectedCategory = 'الكل';
-  final Set<int> favorites = <int>{};
+  int category = 0;
+  final categories = const ['الصباح', 'المساء', 'بعد الصلاة', 'النوم'];
 
-  List<String> get categories => ['الكل', ...allAdhkar.map((e) => e.category).toSet()];
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _share(AdhkarItem item) => Share.share('${item.title}\n\n${item.text}\n\nالمصدر: ${item.source}', subject: item.title);
+  final List<List<AdhkarItem>> data = const [
+    [
+      AdhkarItem('ذكر', 'أصبحنا وأصبح الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
+      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
+      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+      AdhkarItem('الصلاة على النبي', 'اللهم صل وسلم وبارك على نبينا محمد.', 10),
+    ],
+    [
+      AdhkarItem('ذكر', 'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
+      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
+      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+    ],
+    [
+      AdhkarItem('الاستغفار', 'أستغفر الله.', 3),
+      AdhkarItem('التسبيح', 'سبحان الله.', 33),
+      AdhkarItem('الحمد', 'الحمد لله.', 33),
+      AdhkarItem('التكبير', 'الله أكبر.', 34),
+    ],
+    [
+      AdhkarItem('دعاء النوم', 'باسمك اللهم أموت وأحيا.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله.', 33),
+      AdhkarItem('الحمد', 'الحمد لله.', 33),
+      AdhkarItem('التكبير', 'الله أكبر.', 34),
+    ],
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final q = _searchController.text.trim();
-    final items = allAdhkar.asMap().entries.where((entry) {
-      final item = entry.value;
-      final categoryOk = selectedCategory == 'الكل' || item.category == selectedCategory;
-      final searchOk = q.isEmpty || item.title.contains(q) || item.text.contains(q) || item.category.contains(q);
-      return categoryOk && searchOk;
-    }).toList();
-
+    final items = data[category];
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('الأذكار'),
-        centerTitle: true,
-        actions: [
-          IconButton(onPressed: () { setState(() { selectedCategory = 'الكل'; _searchController.clear(); }); }, icon: const Icon(Icons.filter_alt_off)),
-        ],
-      ),
+      appBar: AppBar(title: const Text('الأذكار'), centerTitle: true),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: TextField(
-              controller: _searchController,
-              textDirection: TextDirection.rtl,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'ابحث في الأذكار...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isEmpty ? null : IconButton(onPressed: () { _searchController.clear(); setState(() {}); }, icon: const Icon(Icons.clear)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+          SizedBox(
+            height: 58,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              itemCount: categories.length,
+              itemBuilder: (_, index) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(categories[index]),
+                  selected: category == index,
+                  onSelected: (_) => setState(() => category = index),
+                ),
               ),
             ),
           ),
-          SizedBox(
-            height: 52,
-            child: ListView.separated(
-              reverse: true,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              scrollDirection: Axis.horizontal,
-              itemCount: categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
-              itemBuilder: (_, i) => ChoiceChip(label: Text(categories[i]), selected: selectedCategory == categories[i], onSelected: (_) => setState(() => selectedCategory = categories[i])),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('${items.length} ذكر', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text('${favorites.length} مفضل', textDirection: TextDirection.rtl, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-            ]),
-          ),
           Expanded(
-            child: items.isEmpty
-                ? const Center(child: Text('لا توجد أذكار مطابقة للبحث', textDirection: TextDirection.rtl))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: items.length,
-                    itemBuilder: (_, i) {
-                      final originalIndex = items[i].key;
-                      final item = items[i].value;
-                      return _DhikrCard(
-                        key: ValueKey(originalIndex),
-                        item: item,
-                        favorite: favorites.contains(originalIndex),
-                        onFavorite: () => setState(() { favorites.contains(originalIndex) ? favorites.remove(originalIndex) : favorites.add(originalIndex); }),
-                        onShare: () => _share(item),
-                      );
-                    },
-                  ),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: items.length,
+              itemBuilder: (_, index) => _DhikrCard(item: items[index]),
+            ),
           ),
         ],
       ),
@@ -2258,10 +1896,7 @@ class _AdhkarPageState extends State<AdhkarPage> {
 
 class _DhikrCard extends StatefulWidget {
   final AdhkarItem item;
-  final bool favorite;
-  final VoidCallback onFavorite;
-  final VoidCallback onShare;
-  const _DhikrCard({super.key, required this.item, required this.favorite, required this.onFavorite, required this.onShare});
+  const _DhikrCard({required this.item});
 
   @override
   State<_DhikrCard> createState() => _DhikrCardState();
@@ -2279,257 +1914,87 @@ class _DhikrCardState extends State<_DhikrCard> {
   @override
   Widget build(BuildContext context) {
     final done = remaining == 0;
-    final progress = widget.item.count <= 1 ? (done ? 1.0 : 0.0) : (widget.item.count - remaining) / widget.item.count;
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         onTap: done ? null : () => setState(() => remaining--),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              IconButton(tooltip: 'مشاركة', onPressed: widget.onShare, icon: const Icon(Icons.share_outlined)),
-              IconButton(tooltip: 'مفضلة', onPressed: widget.onFavorite, icon: Icon(widget.favorite ? Icons.favorite : Icons.favorite_border)),
-              Expanded(child: Text(widget.item.title, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 17))),
-            ]),
-            Text(widget.item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
-            const SizedBox(height: 10),
-            LinearProgressIndicator(value: progress, minHeight: 5, borderRadius: BorderRadius.circular(5)),
-            const SizedBox(height: 8),
-            Row(children: [
-              Text(done ? 'تم ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const Spacer(),
-              TextButton.icon(onPressed: () => setState(() => remaining = widget.item.count), icon: const Icon(Icons.refresh, size: 18), label: const Text('إعادة')),
-            ]),
-            Text(widget.item.source, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ]),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(widget.item.title, textDirection: TextDirection.rtl, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(widget.item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.8)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(done ? 'تم ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextButton.icon(
+                    onPressed: () => setState(() => remaining = widget.item.count),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('إعادة'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class DuaItem {
-  final String title;
-  final String text;
-  final String source;
-  final String category;
-  const DuaItem(this.title, this.text, this.source, this.category);
-}
-
-const List<DuaItem> allDuas = [
-  DuaItem('ربنا آتنا في الدنيا حسنة', 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ.', 'القرآن الكريم — البقرة: 201', 'أدعية القرآن'),
-  DuaItem('ربنا لا تزغ قلوبنا', 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ.', 'القرآن الكريم — آل عمران: 8', 'أدعية القرآن'),
-  DuaItem('رب هب لي من لدنك ذرية طيبة', 'رَبِّ هَبْ لِي مِنْ لَدُنْكَ ذُرِّيَّةً طَيِّبَةً إِنَّكَ سَمِيعُ الدُّعَاءِ.', 'القرآن الكريم — آل عمران: 38', 'الذرية والأسرة'),
-  DuaItem('ربنا ظلمنا أنفسنا', 'رَبَّنَا ظَلَمْنَا أَنْفُسَنَا وَإِنْ لَمْ تَغْفِرْ لَنَا وَتَرْحَمْنَا لَنَكُونَنَّ مِنَ الْخَاسِرِينَ.', 'القرآن الكريم — الأعراف: 23', 'التوبة والمغفرة'),
-  DuaItem('ربنا أفرغ علينا صبرًا', 'رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَتَوَفَّنَا مُسْلِمِينَ.', 'القرآن الكريم — الأعراف: 126', 'الكرب والثبات'),
-  DuaItem('رب اجعلني مقيم الصلاة', 'رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِنْ ذُرِّيَّتِي رَبَّنَا وَتَقَبَّلْ دُعَاءِ  رَبَّنَا اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ يَوْمَ يَقُومُ الْحِسَابُ.', 'القرآن الكريم — إبراهيم: 40-41', 'الصلاة والذرية'),
-  DuaItem('رب اشرح لي صدري', 'رَبِّ اشْرَحْ لِي صَدْرِي  وَيَسِّرْ لِي أَمْرِي  وَاحْلُلْ عُقْدَةً مِنْ لِسَانِي  يَفْقَهُوا قَوْلِي.', 'القرآن الكريم — طه: 25-28', 'العلم والتيسير'),
-  DuaItem('رب زدني علمًا', 'رَبِّ زِدْنِي عِلْمًا.', 'القرآن الكريم — طه: 114', 'العلم'),
-  DuaItem('دعاء ذي النون', 'لَا إِلَهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ.', 'القرآن الكريم — الأنبياء: 87', 'الكرب والتوبة'),
-  DuaItem('رب إني لما أنزلت إلي من خير فقير', 'رَبِّ إِنِّي لِمَا أَنْزَلْتَ إِلَيَّ مِنْ خَيْرٍ فَقِيرٌ.', 'القرآن الكريم — القصص: 24', 'الرزق'),
-  DuaItem('ربنا هب لنا من أزواجنا وذرياتنا قرة أعين', 'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا.', 'القرآن الكريم — الفرقان: 74', 'الأسرة والذرية'),
-  DuaItem('ربنا تقبل منا', 'رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنْتَ السَّمِيعُ الْعَلِيمُ.', 'القرآن الكريم — البقرة: 127', 'العبادة'),
-  DuaItem('ربنا أتمم لنا نورنا', 'رَبَّنَا أَتْمِمْ لَنَا نُورَنَا وَاغْفِرْ لَنَا إِنَّكَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.', 'القرآن الكريم — التحريم: 8', 'المغفرة'),
-  DuaItem('رب اغفر لي ولوالدي', 'رَبِّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِمَنْ دَخَلَ بَيْتِيَ مُؤْمِنًا وَلِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ.', 'القرآن الكريم — نوح: 28', 'الوالدان والمغفرة'),
-  DuaItem('ربنا لا تؤاخذنا', 'رَبَّنَا لَا تُؤَاخِذْنَا إِنْ نَسِينَا أَوْ أَخْطَأْنَا.', 'القرآن الكريم — البقرة: 286', 'المغفرة'),
-  DuaItem('ربنا ولا تحمل علينا إصرًا', 'رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِنْ قَبْلِنَا.', 'القرآن الكريم — البقرة: 286', 'الكرب'),
-  DuaItem('ربنا ولا تحملنا ما لا طاقة لنا به', 'رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا أَنْتَ مَوْلَانَا فَانْصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ.', 'القرآن الكريم — البقرة: 286', 'الكرب والمغفرة'),
-  DuaItem('دعاء الثبات', 'رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَثَبِّتْ أَقْدَامَنَا وَانْصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ.', 'القرآن الكريم — البقرة: 250', 'الثبات'),
-  DuaItem('دعاء الهداية', 'اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ.', 'القرآن الكريم — الفاتحة: 6', 'الهداية'),
-  DuaItem('دعاء الاستعاذة من الهم والحزن', 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَأَعُوذُ بِكَ مِنَ الْعَجْزِ وَالْكَسَلِ، وَأَعُوذُ بِكَ مِنَ الْجُبْنِ وَالْبُخْلِ، وَأَعُوذُ بِكَ مِنْ غَلَبَةِ الدَّيْنِ وَقَهْرِ الرِّجَالِ.', 'صحيح البخاري', 'الهم والكرب'),
-  DuaItem('دعاء الشفاء', 'اللَّهُمَّ رَبَّ النَّاسِ، أَذْهِبِ الْبَأْسَ، اشْفِ أَنْتَ الشَّافِي، لَا شِفَاءَ إِلَّا شِفَاؤُكَ، شِفَاءً لَا يُغَادِرُ سَقَمًا.', 'صحيح البخاري وصحيح مسلم', 'الشفاء'),
-  DuaItem('دعاء قضاء الدين', 'اللَّهُمَّ اكْفِنِي بِحَلَالِكَ عَنْ حَرَامِكَ، وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ.', 'سنن الترمذي', 'الرزق والدين'),
-  DuaItem('دعاء الاستخارة', 'اللَّهُمَّ إِنِّي أَسْتَخِيرُكَ بِعِلْمِكَ، وَأَسْتَقْدِرُكَ بِقُدْرَتِكَ، وَأَسْأَلُكَ مِنْ فَضْلِكَ الْعَظِيمِ، فَإِنَّكَ تَقْدِرُ وَلَا أَقْدِرُ، وَتَعْلَمُ وَلَا أَعْلَمُ، وَأَنْتَ عَلَّامُ الْغُيُوبِ. اللَّهُمَّ إِنْ كُنْتَ تَعْلَمُ أَنَّ هَذَا الْأَمْرَ خَيْرٌ لِي فِي دِينِي وَمَعَاشِي وَعَاقِبَةِ أَمْرِي، فَاقْدُرْهُ لِي وَيَسِّرْهُ لِي، ثُمَّ بَارِكْ لِي فِيهِ، وَإِنْ كُنْتَ تَعْلَمُ أَنَّ هَذَا الْأَمْرَ شَرٌّ لِي فِي دِينِي وَمَعَاشِي وَعَاقِبَةِ أَمْرِي، فَاصْرِفْهُ عَنِّي وَاصْرِفْنِي عَنْهُ، وَاقْدُرْ لِيَ الْخَيْرَ حَيْثُ كَانَ، ثُمَّ أَرْضِنِي بِهِ.', 'صحيح البخاري — دعاء الاستخارة', 'الاستخارة'),
-  DuaItem('دعاء سيد الاستغفار', 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَ بِذَنْبِي، فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ.', 'صحيح البخاري', 'التوبة والمغفرة'),
-  DuaItem('دعاء التوكل', 'حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ، وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ.', 'القرآن الكريم — التوبة: 129', 'التوكل'),
-  DuaItem('دعاء تفريج الكرب', 'لَا إِلَهَ إِلَّا اللَّهُ الْعَظِيمُ الْحَلِيمُ، لَا إِلَهَ إِلَّا اللَّهُ رَبُّ الْعَرْشِ الْعَظِيمِ، لَا إِلَهَ إِلَّا اللَّهُ رَبُّ السَّمَاوَاتِ وَرَبُّ الْأَرْضِ وَرَبُّ الْعَرْشِ الْكَرِيمِ.', 'صحيح البخاري وصحيح مسلم', 'الكرب'),
-  DuaItem('دعاء عند المصيبة', 'اللَّهُمَّ أْجُرْنِي فِي مُصِيبَتِي، وَأَخْلِفْ لِي خَيْرًا مِنْهَا.', 'صحيح مسلم', 'المصائب'),
-  DuaItem('دعاء الوالدين', 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا.', 'القرآن الكريم — الإسراء: 24', 'الوالدان'),
-  DuaItem('دعاء للأهل والذرية', 'رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِنْ ذُرِّيَّتِي رَبَّنَا وَتَقَبَّلْ دُعَاءِ.', 'القرآن الكريم — إبراهيم: 40', 'الأسرة والذرية'),
-  DuaItem('دعاء حسن الخاتمة', 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ.', 'القرآن الكريم — آل عمران: 8', 'الثبات وحسن الخاتمة'),
-  DuaItem('دعاء يوم عرفة', 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.', 'حديث: خير الدعاء دعاء يوم عرفة — الترمذي', 'يوم عرفة'),
-  DuaItem('دعاء جامع', 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنَ الْخَيْرِ كُلِّهِ، عَاجِلِهِ وَآجِلِهِ، مَا عَلِمْتُ مِنْهُ وَمَا لَمْ أَعْلَمْ، وَأَعُوذُ بِكَ مِنَ الشَّرِّ كُلِّهِ، عَاجِلِهِ وَآجِلِهِ، مَا عَلِمْتُ مِنْهُ وَمَا لَمْ أَعْلَمْ.', 'من الأدعية الجامعة الواردة في السنة', 'أدعية جامعة'),
-  DuaItem('دعاء السفر', 'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ.', 'صحيح مسلم', 'السفر'),
-  DuaItem('دعاء دخول المسجد', 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ.', 'صحيح مسلم', 'المسجد'),
-  DuaItem('دعاء الخروج من المسجد', 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ.', 'صحيح مسلم', 'المسجد'),
-  DuaItem('دعاء عند المطر', 'اللَّهُمَّ صَيِّبًا نَافِعًا.', 'صحيح البخاري', 'المطر'),
-  DuaItem('دعاء عند الخوف', 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ.', 'القرآن الكريم — آل عمران: 173', 'الخوف والتوكل'),
-];
-
-class DuasPage extends StatefulWidget {
+class DuasPage extends StatelessWidget {
   const DuasPage({super.key});
 
-  @override
-  State<DuasPage> createState() => _DuasPageState();
-}
-
-class _DuasPageState extends State<DuasPage> {
-  final TextEditingController _searchController = TextEditingController();
-  String selectedCategory = 'الكل';
-  final Set<int> favorites = <int>{};
-
-  List<String> get categories => ['الكل', ...allDuas.map((e) => e.category).toSet()];
-
-  @override
-  void dispose() { _searchController.dispose(); super.dispose(); }
-
-  void _share(DuaItem item) => Share.share('${item.title}\n\n${item.text}\n\nالمصدر: ${item.source}', subject: item.title);
-
-  @override
-  Widget build(BuildContext context) {
-    final q = _searchController.text.trim();
-    final items = allDuas.asMap().entries.where((entry) {
-      final item = entry.value;
-      return (selectedCategory == 'الكل' || item.category == selectedCategory) &&
-          (q.isEmpty || item.title.contains(q) || item.text.contains(q) || item.category.contains(q));
-    }).toList();
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('الأدعية'), centerTitle: true, actions: [
-        IconButton(onPressed: () { setState(() { selectedCategory = 'الكل'; _searchController.clear(); }); }, icon: const Icon(Icons.filter_alt_off)),
-      ]),
-      body: Column(children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-          child: TextField(controller: _searchController, textDirection: TextDirection.rtl, onChanged: (_) => setState(() {}), decoration: InputDecoration(hintText: 'ابحث في الأدعية...', prefixIcon: const Icon(Icons.search), suffixIcon: _searchController.text.isEmpty ? null : IconButton(onPressed: () { _searchController.clear(); setState(() {}); }, icon: const Icon(Icons.clear)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)))),
-        ),
-        SizedBox(height: 52, child: ListView.separated(reverse: true, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), scrollDirection: Axis.horizontal, itemCount: categories.length, separatorBuilder: (_, __) => const SizedBox(width: 6), itemBuilder: (_, i) => ChoiceChip(label: Text(categories[i]), selected: selectedCategory == categories[i], onSelected: (_) => setState(() => selectedCategory = categories[i])))),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('${items.length} دعاء', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)), Text('${favorites.length} مفضل', textDirection: TextDirection.rtl, style: TextStyle(color: Theme.of(context).colorScheme.primary))])),
-        Expanded(child: items.isEmpty ? const Center(child: Text('لا توجد أدعية مطابقة للبحث', textDirection: TextDirection.rtl)) : ListView.builder(padding: const EdgeInsets.all(12), itemCount: items.length, itemBuilder: (_, i) {
-          final originalIndex = items[i].key;
-          final item = items[i].value;
-          return Card(margin: const EdgeInsets.only(bottom: 12), child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 10), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [IconButton(tooltip: 'مشاركة', onPressed: () => _share(item), icon: const Icon(Icons.share_outlined)), IconButton(tooltip: 'مفضلة', onPressed: () => setState(() { favorites.contains(originalIndex) ? favorites.remove(originalIndex) : favorites.add(originalIndex); }), icon: Icon(favorites.contains(originalIndex) ? Icons.favorite : Icons.favorite_border)), Expanded(child: Text(item.title, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 17)))]),
-            Text(item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
-            const SizedBox(height: 8),
-            Row(children: [TextButton.icon(onPressed: () async { await Clipboard.setData(ClipboardData(text: item.text)); if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ الدعاء'))); }, icon: const Icon(Icons.copy, size: 18), label: const Text('نسخ')), const Spacer(), Expanded(child: Text(item.source, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)))])
-          ])));
-        }))
-      ]),
-    );
-  }
-}
-
-class HajjUmrahPage extends StatefulWidget {
-  const HajjUmrahPage({super.key});
-
-  @override
-  State<HajjUmrahPage> createState() => _HajjUmrahPageState();
-}
-
-class _HajjUmrahPageState extends State<HajjUmrahPage> {
-  final List<Map<String, String>> steps = const [
-    {'title': 'الإحرام والنية', 'text': 'الاغتسال والتجرد ولبس الإحرام والنية من الميقات، ثم التلبية.'},
-    {'title': 'التلبية', 'text': 'لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيكَ لَكَ.'},
-    {'title': 'الطواف', 'text': 'الطواف حول الكعبة سبعة أشواط، ويشرع الذكر والدعاء بما تيسر دون تخصيص دعاء لكل شوط.'},
-    {'title': 'السعي', 'text': 'السعي بين الصفا والمروة سبعة أشواط، يبدأ بالصفا وينتهي بالمروة.'},
-    {'title': 'الحلق أو التقصير', 'text': 'بعد السعي يحلق الرجل أو يقصر، والمرأة تقصر من أطراف شعرها، وبذلك تتم العمرة.'},
-    {'title': 'الحج: يوم التروية', 'text': 'يوم الثامن من ذي الحجة، ثم التوجه إلى منى والصلاة فيها بحسب أحكام النسك.'},
-    {'title': 'الحج: يوم عرفة', 'text': 'الوقوف بعرفة ركن الحج، ويكثر الحاج من الذكر والدعاء والتلبية حتى الغروب.'},
-    {'title': 'مزدلفة', 'text': 'الإفاضة من عرفة بعد الغروب إلى مزدلفة، والصلاة والذكر والمبيت بحسب أحكام الحج.'},
-    {'title': 'منى ورمي الجمار', 'text': 'رمي جمرة العقبة يوم النحر، ثم بقية الجمار في أيام التشريق وفق ترتيب وأوقات الرمي.'},
-    {'title': 'طواف الإفاضة والوداع', 'text': 'طواف الإفاضة من أعمال الحج، وطواف الوداع عند مغادرة مكة لمن وجب عليه.'},
-  ];
-
-  final List<Map<String, String>> duas = const [
-    {'title': 'دعاء التلبية', 'text': 'لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيكَ لَكَ.'},
-    {'title': 'عند الحجر الأسود', 'text': 'اللَّهُ أَكْبَرُ.'},
-    {'title': 'بين الركن اليماني والحجر الأسود', 'text': 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً، وَفِي الْآخِرَةِ حَسَنَةً، وَقِنَا عَذَابَ النَّارِ.'},
-    {'title': 'على الصفا والمروة', 'text': 'إِنَّ الصَّفَا وَالْمَرْوَةَ مِنْ شَعَائِرِ اللَّهِ، أَبْدَأُ بِمَا بَدَأَ اللَّهُ بِهِ.'},
-    {'title': 'دعاء يوم عرفة', 'text': 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.'},
+  static const List<Map<String, String>> duas = [
+    {'title': 'دعاء ربنا آتنا', 'text': 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ.'},
+    {'title': 'دعاء الهداية', 'text': 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ.'},
+    {'title': 'دعاء العلم', 'text': 'رَبِّ زِدْنِي عِلْمًا.'},
+    {'title': 'دعاء الوالدين', 'text': 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا.'},
+    {'title': 'دعاء التيسير', 'text': 'رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي.'},
+    {'title': 'دعاء المغفرة', 'text': 'رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا الَّذِينَ سَبَقُونَا بِالْإِيمَانِ.'},
+    {'title': 'دعاء الثبات', 'text': 'يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ.'},
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الحج والعمرة'), centerTitle: true),
-      body: ListView(
-        padding: const EdgeInsets.all(14),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: const LinearGradient(colors: [Color(0xFF14532D), Color(0xFF0F766E)]),
+      appBar: AppBar(title: const Text('الأدعية'), centerTitle: true),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: duas.length,
+        itemBuilder: (_, index) {
+          final dua = duas[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(dua['title']!, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 10),
+                  Text(dua['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      tooltip: 'نسخ الدعاء',
+                      icon: const Icon(Icons.copy),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: dua['text']!));
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ الدعاء')));
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: const Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Icon(Icons.mosque, color: Colors.white, size: 42),
-              SizedBox(height: 8),
-              Text('دليل المناسك', textDirection: TextDirection.rtl, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
-              SizedBox(height: 5),
-              Text('الحج والعمرة • الأذكار • الأدعية • خطوات عملية', textDirection: TextDirection.rtl, style: TextStyle(color: Colors.white70)),
-            ]),
-          ),
-          const SizedBox(height: 16),
-          const Text('مراحل الحج والعمرة', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...steps.asMap().entries.map((e) => Card(
-            elevation: 0,
-            child: ExpansionTile(
-              leading: CircleAvatar(child: Text('${e.key + 1}')),
-              title: Text(e.value['title']!, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-              children: [Padding(padding: const EdgeInsets.fromLTRB(18, 0, 18, 18), child: Text(e.value['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: const TextStyle(fontSize: 17, height: 1.8)))],
-            ),
-          )),
-          const SizedBox(height: 16),
-          const Text('أدعية وأذكار مختارة', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...duas.map((d) => Card(
-            child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(d['title']!, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(d['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
-              Align(alignment: Alignment.centerLeft, child: IconButton(onPressed: () async { await Clipboard.setData(ClipboardData(text: d['text']!)); if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم النسخ'))); }, icon: const Icon(Icons.copy_outlined))),
-            ])),
-          )),
-          const SizedBox(height: 12),
-          const Text('ملاحظة: الأدعية في الطواف والسعي ليست مقسمة شرعًا على سبعة أشواط بدعاء مخصوص لكل شوط؛ يشرع الدعاء والذكر بما تيسر من الخير.', textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: TextStyle(fontSize: 13, height: 1.7)),
-        ],
+          );
+        },
       ),
-    );
-  }
-}
-
-class IraqPlace {
-  final String id;
-  final int level;
-  final String name;
-  final String englishName;
-  final String? parentId;
-  final double lat;
-  final double lon;
-
-  const IraqPlace({
-    required this.id,
-    required this.level,
-    required this.name,
-    required this.englishName,
-    required this.parentId,
-    required this.lat,
-    required this.lon,
-  });
-
-  factory IraqPlace.fromJson(Map<String, dynamic> json) {
-    final name = Map<String, dynamic>.from(
-      json['name'] is Map ? json['name'] : const <String, dynamic>{},
-    );
-    final geo = Map<String, dynamic>.from(
-      json['geo'] is Map ? json['geo'] : const <String, dynamic>{},
-    );
-    final parent = json['parent'] is Map
-        ? Map<String, dynamic>.from(json['parent'])
-        : null;
-
-    return IraqPlace(
-      id: json['id']?.toString() ?? '',
-      level: int.tryParse(json['level']?.toString() ?? '') ?? 0,
-      name: name['local']?.toString() ?? name['ar']?.toString() ?? '',
-      englishName: name['en']?.toString() ?? '',
-      parentId: json['parent_id']?.toString() ?? parent?['id']?.toString(),
-      lat: double.tryParse(geo['lat']?.toString() ?? '') ?? 0,
-      lon: double.tryParse(geo['lon']?.toString() ?? '') ?? 0,
     );
   }
 }
@@ -2542,234 +2007,45 @@ class PrayerTimesPage extends StatefulWidget {
 }
 
 class _PrayerTimesPageState extends State<PrayerTimesPage> {
-  static const String _govUrl =
-      'https://raw.githubusercontent.com/open-admin-data/'
-      'iraq-administrative-divisions/master/data/all-governorate.json';
-  static const String _districtUrl =
-      'https://raw.githubusercontent.com/open-admin-data/'
-      'iraq-administrative-divisions/master/data/all-district.json';
-  static const String _subdistrictUrl =
-      'https://raw.githubusercontent.com/open-admin-data/'
-      'iraq-administrative-divisions/master/data/all-subdistrict.json';
-
-  bool loadingPlaces = true;
-  bool loadingTimes = false;
+  String city = 'Samarra';
+  bool loading = false;
   String? error;
   Map<String, String> times = {};
   String dateText = '';
 
-  List<IraqPlace> governorates = [];
-  List<IraqPlace> districts = [];
-  List<IraqPlace> subdistricts = [];
-
-  IraqPlace? selectedGovernorate;
-  IraqPlace? selectedDistrict;
-  IraqPlace? selectedSubdistrict;
+  static const cities = <String, String>{
+    'Samarra': 'سامراء',
+    'Baghdad': 'بغداد',
+    'Mosul': 'الموصل',
+    'Kirkuk': 'كركوك',
+    'Erbil': 'أربيل',
+    'Sulaymaniyah': 'السليمانية',
+    'Duhok': 'دهوك',
+    'Najaf': 'النجف',
+    'Karbala': 'كربلاء',
+    'Basra': 'البصرة',
+  };
 
   @override
   void initState() {
     super.initState();
-    _loadIraqPlaces();
+    _loadPrayerTimes();
   }
-
-  Future<List<IraqPlace>> _fetchPlaces(String url) async {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode != 200) {
-      throw Exception('HTTP ${response.statusCode}');
-    }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is! List) {
-      throw Exception('بيانات المواقع غير صحيحة');
-    }
-
-    return decoded
-        .map((item) => IraqPlace.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ))
-        .where((place) => place.id.isNotEmpty)
-        .toList();
-  }
-
-  Future<void> _loadIraqPlaces() async {
-    setState(() {
-      loadingPlaces = true;
-      error = null;
-    });
-
-    try {
-      final results = await Future.wait<List<IraqPlace>>([
-        _fetchPlaces(_govUrl),
-        _fetchPlaces(_districtUrl),
-        _fetchPlaces(_subdistrictUrl),
-      ]);
-
-      final loadedGovernors = results[0];
-      final loadedDistricts = results[1];
-      final loadedSubdistricts = results[2];
-
-      // حلبجة: نضيفها صراحةً حتى تشمل النسخة الحالية 19 محافظة.
-      // المصدر المرجعي المفتوح أعلاه يحتوي 18 محافظة و101 قضاء و294 ناحية.
-      // حلبجة أضيفت هنا مع التقسيم المتاح في المرجع العراقي المفتوح.
-      loadedGovernors.add(
-        const IraqPlace(
-          id: 'IQ-HL',
-          level: 1,
-          name: 'حلبجة',
-          englishName: 'Halabja',
-          parentId: null,
-          lat: 35.1787,
-          lon: 45.9864,
-        ),
-      );
-
-      const halabjaDistrictId = 'IQ-HL-Q01';
-      loadedDistricts.add(
-        const IraqPlace(
-          id: halabjaDistrictId,
-          level: 2,
-          name: 'حلبجة',
-          englishName: 'Halabja',
-          parentId: 'IQ-HL',
-          lat: 35.1787,
-          lon: 45.9864,
-        ),
-      );
-
-      const halabjaSubdistricts = [
-        IraqPlace(
-          id: 'IQ-HL-Q01-N01',
-          level: 3,
-          name: 'حلبجة',
-          englishName: 'Halabja',
-          parentId: halabjaDistrictId,
-          lat: 35.1787,
-          lon: 45.9864,
-        ),
-        IraqPlace(
-          id: 'IQ-HL-Q01-N02',
-          level: 3,
-          name: 'سيروان',
-          englishName: 'Sirwan',
-          parentId: halabjaDistrictId,
-          lat: 35.2548,
-          lon: 45.9401,
-        ),
-        IraqPlace(
-          id: 'IQ-HL-Q01-N03',
-          level: 3,
-          name: 'خورمال',
-          englishName: 'Khurmal',
-          parentId: halabjaDistrictId,
-          lat: 35.2975,
-          lon: 46.0349,
-        ),
-        IraqPlace(
-          id: 'IQ-HL-Q01-N04',
-          level: 3,
-          name: 'بيارة',
-          englishName: 'Byara',
-          parentId: halabjaDistrictId,
-          lat: 35.2308,
-          lon: 46.1206,
-        ),
-        IraqPlace(
-          id: 'IQ-HL-Q01-N05',
-          level: 3,
-          name: 'بامو',
-          englishName: 'Bamo',
-          parentId: halabjaDistrictId,
-          lat: 35.1904,
-          lon: 45.9712,
-        ),
-      ];
-
-      loadedSubdistricts.addAll(halabjaSubdistricts);
-
-      loadedGovernors.sort((a, b) => a.name.compareTo(b.name));
-      loadedDistricts.sort((a, b) => a.name.compareTo(b.name));
-      loadedSubdistricts.sort((a, b) => a.name.compareTo(b.name));
-
-      if (!mounted) return;
-
-      final defaultGovernorate = loadedGovernors.firstWhere(
-        (item) => item.name == 'صلاح الدين',
-        orElse: () => loadedGovernors.first,
-      );
-
-      setState(() {
-        governorates = loadedGovernors;
-        districts = loadedDistricts;
-        subdistricts = loadedSubdistricts;
-        selectedGovernorate = defaultGovernorate;
-        selectedDistrict = _districtsFor(defaultGovernorate).isEmpty
-            ? null
-            : _districtsFor(defaultGovernorate).first;
-        selectedSubdistrict = selectedDistrict == null
-            ? null
-            : (_subdistrictsFor(selectedDistrict!).isEmpty
-                ? null
-                : _subdistrictsFor(selectedDistrict!).first);
-        loadingPlaces = false;
-      });
-
-      await _loadPrayerTimes();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        loadingPlaces = false;
-        error = 'تعذر تحميل قائمة المحافظات والأقضية والنواحي. تحقق من الإنترنت.';
-      });
-    }
-  }
-
-  List<IraqPlace> _districtsFor(IraqPlace governorate) {
-    return districts
-        .where((item) => item.parentId == governorate.id)
-        .toList();
-  }
-
-  List<IraqPlace> _subdistrictsFor(IraqPlace district) {
-    return subdistricts
-        .where((item) => item.parentId == district.id)
-        .toList();
-  }
-
-  IraqPlace? get _activePlace =>
-      selectedSubdistrict ?? selectedDistrict ?? selectedGovernorate;
 
   Future<void> _loadPrayerTimes() async {
-    final place = _activePlace;
-    if (place == null || place.lat == 0 || place.lon == 0) return;
-
-    setState(() {
-      loadingTimes = true;
-      error = null;
-    });
-
+    setState(() { loading = true; error = null; });
     try {
       final now = DateTime.now();
-      final date =
-          '${now.day.toString().padLeft(2, '0')}-'
-          '${now.month.toString().padLeft(2, '0')}-${now.year}';
-
       final url = Uri.parse(
-        'https://api.aladhan.com/v1/timings/$date'
-        '?latitude=${place.lat}&longitude=${place.lon}'
-        '&method=8&school=0&timezonestring=Asia%2FBaghdad',
+        'https://api.aladhan.com/v1/timingsByCity/${now.day}-${now.month}-${now.year}'
+        '?city=${Uri.encodeComponent(city)}&country=Iraq&method=8',
       );
-
       final response = await http.get(url);
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-
+      if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
       final body = jsonDecode(response.body);
       final timings = Map<String, dynamic>.from(body['data']['timings']);
       final metaDate = body['data']['date'];
-
       if (!mounted) return;
-
       setState(() {
         times = {
           'الفجر': timings['Fajr']?.toString() ?? '--:--',
@@ -2779,351 +2055,58 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
           'المغرب': timings['Maghrib']?.toString() ?? '--:--',
           'العشاء': timings['Isha']?.toString() ?? '--:--',
         };
-        dateText =
-            '${metaDate?['gregorian']?['date'] ?? ''}  •  '
-            '${metaDate?['hijri']?['date'] ?? ''} هـ';
-        loadingTimes = false;
+        dateText = '${metaDate?['gregorian']?['date'] ?? ''}  •  ${metaDate?['hijri']?['date'] ?? ''} هـ';
+        loading = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        loadingTimes = false;
-        error = 'تعذر تحميل المواقيت. تحقق من الإنترنت.';
-      });
+      setState(() { loading = false; error = 'تعذر تحميل المواقيت. تحقق من الإنترنت.'; });
     }
-  }
-
-  Future<void> _showPlacePicker({
-    required String title,
-    required List<IraqPlace> items,
-    required IraqPlace? selected,
-    required ValueChanged<IraqPlace> onSelected,
-  }) async {
-    if (items.isEmpty) return;
-
-    final result = await showModalBottomSheet<IraqPlace>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: SizedBox(
-            height: MediaQuery.of(sheetContext).size.height * 0.78,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    title,
-                    textDirection: TextDirection.rtl,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return ListTile(
-                        title: Text(
-                          item.name,
-                          textDirection: TextDirection.rtl,
-                        ),
-                        subtitle: Text(
-                          item.englishName,
-                          textDirection: TextDirection.ltr,
-                        ),
-                        trailing: item.id == selected?.id
-                            ? const Icon(Icons.check_circle)
-                            : const Icon(Icons.chevron_left),
-                        onTap: () => Navigator.pop(sheetContext, item),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (result != null) {
-      onSelected(result);
-    }
-  }
-
-  Widget _placeSelector({
-    required String label,
-    required String? value,
-    required VoidCallback? onTap,
-    required IconData icon,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(
-          label,
-          textDirection: TextDirection.rtl,
-          style: const TextStyle(fontSize: 12),
-        ),
-        subtitle: Text(
-          value ?? 'اختر',
-          textDirection: TextDirection.rtl,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        trailing: const Icon(Icons.keyboard_arrow_down_rounded),
-        onTap: onTap,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final governorate = selectedGovernorate;
-    final governorateDistricts =
-        governorate == null ? <IraqPlace>[] : _districtsFor(governorate);
-    final district = selectedDistrict;
-    final districtSubdistricts =
-        district == null ? <IraqPlace>[] : _subdistrictsFor(district);
-    final activePlace = _activePlace;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('مواقيت الصلاة'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: loadingPlaces || loadingTimes
-                ? null
-                : _loadPrayerTimes,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'تحديث',
-          ),
-        ],
-      ),
-      body: loadingPlaces
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadPrayerTimes,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Card(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'موقع مواقيت الصلاة',
-                            textDirection: TextDirection.rtl,
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'المحافظة ← القضاء ← الناحية',
-                            textDirection: TextDirection.rtl,
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _placeSelector(
-                    label: 'المحافظة',
-                    value: governorate?.name,
-                    icon: Icons.map_outlined,
-                    onTap: () => _showPlacePicker(
-                      title: 'اختر المحافظة',
-                      items: governorates,
-                      selected: selectedGovernorate,
-                      onSelected: (value) {
-                        final nextDistricts = _districtsFor(value);
-                        final nextDistrict =
-                            nextDistricts.isEmpty
-                                ? null
-                                : nextDistricts.first;
-                        final nextSubs = nextDistrict == null
-                            ? <IraqPlace>[]
-                            : _subdistrictsFor(nextDistrict);
-
-                        setState(() {
-                          selectedGovernorate = value;
-                          selectedDistrict = nextDistrict;
-                          selectedSubdistrict =
-                              nextSubs.isEmpty ? null : nextSubs.first;
-                          times = {};
-                          dateText = '';
-                        });
-                        _loadPrayerTimes();
-                      },
-                    ),
-                  ),
-                  _placeSelector(
-                    label: 'القضاء',
-                    value: district?.name,
-                    icon: Icons.location_city_outlined,
-                    onTap: governorateDistricts.isEmpty
-                        ? null
-                        : () => _showPlacePicker(
-                              title: 'اختر القضاء',
-                              items: governorateDistricts,
-                              selected: selectedDistrict,
-                              onSelected: (value) {
-                                final nextSubs =
-                                    _subdistrictsFor(value);
-                                setState(() {
-                                  selectedDistrict = value;
-                                  selectedSubdistrict =
-                                      nextSubs.isEmpty
-                                          ? null
-                                          : nextSubs.first;
-                                  times = {};
-                                  dateText = '';
-                                });
-                                _loadPrayerTimes();
-                              },
-                            ),
-                  ),
-                  _placeSelector(
-                    label: 'الناحية',
-                    value: districtSubdistricts.isEmpty
-                        ? 'لا توجد نواحٍ مسجلة — يستخدم مركز القضاء'
-                        : selectedSubdistrict?.name,
-                    icon: Icons.place_outlined,
-                    onTap: districtSubdistricts.isEmpty
-                        ? null
-                        : () => _showPlacePicker(
-                              title: 'اختر الناحية',
-                              items: districtSubdistricts,
-                              selected: selectedSubdistrict,
-                              onSelected: (value) {
-                                setState(() {
-                                  selectedSubdistrict = value;
-                                  times = {};
-                                  dateText = '';
-                                });
-                                _loadPrayerTimes();
-                              },
-                            ),
-                  ),
-                  if (activePlace != null)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          'الإحداثيات: ${activePlace.lat.toStringAsFixed(4)}, '
-                          '${activePlace.lon.toStringAsFixed(4)}',
-                          textDirection: TextDirection.rtl,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  if (dateText.isNotEmpty)
-                    Center(
-                      child: Text(
-                        dateText,
-                        textDirection: TextDirection.rtl,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  if (loadingTimes)
-                    const Padding(
-                      padding: EdgeInsets.all(30),
-                      child: Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
-                  if (error != null)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text(
-                          error!,
-                          textDirection: TextDirection.rtl,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ...times.entries.map(
-                    (entry) => Card(
-                      child: ListTile(
-                        leading: Icon(
-                          _prayerIcon(entry.key),
-                          size: 30,
-                        ),
-                        title: Text(
-                          entry.key,
-                          textDirection: TextDirection.rtl,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        trailing: Text(
-                          entry.value,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'المواقيت تُحسب حسب إحداثيات الموقع المختار. '
-                    'قد تختلف دقائق بسيطة عن توقيت المسجد أو الجهة الرسمية المحلية.',
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
+      appBar: AppBar(title: const Text('مواقيت الصلاة'), centerTitle: true),
+      body: RefreshIndicator(
+        onRefresh: _loadPrayerTimes,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            DropdownButtonFormField<String>(
+              value: city,
+              decoration: const InputDecoration(labelText: 'المدينة', border: OutlineInputBorder(), prefixIcon: Icon(Icons.location_city)),
+              items: cities.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, textDirection: TextDirection.rtl))).toList(),
+              onChanged: (value) { if (value != null) { setState(() => city = value); _loadPrayerTimes(); } },
             ),
+            const SizedBox(height: 14),
+            if (dateText.isNotEmpty) Center(child: Text(dateText, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold))),
+            const SizedBox(height: 14),
+            if (loading) const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator())),
+            if (error != null) Card(child: Padding(padding: const EdgeInsets.all(20), child: Text(error!, textDirection: TextDirection.rtl, textAlign: TextAlign.center))),
+            ...times.entries.map((entry) => Card(
+              child: ListTile(
+                leading: Icon(_prayerIcon(entry.key), size: 30),
+                title: Text(entry.key, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+                trailing: Text(entry.value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ),
+            )),
+            const SizedBox(height: 8),
+            const Text('المواقيت تُجلب حسب المدينة المختارة ويمكن تحديثها بالسحب للأسفل.', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
     );
   }
 
   IconData _prayerIcon(String name) {
     switch (name) {
-      case 'الفجر':
-        return Icons.nightlight_round;
-      case 'الشروق':
-        return Icons.wb_sunny_outlined;
-      case 'الظهر':
-        return Icons.wb_sunny;
-      case 'العصر':
-        return Icons.sunny_snowing;
-      case 'المغرب':
-        return Icons.wb_twilight;
-      default:
-        return Icons.nights_stay;
+      case 'الفجر': return Icons.nightlight_round;
+      case 'الشروق': return Icons.wb_sunny_outlined;
+      case 'الظهر': return Icons.wb_sunny;
+      case 'العصر': return Icons.sunny_snowing;
+      case 'المغرب': return Icons.wb_twilight;
+      default: return Icons.nights_stay;
     }
   }
 }
