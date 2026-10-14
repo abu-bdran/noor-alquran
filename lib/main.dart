@@ -943,23 +943,22 @@ Future<void> _showReciters() async {
                     final reciter = reciters[index];
 
                     return ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.person),
-                      ),
-                      title: Text(
-                        reciter.name,
-                        textDirection: TextDirection.rtl,
-                      ),
-                      trailing: const Icon(
-                        Icons.arrow_back_ios,
-                        size: 16,
-                      ),
-                      onTap: () {
-  Navigator.pop(context);
-  _showMoshafList(reciter);
-},
-                      },
-                    );
+  leading: const CircleAvatar(
+    child: Icon(Icons.person),
+  ),
+  title: Text(
+    reciter.name,
+    textDirection: TextDirection.rtl,
+  ),
+  trailing: const Icon(
+    Icons.arrow_back_ios,
+    size: 16,
+  ),
+  onTap: () {
+    Navigator.pop(context);
+    _showMoshafList(reciter);
+  },
+);
                   },
                 ),
               ),
