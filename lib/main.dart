@@ -717,6 +717,11 @@ document.addEventListener('touchend', function(event) {
 
     return 1;
   }
+  @override
+void dispose() {
+  _audioPlayer.dispose();
+  super.dispose();
+}
     void _showAyahMenu(String ayah) {
     showModalBottomSheet(
       context: context,
