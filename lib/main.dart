@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -318,54 +319,6 @@ class QuranPage extends StatelessWidget {
     );
   }
 }
-class Moshaf {
-  final String name;
-  final String server;
-  final List<String> surahList;
-
-  Moshaf({
-    required this.name,
-    required this.server,
-    required this.surahList,
-  });
-
-  factory Moshaf.fromJson(Map<String, dynamic> json) {
-    return Moshaf(
-      name: json['name']?.toString() ?? '',
-      server: json['server']?.toString() ?? '',
-      surahList: (json['surah_list']?.toString() ?? '')
-          .split(',')
-          .where((e) => e.isNotEmpty)
-          .toList(),
-    );
-  }
-}
-
-class Reciter {
-  final int id;
-  final String name;
-  final List<Moshaf> moshaf;
-
-  Reciter({
-    required this.id,
-    required this.name,
-    required this.moshaf,
-  });
-
-  factory Reciter.fromJson(Map<String, dynamic> json) {
-    return Reciter(
-      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: json['name']?.toString() ?? '',
-      moshaf: (json['moshaf'] as List? ?? [])
-          .map(
-            (item) => Moshaf.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
 class TimingRead {
   final int id;
   final String name;
@@ -381,23 +334,13 @@ class TimingRead {
     required this.soarCount,
   });
 
-  factory TimingRead.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory TimingRead.fromJson(Map<String, dynamic> json) {
     return TimingRead(
-      id: int.tryParse(
-            json['id']?.toString() ?? '',
-          ) ??
-          0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['name']?.toString().trim() ?? '',
-      rewaya:
-          json['rewaya']?.toString().trim() ?? '',
-      folderUrl:
-          json['folder_url']?.toString() ?? '',
-      soarCount: int.tryParse(
-            json['soar_count']?.toString() ?? '',
-          ) ??
-          0,
+      rewaya: json['rewaya']?.toString().trim() ?? '',
+      folderUrl: json['folder_url']?.toString() ?? '',
+      soarCount: int.tryParse(json['soar_count']?.toString() ?? '') ?? 0,
     );
   }
 }
@@ -406,37 +349,22 @@ class AyahTiming {
   final int ayah;
   final int startTime;
   final int endTime;
-  final int? page;
 
   const AyahTiming({
     required this.ayah,
     required this.startTime,
     required this.endTime,
-    this.page,
   });
 
-  factory AyahTiming.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory AyahTiming.fromJson(Map<String, dynamic> json) {
     return AyahTiming(
-      ayah: int.tryParse(
-            json['ayah']?.toString() ?? '',
-          ) ??
-          -1,
-      startTime: int.tryParse(
-            json['start_time']?.toString() ?? '',
-          ) ??
-          0,
-      endTime: int.tryParse(
-            json['end_time']?.toString() ?? '',
-          ) ??
-          0,
-      page: int.tryParse(
-        json['page']?.toString() ?? '',
-      ),
+      ayah: int.tryParse(json['ayah']?.toString() ?? '') ?? -1,
+      startTime: int.tryParse(json['start_time']?.toString() ?? '') ?? 0,
+      endTime: int.tryParse(json['end_time']?.toString() ?? '') ?? 0,
     );
   }
 }
+
 class QuranReaderPage extends StatefulWidget {
   final int surahNumber;
   final String surahName;
@@ -452,57 +380,34 @@ class QuranReaderPage extends StatefulWidget {
 }
 
 class _QuranReaderPageState extends State<QuranReaderPage> {
-    StreamSubscription<Duration>? _positionSubscription;
-
-  StreamSubscription<ProcessingState>?
-      _processingSubscription;
-
-  String? _selectedAyah;
-
-  TimingRead? _selectedRead;
-
-  double _speed = 1.0;
-
-  int _repeatCount = 1;
-
-  int _completedRepeats = 0;
-
-  bool _handlingCompletion = false;
-
-  bool _isFullSurahPlayback = false;
-
-  int? _lastHighlightedAyah;
-
-  int? _lastAudioPage;
   late int currentPage;
   late WebViewController controller;
-List<TimingRead> reciters = [];
-bool loadingReciters = false;
-  AudioPlayer _audioPlayer = AudioPlayer();
+List<TimingRead> timingReads = [];
+  bool loadingReciters = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  List<AyahTiming> _ayahTimings = [];
+  StreamSubscription<Duration>? _positionSubscription;
+  String? _selectedAyah;
+  TimingRead? _selectedRead;
+  double _speed = 1.0;
+  int _repeatCount = 1;
+  int _completedRepeats = 0;
+  bool _handlingCompletion = false;
   @override
   void initState() {
     super.initState();
-    _positionSubscription =
-        _audioPlayer.positionStream.listen(
-      _onAudioPosition,
-    );
 
-    _processingSubscription =
-        _audioPlayer.processingStateStream.listen(
-      (state) {
-        if (state == ProcessingState.completed) {
-          if (_isFullSurahPlayback) {
-            _isFullSurahPlayback = false;
-            _selectedAyah = null;
-            _lastHighlightedAyah = null;
-          } else {
-            _handleAudioCompleted();
-          }
-        }
-      },
-    );
     currentPage =
         surahStartPages[widget.surahNumber - 1];
+
+    _positionSubscription =
+        _audioPlayer.positionStream.listen(_onAudioPosition);
+
+    _audioPlayer.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        _handleAudioCompleted();
+      }
+    });
 
     controller = WebViewController()
       ..setJavaScriptMode(
@@ -546,44 +451,270 @@ bool loadingReciters = false;
       );
   }
 Future<void> _loadReciters() async {
-  setState(() {
-    loadingReciters = true;
-  });
+    setState(() {
+      loadingReciters = true;
+    });
 
-  try {
-    final response = await http.get(
-      Uri.parse(
-        'https://mp3quran.net/api/v3/reciters?language=ar',
-      ),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://mp3quran.net/api/v3/ayat_timing/reads',
+        ),
+      );
 
-    if (response.statusCode == 200) {
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+
       final data = jsonDecode(response.body);
+      final List<dynamic> list = data is List ? data : [];
 
-      final List<dynamic> list = data['reciters'] ?? [];
+      if (!mounted) return;
 
       setState(() {
-        reciters = list
+        timingReads = list
             .map(
-              (item) => Reciter.fromJson(
+              (item) => TimingRead.fromJson(
                 Map<String, dynamic>.from(item),
               ),
             )
+            .where(
+              (read) =>
+                  read.id > 0 && read.folderUrl.isNotEmpty,
+            )
             .toList();
-
         loadingReciters = false;
       });
-    } else {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         loadingReciters = false;
       });
     }
-  } catch (e) {
-    setState(() {
-      loadingReciters = false;
-    });
   }
-}
+
+  Future<List<AyahTiming>> _loadAyahTimings(
+    TimingRead read,
+  ) async {
+    final response = await http.get(
+      Uri.parse(
+        'https://mp3quran.net/api/v3/ayat_timing'
+        '?surah=${widget.surahNumber}&read=${read.id}',
+      ),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('تعذر تحميل توقيت الآيات');
+    }
+
+    final data = jsonDecode(response.body);
+    final List<dynamic> list = data is List ? data : [];
+
+    return list
+        .map(
+          (item) => AyahTiming.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .where(
+          (item) =>
+              item.ayah >= 1 &&
+              item.endTime > item.startTime,
+        )
+        .toList();
+  }
+
+  String _surahAudioUrl(TimingRead read) {
+    final surahId =
+        widget.surahNumber.toString().padLeft(3, '0');
+    return '${read.folderUrl}$surahId.mp3';
+  }
+
+  Future<File> _surahFile(TimingRead read) async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File(
+      '${dir.path}/noor_quran_${widget.surahNumber}_${read.id}.mp3',
+    );
+  }
+
+  Future<bool> _hasOfflineSurah(TimingRead read) async {
+    final file = await _surahFile(read);
+    return file.exists();
+  }
+
+  Future<File> _downloadSurahForRead(
+    TimingRead read, {
+    bool showMessage = true,
+  }) async {
+    final file = await _surahFile(read);
+
+    if (await file.exists()) {
+      return file;
+    }
+
+    if (showMessage && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'جاري تنزيل الصوت للاستخدام بدون إنترنت...',
+          ),
+        ),
+      );
+    }
+
+    final response = await http.get(
+      Uri.parse(_surahAudioUrl(read)),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('فشل تنزيل الصوت');
+    }
+
+    await file.writeAsBytes(
+      response.bodyBytes,
+      flush: true,
+    );
+
+    return file;
+  }
+
+  Future<void> _prepareAndPlayAyah(
+    String ayah,
+    TimingRead read, {
+    int? repeatCount,
+    double? speed,
+  }) async {
+    final parts = ayah.split(':');
+    if (parts.length != 2) return;
+
+    final verse = int.tryParse(parts[1]);
+    if (verse == null) return;
+
+    try {
+      if (_ayahTimings.isEmpty ||
+          _selectedRead?.id != read.id) {
+        _ayahTimings = await _loadAyahTimings(read);
+      }
+
+      AyahTiming? timing;
+      for (final item in _ayahTimings) {
+        if (item.ayah == verse) {
+          timing = item;
+          break;
+        }
+      }
+
+      if (timing == null) {
+        throw Exception('لا يوجد توقيت لهذه الآية');
+      }
+
+      _selectedAyah = ayah;
+      _selectedRead = read;
+      _speed = speed ?? _speed;
+      _repeatCount = repeatCount ?? _repeatCount;
+      _completedRepeats = 0;
+      _handlingCompletion = false;
+
+      await _audioPlayer.stop();
+
+      final offlineFile = await _surahFile(read);
+
+      if (await offlineFile.exists()) {
+        await _audioPlayer.setFilePath(
+          offlineFile.path,
+        );
+      } else {
+        await _audioPlayer.setUrl(
+          _surahAudioUrl(read),
+        );
+      }
+
+      await _audioPlayer.setClip(
+        start: Duration(
+          milliseconds: timing.startTime,
+        ),
+        end: Duration(
+          milliseconds: timing.endTime,
+        ),
+      );
+
+      await _audioPlayer.setSpeed(_speed);
+
+      _highlightAyah(ayah);
+      await _audioPlayer.play();
+    } catch (e) {
+      if (!mounted) return;
+
+      _showMessage(
+        'تعذر تشغيل الآية: '
+        '${e.toString().replaceFirst('Exception: ', '')}',
+      );
+    }
+  }
+
+  void _onAudioPosition(Duration position) {
+    if (_ayahTimings.isEmpty || _selectedRead == null) {
+      return;
+    }
+
+    final ms = position.inMilliseconds;
+
+    for (final item in _ayahTimings) {
+      if (ms >= item.startTime &&
+          ms < item.endTime) {
+        _highlightAyah(
+          '${widget.surahNumber}:${item.ayah}',
+        );
+        break;
+      }
+    }
+  }
+
+  void _highlightAyah(String ayah) {
+    final parts = ayah.split(':');
+    if (parts.length != 2) return;
+
+    final surah = parts[0].replaceAll("'", "\\'");
+    final verse = parts[1].replaceAll("'", "\\'");
+
+    controller.runJavaScript("""
+      document.querySelectorAll('.ayahPolygon').forEach(function(el) {
+        el.classList.remove('selected');
+        if (
+          el.getAttribute('surah') === '$surah' &&
+          el.getAttribute('ayah') === '$verse'
+        ) {
+          el.classList.add('selected');
+        }
+      });
+    """);
+  }
+
+  void _handleAudioCompleted() {
+    if (_handlingCompletion || _selectedAyah == null) {
+      return;
+    }
+
+    _handlingCompletion = true;
+
+    if (_repeatCount == 0 ||
+        _completedRepeats + 1 < _repeatCount) {
+      _completedRepeats++;
+
+      Future.microtask(() async {
+        try {
+          await _audioPlayer.seek(Duration.zero);
+          await _audioPlayer.play();
+        } finally {
+          _handlingCompletion = false;
+        }
+      });
+    } else {
+      _completedRepeats = 0;
+      _handlingCompletion = false;
+    }
+  }
+
   String _mushafPage(int page) {
     final p = page.toString().padLeft(3, '0');
 
@@ -629,6 +760,12 @@ body {
 .ayahPolygon {
   cursor: pointer;
 }
+
+.ayahPolygon.selected {
+  fill: rgba(103, 58, 183, 0.28) !important;
+  stroke: #673AB7 !important;
+  stroke-width: 2 !important;
+}
 </style>
 </head>
 
@@ -637,68 +774,6 @@ body {
 <div id="mushaf"></div>
 
 <script>
-
-let audio = null;
-let currentSpeed = 1.0;
-
-function playAyah(ayah) {
-
-  if (audio) {
-    audio.pause();
-  }
-
-  const parts = ayah.split(':');
-
-  if (parts.length !== 2) {
-    return;
-  }
-
-  const surah = parts[0];
-  const verse = parts[1];
-
-  fetch(
-    'https://api.alquran.cloud/v1/ayah/' +
-    surah +
-    ':' +
-    verse +
-    '/ar.alafasy'
-  )
-  .then(response => response.json())
-  .then(data => {
-
-    const url = data.data.audio;
-
-    audio = new Audio(url);
-
-    audio.playbackRate = currentSpeed;
-
-    audio.play();
-  });
-}
-
-function pauseAyah() {
-
-  if (audio) {
-    audio.pause();
-  }
-}
-
-function stopAyah() {
-
-  if (audio) {
-    audio.pause();
-    audio.currentTime = 0;
-  }
-}
-
-function setSpeed(speed) {
-
-  currentSpeed = speed;
-
-  if (audio) {
-    audio.playbackRate = speed;
-  }
-}
 
 const pageNumber = $page;
 
@@ -830,62 +905,9 @@ document.addEventListener('touchend', function(event) {
   }
   @override
 void dispose() {
-  _positionSubscription?.cancel();
-  _processingSubscription?.cancel();
-  _audioPlayer.dispose();
-  super.dispose();
-}
-    void _onAudioPosition(Duration position) {
-    if (!_isFullSurahPlayback) {
-      return;
-    }
-
-    if (_ayahTimings.isEmpty) {
-      return;
-    }
-
-    final milliseconds = position.inMilliseconds;
-
-    AyahTiming? currentTiming;
-
-    for (final timing in _ayahTimings) {
-      if (milliseconds >= timing.startTime &&
-          milliseconds < timing.endTime) {
-        currentTiming = timing;
-        break;
-      }
-    }
-
-    if (currentTiming == null) {
-      return;
-    }
-
-    if (_lastHighlightedAyah == currentTiming.ayah) {
-      return;
-    }
-
-    _lastHighlightedAyah = currentTiming.ayah;
-
-    _highlightAyah(currentTiming.ayah);
-    }
-  void _highlightAyah(String ayah) {
-  final parts = ayah.split(':');
-  if (parts.length != 2) return;
-
-  final surah = parts[0];
-final verse = parts[1];
-    controller.runJavaScript("""
-    document.querySelectorAll('.ayahPolygon').forEach(function(el) {
-      el.classList.remove('selected');
-
-      if (
-        el.getAttribute('surah') === '$surah' &&
-        el.getAttribute('ayah') === '$verse'
-      ) {
-        el.classList.add('selected');
-      }
-    });
-  """);
+    _positionSubscription?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
   }
     void _showAyahMenu(String ayah) {
     showModalBottomSheet(
@@ -916,7 +938,7 @@ final verse = parts[1];
                 title: const Text('استماع'),
                 onTap: () {
                   Navigator.pop(context);
-                  _showReciters();
+                  _showReciters(ayah);
                 },
               ),
               ListTile(
@@ -1000,294 +1022,334 @@ final verse = parts[1];
       ),
     );
   }
-  void _showMoshafList(Reciter reciter) {
-  if (reciter.moshaf.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('لا توجد رواية متاحة لهذا القارئ'),
-      ),
-    );
-    return;
-  }
+  Future<void> _showReciters(String ayah) async {
+    if (timingReads.isEmpty) {
+      await _loadReciters();
+    }
 
-  showModalBottomSheet(
-    context: context,
-    showDragHandle: true,
-    builder: (context) {
-      return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                reciter.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        if (loadingReciters) {
+          return const SizedBox(
+            height: 250,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (timingReads.isEmpty) {
+          return const SizedBox(
+            height: 250,
+            child: Center(
+              child: Text('تعذر تحميل قائمة القرّاء'),
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: SizedBox(
+            height:
+                MediaQuery.of(context).size.height * 0.78,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'اختر القارئ',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                textDirection: TextDirection.rtl,
-              ),
-            ),
-            const Divider(),
-            ...reciter.moshaf.map(
-              (moshaf) {
-                return ListTile(
-                  leading: const Icon(Icons.menu_book),
-                  title: Text(
-                    moshaf.name,
-                    textDirection: TextDirection.rtl,
-                  ),
-                  trailing: const Icon(
-                    Icons.arrow_back_ios,
-                    size: 16,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _downloadSurah(moshaf);
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-      );
-    },
-  );
-  }
-Future<void> _showReciters(String ayah) async {
-  if (reciters.isEmpty) {
-    await _loadReciters();
-  }
+                const Divider(),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: timingReads.length,
+                    itemBuilder: (context, index) {
+                      final read = timingReads[index];
 
-  if (!mounted) return;
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (context) {
-      if (loadingReciters) {
-        return const SizedBox(
-          height: 250,
-          child: Center(
-            child: CircularProgressIndicator(),
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.person),
+                        ),
+                        title: Text(
+                          read.name,
+                          textDirection: TextDirection.rtl,
+                        ),
+                        subtitle: read.rewaya.isEmpty
+                            ? null
+                            : Text(
+                                read.rewaya,
+                                textDirection:
+                                    TextDirection.rtl,
+                              ),
+                        trailing: const Icon(
+                          Icons.arrow_back_ios,
+                          size: 16,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showAudioControls(
+                            ayah,
+                            read,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         );
-      }
-
-      if (reciters.isEmpty) {
-        return const SizedBox(
-          height: 250,
-          child: Center(
-            child: Text('تعذر تحميل قائمة القرّاء'),
-          ),
-        );
-      }
-
-      return SafeArea(
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.75,
-          child: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'اختر القارئ',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const Divider(),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: reciters.length,
-                  itemBuilder: (context, index) {
-                    final reciter = reciters[index];
-
-                    return ListTile(
-  leading: const CircleAvatar(
-    child: Icon(Icons.person),
-  ),
-  title: Text(
-    reciter.name,
-    textDirection: TextDirection.rtl,
-  ),
-  trailing: const Icon(
-    Icons.arrow_back_ios,
-    size: 16,
-  ),
-  onTap: () {
-    Navigator.pop(context);
-    _showAudioControls(ayah);
-  },
-);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-  String _surahAudioUrl(TimingRead read) {
-  final surahId = widget.surahNumber.toString().padLeft(3, '0');
-  final folder = read.folderUrl.endsWith('/')
-      ? read.folderUrl
-      : '${read.folderUrl}/';
-
-  return '$folder$surahId.mp3';
-  }
-  Future<File> _downloadSurahForRead(
-  TimingRead read, {
-  bool showMessage = true,
-}) async {
-  final dir = await getApplicationDocumentsDirectory();
-
-  final file = File(
-    '${dir.path}/noor_quran_${widget.surahNumber}_${read.id}.mp3',
-  );
-
-  if (await file.exists()) {
-    return file;
-  }
-
-  if (showMessage && mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'جاري تنزيل الصوت للاستخدام بدون إنترنت...',
-        ),
-      ),
+      },
     );
   }
 
-  final response = await http.get(
-    Uri.parse(_surahAudioUrl(read)),
-  );
-
-  if (response.statusCode != 200) {
-    throw Exception('فشل تنزيل الصوت');
-  }
-
-  await file.writeAsBytes(
-    response.bodyBytes,
-    flush: true,
-  );
-
-  return file;
-  }
-  void _showAudioControls(String ayah) {
-    double speed = 1.0;
+  void _showAudioControls(
+    String ayah,
+    TimingRead read,
+  ) {
+    double speed = _speed;
+    int repeat = _repeatCount;
 
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      builder: (context) {
+      builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'الاستماع إلى الآية',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        iconSize: 36,
-                        onPressed: () {
-                          controller.runJavaScript(
-                            'playAyah("$ayah");',
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.play_circle_fill,
-                        ),
-                      ),
-                      IconButton(
-                        iconSize: 36,
-                        onPressed: () {
-                          controller.runJavaScript(
-                            'pauseAyah();',
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.pause_circle,
-                        ),
-                      ),
-                      IconButton(
-                        iconSize: 36,
-                        onPressed: () {
-                          controller.runJavaScript(
-                            'stopAyah();',
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.stop_circle,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  const Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'سرعة التلاوة',
-                      style: TextStyle(
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  10,
+                  20,
+                  24,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'الآية $ayah',
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 19,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      for (final value in [
-                        0.5,
-                        0.75,
-                        1.0,
-                        1.25,
-                        1.5,
-                        2.0,
-                      ])
-                        ChoiceChip(
-                          label: Text('${value}x'),
-                          selected: speed == value,
-                          onSelected: (_) {
-                            setSheetState(() {
-                              speed = value;
-                            });
-
-                            controller.runJavaScript(
-                              'setSpeed($value);',
+                    const SizedBox(height: 6),
+                    Text(
+                      read.name,
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.center,
+                    ),
+                    if (read.rewaya.isNotEmpty)
+                      Text(
+                        read.rewaya,
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                        ),
+                      ),
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          iconSize: 42,
+                          tooltip: 'تشغيل',
+                          onPressed: () {
+                            _prepareAndPlayAyah(
+                              ayah,
+                              read,
+                              repeatCount: repeat,
+                              speed: speed,
                             );
                           },
+                          icon: const Icon(
+                            Icons.play_circle_fill,
+                          ),
                         ),
-                    ],
-                  ),
+                        IconButton(
+                          iconSize: 38,
+                          tooltip: 'إيقاف مؤقت',
+                          onPressed: () =>
+                              _audioPlayer.pause(),
+                          icon: const Icon(
+                            Icons.pause_circle,
+                          ),
+                        ),
+                        IconButton(
+                          iconSize: 38,
+                          tooltip: 'إيقاف',
+                          onPressed: () =>
+                              _audioPlayer.stop(),
+                          icon: const Icon(
+                            Icons.stop_circle,
+                          ),
+                        ),
+                        IconButton(
+                          iconSize: 34,
+                          tooltip: 'تنزيل',
+                          onPressed: () async {
+                            try {
+                              await _downloadSurahForRead(
+                                read,
+                              );
 
-                  const SizedBox(height: 20),
-                ],
+                              if (!mounted) return;
+
+                              _showMessage(
+                                'تم تنزيل الصوت ويمكن تشغيل الآية بدون إنترنت',
+                              );
+
+                              setSheetState(() {});
+                            } catch (_) {
+                              if (mounted) {
+                                _showMessage(
+                                  'تعذر تنزيل الصوت',
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.download,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'عدد مرات تكرار الآية',
+                        textDirection: TextDirection.rtl,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        for (final value in [
+                          1,
+                          2,
+                          3,
+                          5,
+                          10,
+                          0,
+                        ])
+                          ChoiceChip(
+                            label: Text(
+                              value == 0
+                                  ? '∞'
+                                  : '$value',
+                            ),
+                            selected: repeat == value,
+                            onSelected: (_) {
+                              setSheetState(() {
+                                repeat = value;
+                              });
+                              _repeatCount = value;
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'سرعة التلاوة',
+                        textDirection: TextDirection.rtl,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        for (final value in [
+                          0.5,
+                          0.75,
+                          1.0,
+                          1.25,
+                          1.5,
+                          2.0,
+                        ])
+                          ChoiceChip(
+                            label: Text(
+                              '${value}x',
+                            ),
+                            selected:
+                                speed == value,
+                            onSelected: (_) {
+                              setSheetState(() {
+                                speed = value;
+                              });
+                              _speed = value;
+                              _audioPlayer.setSpeed(
+                                value,
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    FutureBuilder<bool>(
+                      future:
+                          _hasOfflineSurah(read),
+                      builder:
+                          (context, snapshot) {
+                        if (snapshot.data ==
+                            true) {
+                          return const Text(
+                            '✓ الصوت متوفر على الجهاز — يعمل بدون إنترنت',
+                            textDirection:
+                                TextDirection.rtl,
+                            textAlign:
+                                TextAlign.center,
+                            style: TextStyle(
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
+                          );
+                        }
+
+                        return const Text(
+                          'يمكن تنزيل الصوت من زر ⬇️',
+                          textDirection:
+                              TextDirection.rtl,
+                          textAlign:
+                              TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -1295,6 +1357,7 @@ Future<void> _showReciters(String ayah) async {
       },
     );
   }
+
     Future<void> _showTafsir(String ayah) async {
     final parts = ayah.split(':');
 
