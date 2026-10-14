@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -366,6 +366,77 @@ class Reciter {
     );
   }
 }
+class TimingRead {
+  final int id;
+  final String name;
+  final String rewaya;
+  final String folderUrl;
+  final int soarCount;
+
+  const TimingRead({
+    required this.id,
+    required this.name,
+    required this.rewaya,
+    required this.folderUrl,
+    required this.soarCount,
+  });
+
+  factory TimingRead.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return TimingRead(
+      id: int.tryParse(
+            json['id']?.toString() ?? '',
+          ) ??
+          0,
+      name: json['name']?.toString().trim() ?? '',
+      rewaya:
+          json['rewaya']?.toString().trim() ?? '',
+      folderUrl:
+          json['folder_url']?.toString() ?? '',
+      soarCount: int.tryParse(
+            json['soar_count']?.toString() ?? '',
+          ) ??
+          0,
+    );
+  }
+}
+
+class AyahTiming {
+  final int ayah;
+  final int startTime;
+  final int endTime;
+  final int? page;
+
+  const AyahTiming({
+    required this.ayah,
+    required this.startTime,
+    required this.endTime,
+    this.page,
+  });
+
+  factory AyahTiming.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return AyahTiming(
+      ayah: int.tryParse(
+            json['ayah']?.toString() ?? '',
+          ) ??
+          -1,
+      startTime: int.tryParse(
+            json['start_time']?.toString() ?? '',
+          ) ??
+          0,
+      endTime: int.tryParse(
+            json['end_time']?.toString() ?? '',
+          ) ??
+          0,
+      page: int.tryParse(
+        json['page']?.toString() ?? '',
+      ),
+    );
+  }
+}
 class QuranReaderPage extends StatefulWidget {
   final int surahNumber;
   final String surahName;
@@ -381,15 +452,55 @@ class QuranReaderPage extends StatefulWidget {
 }
 
 class _QuranReaderPageState extends State<QuranReaderPage> {
+    StreamSubscription<Duration>? _positionSubscription;
+
+  StreamSubscription<ProcessingState>?
+      _processingSubscription;
+
+  String? _selectedAyah;
+
+  TimingRead? _selectedRead;
+
+  double _speed = 1.0;
+
+  int _repeatCount = 1;
+
+  int _completedRepeats = 0;
+
+  bool _handlingCompletion = false;
+
+  bool _isFullSurahPlayback = false;
+
+  int? _lastHighlightedAyah;
+
+  int? _lastAudioPage;
   late int currentPage;
   late WebViewController controller;
-List<Reciter> reciters = [];
+List<TimingRead> reciters = [];
 bool loadingReciters = false;
   AudioPlayer _audioPlayer = AudioPlayer();
   @override
   void initState() {
     super.initState();
+    _positionSubscription =
+        _audioPlayer.positionStream.listen(
+      _onAudioPosition,
+    );
 
+    _processingSubscription =
+        _audioPlayer.processingStateStream.listen(
+      (state) {
+        if (state == ProcessingState.completed) {
+          if (_isFullSurahPlayback) {
+            _isFullSurahPlayback = false;
+            _selectedAyah = null;
+            _lastHighlightedAyah = null;
+          } else {
+            _handleAudioCompleted();
+          }
+        }
+      },
+    );
     currentPage =
         surahStartPages[widget.surahNumber - 1];
 
@@ -719,9 +830,44 @@ document.addEventListener('touchend', function(event) {
   }
   @override
 void dispose() {
+  _positionSubscription?.cancel();
+  _processingSubscription?.cancel();
   _audioPlayer.dispose();
   super.dispose();
 }
+    void _onAudioPosition(Duration position) {
+    if (!_isFullSurahPlayback) {
+      return;
+    }
+
+    if (_ayahTimings.isEmpty) {
+      return;
+    }
+
+    final milliseconds = position.inMilliseconds;
+
+    AyahTiming? currentTiming;
+
+    for (final timing in _ayahTimings) {
+      if (milliseconds >= timing.startTime &&
+          milliseconds < timing.endTime) {
+        currentTiming = timing;
+        break;
+      }
+    }
+
+    if (currentTiming == null) {
+      return;
+    }
+
+    if (_lastHighlightedAyah == currentTiming.ayah) {
+      return;
+    }
+
+    _lastHighlightedAyah = currentTiming.ayah;
+
+    _highlightAyah(currentTiming.ayah);
+    }
     void _showAyahMenu(String ayah) {
     showModalBottomSheet(
       context: context,
