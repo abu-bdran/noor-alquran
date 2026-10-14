@@ -176,6 +176,7 @@ class _HomePageState extends State<HomePage> {
     HomeContent(),
     QuranPage(),
     AdhkarPage(),
+    PrayerTimesPage(),
     LibraryPage(),
   ];
 
@@ -219,24 +220,10 @@ class _HomePageState extends State<HomePage> {
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
-  Widget _tile(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Widget page,
-  }) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon, size: 34),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => page),
-        ),
-      ),
+  void _open(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => page),
     );
   }
 
@@ -246,56 +233,140 @@ class HomeContent extends StatelessWidget {
       appBar: AppBar(
         title: const Text('نور القرآن'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: 'الإعدادات',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsPage()),
-            ),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _tile(
-            context,
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF673AB7), Color(0xFF8E63C7)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'نور القرآن — قرآن، أذكار، أدعية ومواقيت الصلاة',
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _HomeFeatureCard(
             icon: Icons.menu_book,
             title: 'القرآن الكريم',
-            subtitle: 'قراءة واستماع وتفسير وتلاوة متزامنة',
-            page: const QuranPage(),
+            subtitle: 'قراءة، استماع، تضليل الآية، تفسير وتنزيل',
+            onTap: () => _open(context, const QuranPage()),
           ),
-          _tile(
-            context,
-            icon: Icons.access_time,
+          _HomeFeatureCard(
+            icon: Icons.wb_sunny,
+            title: 'أذكار الصباح والمساء',
+            subtitle: 'أذكار مع عدّاد للتكرار',
+            onTap: () => _open(context, const AdhkarPage()),
+          ),
+          _HomeFeatureCard(
+            icon: Icons.auto_awesome,
+            title: 'الأدعية',
+            subtitle: 'أدعية القرآن والأنبياء والأدعية اليومية',
+            onTap: () => _open(context, const DuasPage()),
+          ),
+          _HomeFeatureCard(
+            icon: Icons.access_time_filled,
             title: 'مواقيت الصلاة',
-            subtitle: 'مواقيت اليوم حسب المدينة',
-            page: const PrayerTimesPage(),
+            subtitle: 'الفجر والشروق والظهر والعصر والمغرب والعشاء',
+            onTap: () => _open(context, const PrayerTimesPage()),
           ),
-          _tile(
-            context,
-            icon: Icons.favorite,
-            title: 'الأذكار والأدعية',
-            subtitle: 'الصباح والمساء وأدعية مختارة',
-            page: const AdhkarPage(),
-          ),
-          _tile(
-            context,
-            icon: Icons.download,
-            title: 'التنزيلات',
-            subtitle: 'أصوات القراء والتشغيل بدون إنترنت',
-            page: const DownloadsPage(),
-          ),
-          _tile(
-            context,
-            icon: Icons.flag,
-            title: 'ختم القرآن',
-            subtitle: 'متابعة تقدم الختمة',
-            page: const KhatmaPage(),
+          Row(
+            children: [
+              Expanded(
+                child: _SmallFeatureCard(
+                  icon: Icons.explore,
+                  title: 'القبلة',
+                  onTap: () => _open(context, const QiblaPage()),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SmallFeatureCard(
+                  icon: Icons.touch_app,
+                  title: 'التسبيح',
+                  onTap: () => _open(context, const TasbihPage()),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeFeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _HomeFeatureCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: Icon(icon),
+        ),
+        title: Text(title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, textDirection: TextDirection.rtl),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 17),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _SmallFeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _SmallFeatureCard({required this.icon, required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          child: Column(
+            children: [
+              Icon(icon, size: 32),
+              const SizedBox(height: 7),
+              Text(title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -376,18 +447,28 @@ class AyahTiming {
   final int ayah;
   final int startTime;
   final int endTime;
+  final String? polygon;
+  final int? page;
 
   const AyahTiming({
     required this.ayah,
     required this.startTime,
     required this.endTime,
+    this.polygon,
+    this.page,
   });
 
   factory AyahTiming.fromJson(Map<String, dynamic> json) {
+    final pageUrl = json['page']?.toString();
+    final pageMatch = pageUrl == null
+        ? null
+        : RegExp(r'/([0-9]{3})\.svg').firstMatch(pageUrl);
     return AyahTiming(
       ayah: int.tryParse(json['ayah']?.toString() ?? '') ?? -1,
       startTime: int.tryParse(json['start_time']?.toString() ?? '') ?? 0,
       endTime: int.tryParse(json['end_time']?.toString() ?? '') ?? 0,
+      polygon: json['polygon']?.toString(),
+      page: int.tryParse(pageMatch?.group(1) ?? ''),
     );
   }
 }
@@ -420,6 +501,11 @@ List<TimingRead> timingReads = [];
   int _repeatCount = 1;
   int _completedRepeats = 0;
   bool _handlingCompletion = false;
+  bool _isFullSurahPlayback = false;
+  String? _lastHighlightedAyah;
+  int? _lastHighlightedPage;
+  StreamSubscription<ProcessingState>? _processingSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -430,7 +516,7 @@ List<TimingRead> timingReads = [];
     _positionSubscription =
         _audioPlayer.positionStream.listen(_onAudioPosition);
 
-    _audioPlayer.processingStateStream.listen((state) {
+    _processingSubscription = _audioPlayer.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) {
         _handleAudioCompleted();
       }
@@ -470,6 +556,18 @@ List<TimingRead> timingReads = [];
             setState(() {
               currentPage = page;
             });
+
+            if (_isFullSurahPlayback && _lastHighlightedAyah != null) {
+              final parts = _lastHighlightedAyah!.split(':');
+              if (parts.length == 2) {
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  if (!mounted) return;
+                  controller.runJavaScript(
+                    "setNoorAyahHighlight('${parts[0]}', '${parts[1]}');",
+                  );
+                });
+              }
+            }
           }
         },
       )
@@ -637,10 +735,12 @@ Future<void> _loadReciters() async {
 
       _selectedAyah = ayah;
       _selectedRead = read;
+      _isFullSurahPlayback = false;
       _speed = speed ?? _speed;
       _repeatCount = repeatCount ?? _repeatCount;
       _completedRepeats = 0;
       _handlingCompletion = false;
+      if (mounted) setState(() {});
 
       await _audioPlayer.stop();
 
@@ -667,7 +767,7 @@ Future<void> _loadReciters() async {
 
       await _audioPlayer.setSpeed(_speed);
 
-      _highlightAyah(ayah);
+      _highlightTiming(timing);
       await _audioPlayer.play();
     } catch (e) {
       if (!mounted) return;
@@ -680,45 +780,86 @@ Future<void> _loadReciters() async {
   }
 
   void _onAudioPosition(Duration position) {
-    if (_ayahTimings.isEmpty || _selectedRead == null) {
-      return;
-    }
+    if (!_isFullSurahPlayback || _ayahTimings.isEmpty) return;
 
     final ms = position.inMilliseconds;
-
     for (final item in _ayahTimings) {
-      if (ms >= item.startTime &&
-          ms < item.endTime) {
-        _highlightAyah(
-          '${widget.surahNumber}:${item.ayah}',
-        );
+      if (ms >= item.startTime && ms < item.endTime) {
+        if (_lastHighlightedAyah != '${widget.surahNumber}:${item.ayah}') {
+          _highlightTiming(item);
+        }
+        if (item.page != null && item.page != _lastHighlightedPage) {
+          _lastHighlightedPage = item.page;
+          _changePage(item.page!);
+        }
         break;
       }
     }
   }
 
-  void _highlightAyah(String ayah) {
-    final parts = ayah.split(':');
-    if (parts.length != 2) return;
+  void _highlightTiming(AyahTiming timing) {
+    _lastHighlightedAyah = '${widget.surahNumber}:${timing.ayah}';
+    controller.runJavaScript(
+      "setNoorAyahHighlight('${widget.surahNumber}', '${timing.ayah}');",
+    );
+  }
 
-    final surah = parts[0].replaceAll("'", "\\'");
-    final verse = parts[1].replaceAll("'", "\\'");
-
+  void _clearAyahHighlight() {
+    _lastHighlightedAyah = null;
     controller.runJavaScript("""
+      window.noorHighlightSurah = null;
+      window.noorHighlightAyah = null;
       document.querySelectorAll('.ayahPolygon').forEach(function(el) {
         el.classList.remove('selected');
-        if (
-          el.getAttribute('surah') === '$surah' &&
-          el.getAttribute('ayah') === '$verse'
-        ) {
-          el.classList.add('selected');
-        }
+        if (el.dataset.noorOriginalFill) el.style.setProperty('fill', el.dataset.noorOriginalFill, 'important');
+        else el.style.removeProperty('fill');
+        if (el.dataset.noorOriginalStroke) el.style.setProperty('stroke', el.dataset.noorOriginalStroke, 'important');
+        else el.style.removeProperty('stroke');
+        if (el.dataset.noorOriginalStrokeWidth) el.style.setProperty('stroke-width', el.dataset.noorOriginalStrokeWidth, 'important');
+        else el.style.removeProperty('stroke-width');
+        if (el.dataset.noorOriginalFillOpacity) el.style.setProperty('fill-opacity', el.dataset.noorOriginalFillOpacity, 'important');
+        else el.style.removeProperty('fill-opacity');
       });
     """);
   }
 
+  Future<void> _playFullSurah(TimingRead read) async {
+    try {
+      _ayahTimings = await _loadAyahTimings(read);
+      if (_ayahTimings.isEmpty) throw Exception('لا توجد توقيتات متاحة لهذه السورة');
+
+      _selectedRead = read;
+      _selectedAyah = null;
+      _isFullSurahPlayback = true;
+      _lastHighlightedPage = null;
+      _completedRepeats = 0;
+      _handlingCompletion = false;
+      if (mounted) setState(() {});
+
+      await _audioPlayer.stop();
+      final offlineFile = await _surahFile(read);
+      if (await offlineFile.exists()) {
+        await _audioPlayer.setFilePath(offlineFile.path);
+      } else {
+        await _audioPlayer.setUrl(_surahAudioUrl(read));
+      }
+      await _audioPlayer.setClip(start: null, end: null);
+      await _audioPlayer.setSpeed(_speed);
+      await _audioPlayer.play();
+
+      final first = _ayahTimings.first;
+      if (first.page != null) {
+        _lastHighlightedPage = first.page;
+        await _changePage(first.page!);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage('تعذر تشغيل السورة: ${e.toString().replaceFirst('Exception: ', '')}');
+    }
+  }
+
   void _handleAudioCompleted() {
-    if (_handlingCompletion || _selectedAyah == null) {
+    if (_handlingCompletion || _selectedAyah == null || _isFullSurahPlayback) {
       return;
     }
 
@@ -789,9 +930,9 @@ body {
 }
 
 .ayahPolygon.selected {
-  fill: rgba(103, 58, 183, 0.28) !important;
-  stroke: #673AB7 !important;
-  stroke-width: 2 !important;
+  fill: rgba(103, 58, 183, 0.30) !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
 }
 </style>
 </head>
@@ -803,6 +944,39 @@ body {
 <script>
 
 const pageNumber = $page;
+
+function setNoorAyahHighlight(surah, ayah) {
+  window.noorHighlightSurah = String(surah);
+  window.noorHighlightAyah = String(ayah);
+  document.querySelectorAll('.ayahPolygon').forEach(function(el) {
+    if (!el.dataset.noorOriginalFill) {
+      el.dataset.noorOriginalFill = el.getAttribute('fill') || '';
+      el.dataset.noorOriginalStroke = el.getAttribute('stroke') || '';
+      el.dataset.noorOriginalStrokeWidth = el.getAttribute('stroke-width') || '';
+      el.dataset.noorOriginalFillOpacity = el.getAttribute('fill-opacity') || '';
+    }
+    const match = el.getAttribute('surah') === String(surah) &&
+                  el.getAttribute('ayah') === String(ayah);
+    if (match) {
+      el.classList.add('selected');
+      el.style.setProperty('fill', 'rgba(103,58,183,0.30)', 'important');
+      el.style.setProperty('fill-opacity', '1', 'important');
+      el.style.setProperty('stroke', 'none', 'important');
+      el.style.setProperty('stroke-width', '0', 'important');
+    } else {
+      el.classList.remove('selected');
+      if (el.dataset.noorOriginalFill) el.style.setProperty('fill', el.dataset.noorOriginalFill, 'important');
+      else el.style.removeProperty('fill');
+      if (el.dataset.noorOriginalStroke) el.style.setProperty('stroke', el.dataset.noorOriginalStroke, 'important');
+      else el.style.removeProperty('stroke');
+      if (el.dataset.noorOriginalStrokeWidth) el.style.setProperty('stroke-width', el.dataset.noorOriginalStrokeWidth, 'important');
+      else el.style.removeProperty('stroke-width');
+      if (el.dataset.noorOriginalFillOpacity) el.style.setProperty('fill-opacity', el.dataset.noorOriginalFillOpacity, 'important');
+      else el.style.removeProperty('fill-opacity');
+    }
+  });
+}
+window.setNoorAyahHighlight = setNoorAyahHighlight;
 
 fetch('$svgUrl')
   .then(response => response.text())
@@ -858,6 +1032,11 @@ document.addEventListener('touchend', function(event) {
     PageChannel.postMessage(
       pageNumber.toString()
     );
+    if (window.noorHighlightSurah && window.noorHighlightAyah) {
+      setTimeout(function() {
+        setNoorAyahHighlight(window.noorHighlightSurah, window.noorHighlightAyah);
+      }, 80);
+    }
   })
   .catch(function(error) {
 
@@ -881,63 +1060,36 @@ document.addEventListener('touchend', function(event) {
           'سورة ${widget.surahName}',
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: 'اختيار القارئ',
-            icon: const Icon(Icons.headphones),
-            onPressed: () => _showReciters(
-              _selectedAyah ?? '${widget.surahNumber}:1',
-            ),
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'tafsir') {
-                _showTafsir(
-                  _selectedAyah ?? '${widget.surahNumber}:1',
-                );
-              } else if (value == 'info') {
-                _showInfo(
-                  _selectedAyah ?? '${widget.surahNumber}:1',
-                );
-              } else if (value == 'settings') {
-                _showPlaybackSettings();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'tafsir',
-                child: Text('التفسير / الترجمة'),
-              ),
-              PopupMenuItem(
-                value: 'info',
-                child: Text('معلومات الآية'),
-              ),
-              PopupMenuItem(
-                value: 'settings',
-                child: Text('إعدادات التلاوة'),
-              ),
-            ],
-          ),
-        ],
       ),
       body: WebViewWidget(
         controller: controller,
       ),
       bottomNavigationBar: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (_selectedRead != null && _showPlayerBar)
-              _buildPlayerBar(),
+            if (_selectedRead != null) _buildAudioBar(),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('الصفحة $currentPage',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text('الجزء ${_juz(currentPage)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'الصفحة $currentPage',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'الجزء ${_juz(currentPage)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -947,67 +1099,82 @@ document.addEventListener('touchend', function(event) {
     );
   }
 
+  Widget _buildAudioBar() {
+    final read = _selectedRead;
+    if (read == null) return const SizedBox.shrink();
 
-  Widget _buildPlayerBar() {
     return StreamBuilder<PlayerState>(
       stream: _audioPlayer.playerStateStream,
       builder: (context, snapshot) {
-        final playing = snapshot.data?.playing ?? _audioPlayer.playing;
+        final playerState = snapshot.data;
+        final isPlaying = playerState?.playing ?? false;
+
         return Container(
-          margin: const EdgeInsets.fromLTRB(10, 5, 10, 4),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+          margin: const EdgeInsets.fromLTRB(10, 6, 10, 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
           decoration: BoxDecoration(
-            color: const Color(0xFF673AB7),
+            color: const Color(0xFF8E63C7),
             borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                blurRadius: 8,
+                offset: Offset(0, 3),
+                color: Color(0x33000000),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              IconButton(
-                color: Colors.white,
-                tooltip: 'السابق',
-                onPressed: _playPreviousAyah,
-                icon: const Icon(Icons.skip_previous_rounded),
+              _audioBarButton(
+                Icons.skip_previous_rounded,
+                'الآية السابقة',
+                () => _moveAudioAyah(-1),
               ),
-              IconButton(
-                color: Colors.white,
-                tooltip: 'إيقاف',
-                onPressed: () async {
+              _audioBarButton(
+                Icons.stop_rounded,
+                'إيقاف',
+                () async {
+                  _isFullSurahPlayback = false;
+                  _selectedAyah = null;
+                  _selectedRead = null;
                   await _audioPlayer.stop();
+                  _clearAyahHighlight();
                   if (mounted) setState(() {});
                 },
-                icon: const Icon(Icons.stop_circle_outlined),
               ),
               Expanded(
                 child: IconButton(
-                  color: Colors.white,
-                  iconSize: 34,
-                  tooltip: playing ? 'إيقاف مؤقت' : 'تشغيل',
                   onPressed: () async {
-                    if (playing) {
+                    if (isPlaying) {
                       await _audioPlayer.pause();
                     } else {
                       await _audioPlayer.play();
                     }
-                    if (mounted) setState(() {});
                   },
+                  iconSize: 42,
+                  color: Colors.white,
+                  tooltip: isPlaying ? 'إيقاف مؤقت' : 'تشغيل',
                   icon: Icon(
-                    playing
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_fill,
+                    isPlaying
+                        ? Icons.pause_circle_filled_rounded
+                        : Icons.play_circle_fill_rounded,
                   ),
                 ),
               ),
-              IconButton(
-                color: Colors.white,
-                tooltip: 'التالي',
-                onPressed: _playNextAyah,
-                icon: const Icon(Icons.skip_next_rounded),
+              _audioBarButton(
+                Icons.skip_next_rounded,
+                'الآية التالية',
+                () => _moveAudioAyah(1),
               ),
               IconButton(
+                onPressed: () => _showAudioControls(
+                  _selectedAyah ?? '${widget.surahNumber}:1',
+                  read,
+                ),
+                iconSize: 32,
                 color: Colors.white,
-                tooltip: 'إعدادات التلاوة',
-                onPressed: _showPlaybackSettings,
-                icon: const Icon(Icons.settings_outlined),
+                tooltip: 'إعدادات الصوت',
+                icon: const Icon(Icons.settings_rounded),
               ),
             ],
           ),
@@ -1016,142 +1183,60 @@ document.addEventListener('touchend', function(event) {
     );
   }
 
-  Future<void> _playPreviousAyah() async {
-    if (_selectedRead == null) return;
-    if (_ayahTimings.isEmpty) {
-      _ayahTimings = await _loadAyahTimings(_selectedRead!);
-    }
-    int current = 1;
-    if (_lastHighlightedAyah != null) {
-      current = int.tryParse(_lastHighlightedAyah!.split(':').last) ?? 1;
-    }
-    final index = _ayahTimings.indexWhere((e) => e.ayah == current);
-    final target = index > 0 ? _ayahTimings[index - 1] : _ayahTimings.first;
-
-    if (_isFullSurahPlayback) {
-      await _audioPlayer.seek(Duration(milliseconds: target.startTime));
-      _highlightTiming(target);
-      if (target.page != null && target.page != currentPage) {
-        await _changePage(target.page!);
-      }
-    } else {
-      await _prepareAndPlayAyah(
-        '${widget.surahNumber}:${target.ayah}',
-        _selectedRead!,
-      );
-    }
+  Widget _audioBarButton(
+    IconData icon,
+    String tooltip,
+    VoidCallback onPressed,
+  ) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      iconSize: 34,
+      color: Colors.white,
+      tooltip: tooltip,
+    );
   }
 
-  Future<void> _playNextAyah() async {
-    if (_selectedRead == null) return;
-    if (_ayahTimings.isEmpty) {
-      _ayahTimings = await _loadAyahTimings(_selectedRead!);
-    }
-    int current = 0;
+  Future<void> _moveAudioAyah(int delta) async {
+    if (_selectedRead == null || _ayahTimings.isEmpty) return;
+
+    int currentAyah;
     if (_lastHighlightedAyah != null) {
-      current = int.tryParse(_lastHighlightedAyah!.split(':').last) ?? 0;
+      final parts = _lastHighlightedAyah!.split(':');
+      currentAyah = int.tryParse(parts.length == 2 ? parts[1] : '') ?? 1;
+    } else if (_selectedAyah != null) {
+      final parts = _selectedAyah!.split(':');
+      currentAyah = int.tryParse(parts.length == 2 ? parts[1] : '') ?? 1;
+    } else {
+      currentAyah = _ayahTimings.first.ayah;
     }
-    final index = _ayahTimings.indexWhere((e) => e.ayah == current);
-    final target = index >= 0 && index + 1 < _ayahTimings.length
-        ? _ayahTimings[index + 1]
-        : _ayahTimings.last;
+
+    final index = _ayahTimings.indexWhere((e) => e.ayah == currentAyah);
+    if (index < 0) return;
+
+    final nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= _ayahTimings.length) return;
+
+    final timing = _ayahTimings[nextIndex];
 
     if (_isFullSurahPlayback) {
-      await _audioPlayer.seek(Duration(milliseconds: target.startTime));
-      _highlightTiming(target);
-      if (target.page != null && target.page != currentPage) {
-        await _changePage(target.page!);
+      await _audioPlayer.seek(Duration(milliseconds: timing.startTime));
+      _highlightTiming(timing);
+      if (timing.page != null && timing.page != currentPage) {
+        _lastHighlightedPage = timing.page;
+        await _changePage(timing.page!);
       }
-    } else {
-      await _prepareAndPlayAyah(
-        '${widget.surahNumber}:${target.ayah}',
-        _selectedRead!,
-      );
+      if (!_audioPlayer.playing) {
+        await _audioPlayer.play();
+      }
+      return;
     }
-  }
 
-  void _showPlaybackSettings() {
-    if (_selectedRead == null) return;
-    double speed = _speed;
-    int repeat = _repeatCount;
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'إعدادات التلاوة',
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                const Text('سرعة التلاوة', textDirection: TextDirection.rtl),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final v in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
-                      ChoiceChip(
-                        label: Text('${v}x'),
-                        selected: speed == v,
-                        onSelected: (_) {
-                          setSheetState(() => speed = v);
-                          _speed = v;
-                          _audioPlayer.setSpeed(v);
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const Text('تكرار الآية', textDirection: TextDirection.rtl),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final v in [1, 2, 3, 5, 10, 0])
-                      ChoiceChip(
-                        label: Text(v == 0 ? '∞' : '$v'),
-                        selected: repeat == v,
-                        onSelected: (_) {
-                          setSheetState(() => repeat = v);
-                          _repeatCount = v;
-                        },
-                      ),
-                  ],
-                ),
-                ListTile(
-                  leading: const Icon(Icons.download),
-                  title: const Text('تنزيل صوت السورة'),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    try {
-                      await _downloadSurahForRead(_selectedRead!);
-                      _showMessage('تم التنزيل ويمكن التشغيل بدون إنترنت');
-                    } catch (_) {
-                      _showMessage('تعذر تنزيل الصوت');
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.person),
-                  title: const Text('تغيير القارئ'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _showReciters(
-                      _selectedAyah ?? '${widget.surahNumber}:1',
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    await _prepareAndPlayAyah(
+      '${widget.surahNumber}:${timing.ayah}',
+      _selectedRead!,
+      repeatCount: _repeatCount,
+      speed: _speed,
     );
   }
 
@@ -1174,6 +1259,7 @@ document.addEventListener('touchend', function(event) {
   @override
 void dispose() {
     _positionSubscription?.cancel();
+    _processingSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -1385,8 +1471,6 @@ void dispose() {
     String ayah,
     TimingRead read,
   ) {
-    _selectedRead = read;
-    _selectedAyah = ayah;
     double speed = _speed;
     int repeat = _repeatCount;
 
@@ -1465,8 +1549,14 @@ void dispose() {
                         IconButton(
                           iconSize: 38,
                           tooltip: 'إيقاف',
-                          onPressed: () =>
-                              _audioPlayer.stop(),
+                          onPressed: () async {
+                            _isFullSurahPlayback = false;
+                            _selectedAyah = null;
+                            _selectedRead = null;
+                            await _audioPlayer.stop();
+                            _clearAyahHighlight();
+                            if (mounted) setState(() {});
+                          },
                           icon: const Icon(
                             Icons.stop_circle,
                           ),
@@ -1500,6 +1590,15 @@ void dispose() {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(sheetContext);
+                        await _playFullSurah(read);
+                      },
+                      icon: const Icon(Icons.library_music),
+                      label: const Text('تشغيل السورة كاملة مع التضليل'),
                     ),
                     const SizedBox(height: 12),
                     const Align(
@@ -1819,93 +1918,231 @@ void dispose() {
     );
   }
 }
-  
-class IraqSubDistrict {
-  final String id;
-  final String nameAr;
-  final String nameEn;
+  class AdhkarItem {
+  final String title;
+  final String text;
+  final int count;
+  const AdhkarItem(this.title, this.text, this.count);
+}
 
-  const IraqSubDistrict({
-    required this.id,
-    required this.nameAr,
-    required this.nameEn,
-  });
+class AdhkarPage extends StatefulWidget {
+  const AdhkarPage({super.key});
 
-  factory IraqSubDistrict.fromJson(Map<String, dynamic> json) {
-    final name = Map<String, dynamic>.from(json['name'] ?? {});
-    return IraqSubDistrict(
-      id: json['id']?.toString() ?? '',
-      nameAr: name['ar']?.toString() ?? '',
-      nameEn: name['en']?.toString() ?? '',
+  @override
+  State<AdhkarPage> createState() => _AdhkarPageState();
+}
+
+class _AdhkarPageState extends State<AdhkarPage> {
+  int category = 0;
+  final categories = const ['الصباح', 'المساء', 'بعد الصلاة', 'النوم'];
+
+  final List<List<AdhkarItem>> data = const [
+    [
+      AdhkarItem('ذكر', 'أصبحنا وأصبح الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
+      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
+      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+      AdhkarItem('الصلاة على النبي', 'اللهم صل وسلم وبارك على نبينا محمد.', 10),
+    ],
+    [
+      AdhkarItem('ذكر', 'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
+      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
+      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+    ],
+    [
+      AdhkarItem('الاستغفار', 'أستغفر الله.', 3),
+      AdhkarItem('التسبيح', 'سبحان الله.', 33),
+      AdhkarItem('الحمد', 'الحمد لله.', 33),
+      AdhkarItem('التكبير', 'الله أكبر.', 34),
+    ],
+    [
+      AdhkarItem('دعاء النوم', 'باسمك اللهم أموت وأحيا.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله.', 33),
+      AdhkarItem('الحمد', 'الحمد لله.', 33),
+      AdhkarItem('التكبير', 'الله أكبر.', 34),
+    ],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final items = data[category];
+    return Scaffold(
+      appBar: AppBar(title: const Text('الأذكار'), centerTitle: true),
+      body: Column(
+        children: [
+          SizedBox(
+            height: 58,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              itemCount: categories.length,
+              itemBuilder: (_, index) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(categories[index]),
+                  selected: category == index,
+                  onSelected: (_) => setState(() => category = index),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: items.length,
+              itemBuilder: (_, index) => _DhikrCard(item: items[index]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class IraqDistrict {
-  final String id;
-  final String nameAr;
-  final String nameEn;
-  final List<IraqSubDistrict> subDistricts;
+class _DhikrCard extends StatefulWidget {
+  final AdhkarItem item;
+  const _DhikrCard({required this.item});
 
-  const IraqDistrict({
-    required this.id,
-    required this.nameAr,
-    required this.nameEn,
-    required this.subDistricts,
-  });
+  @override
+  State<_DhikrCard> createState() => _DhikrCardState();
+}
 
-  factory IraqDistrict.fromJson(Map<String, dynamic> json) {
-    final name = Map<String, dynamic>.from(json['name'] ?? {});
-    final raw = (json['sub_districts'] as List?) ?? const [];
-    return IraqDistrict(
-      id: json['id']?.toString() ?? '',
-      nameAr: name['ar']?.toString() ?? '',
-      nameEn: name['en']?.toString() ?? '',
-      subDistricts: raw
-          .whereType<Map>()
-          .map((e) => IraqSubDistrict.fromJson(Map<String, dynamic>.from(e)))
-          .where((e) => e.id.isNotEmpty && e.nameAr.isNotEmpty)
-          .toList(),
+class _DhikrCardState extends State<_DhikrCard> {
+  late int remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    remaining = widget.item.count;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final done = remaining == 0;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: done ? null : () => setState(() => remaining--),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(widget.item.title, textDirection: TextDirection.rtl, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(widget.item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.8)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(done ? 'تم ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextButton.icon(
+                    onPressed: () => setState(() => remaining = widget.item.count),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('إعادة'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
-class IraqGovernorate {
-  final String id;
-  final String nameAr;
-  final String nameEn;
-  final String capitalAr;
-  final double? latitude;
-  final double? longitude;
-  final List<IraqDistrict> districts;
+class DuasPage extends StatelessWidget {
+  const DuasPage({super.key});
 
-  const IraqGovernorate({
+  static const List<Map<String, String>> duas = [
+    {'title': 'دعاء ربنا آتنا', 'text': 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ.'},
+    {'title': 'دعاء الهداية', 'text': 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ.'},
+    {'title': 'دعاء العلم', 'text': 'رَبِّ زِدْنِي عِلْمًا.'},
+    {'title': 'دعاء الوالدين', 'text': 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا.'},
+    {'title': 'دعاء التيسير', 'text': 'رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي.'},
+    {'title': 'دعاء المغفرة', 'text': 'رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا الَّذِينَ سَبَقُونَا بِالْإِيمَانِ.'},
+    {'title': 'دعاء الثبات', 'text': 'يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ.'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الأدعية'), centerTitle: true),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: duas.length,
+        itemBuilder: (_, index) {
+          final dua = duas[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(dua['title']!, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 10),
+                  Text(dua['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      tooltip: 'نسخ الدعاء',
+                      icon: const Icon(Icons.copy),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: dua['text']!));
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ الدعاء')));
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class IraqPlace {
+  final String id;
+  final int level;
+  final String name;
+  final String englishName;
+  final String? parentId;
+  final double lat;
+  final double lon;
+
+  const IraqPlace({
     required this.id,
-    required this.nameAr,
-    required this.nameEn,
-    required this.capitalAr,
-    required this.latitude,
-    required this.longitude,
-    required this.districts,
+    required this.level,
+    required this.name,
+    required this.englishName,
+    required this.parentId,
+    required this.lat,
+    required this.lon,
   });
 
-  factory IraqGovernorate.fromJson(Map<String, dynamic> json) {
-    final name = Map<String, dynamic>.from(json['name'] ?? {});
-    final capital = Map<String, dynamic>.from(json['capital'] ?? {});
-    final coords = Map<String, dynamic>.from(json['coordinates'] ?? {});
-    final raw = (json['districts'] as List?) ?? const [];
-    return IraqGovernorate(
+  factory IraqPlace.fromJson(Map<String, dynamic> json) {
+    final name = Map<String, dynamic>.from(
+      json['name'] is Map ? json['name'] : const <String, dynamic>{},
+    );
+    final geo = Map<String, dynamic>.from(
+      json['geo'] is Map ? json['geo'] : const <String, dynamic>{},
+    );
+    final parent = json['parent'] is Map
+        ? Map<String, dynamic>.from(json['parent'])
+        : null;
+
+    return IraqPlace(
       id: json['id']?.toString() ?? '',
-      nameAr: name['ar']?.toString() ?? '',
-      nameEn: name['en']?.toString() ?? '',
-      capitalAr: capital['ar']?.toString() ?? name['ar']?.toString() ?? '',
-      latitude: double.tryParse(coords['latitude']?.toString() ?? ''),
-      longitude: double.tryParse(coords['longitude']?.toString() ?? ''),
-      districts: raw
-          .whereType<Map>()
-          .map((e) => IraqDistrict.fromJson(Map<String, dynamic>.from(e)))
-          .where((e) => e.id.isNotEmpty && e.nameAr.isNotEmpty)
-          .toList(),
+      level: int.tryParse(json['level']?.toString() ?? '') ?? 0,
+      name: name['local']?.toString() ?? name['ar']?.toString() ?? '',
+      englishName: name['en']?.toString() ?? '',
+      parentId: json['parent_id']?.toString() ?? parent?['id']?.toString(),
+      lat: double.tryParse(geo['lat']?.toString() ?? '') ?? 0,
+      lon: double.tryParse(geo['lon']?.toString() ?? '') ?? 0,
     );
   }
 }
@@ -1918,390 +2155,623 @@ class PrayerTimesPage extends StatefulWidget {
 }
 
 class _PrayerTimesPageState extends State<PrayerTimesPage> {
-  static const _iraqDataUrl =
-      'https://raw.githubusercontent.com/Iraqi-Open-Source/official-iraqi-governorates/main/data/governorates.json';
+  static const String _govUrl =
+      'https://raw.githubusercontent.com/open-admin-data/'
+      'iraq-administrative-divisions/master/data/all-governorate.json';
+  static const String _districtUrl =
+      'https://raw.githubusercontent.com/open-admin-data/'
+      'iraq-administrative-divisions/master/data/all-district.json';
+  static const String _subdistrictUrl =
+      'https://raw.githubusercontent.com/open-admin-data/'
+      'iraq-administrative-divisions/master/data/all-subdistrict.json';
 
-  List<IraqGovernorate> governorates = [];
-  IraqGovernorate? selectedGovernorate;
-  IraqDistrict? selectedDistrict;
-  IraqSubDistrict? selectedSubDistrict;
-
-  Map<String, String> times = {};
-  String? hijri;
-  bool loadingLocations = true;
+  bool loadingPlaces = true;
   bool loadingTimes = false;
-  String? locationsError;
+  String? error;
+  Map<String, String> times = {};
+  String dateText = '';
+
+  List<IraqPlace> governorates = [];
+  List<IraqPlace> districts = [];
+  List<IraqPlace> subdistricts = [];
+
+  IraqPlace? selectedGovernorate;
+  IraqPlace? selectedDistrict;
+  IraqPlace? selectedSubdistrict;
 
   @override
   void initState() {
     super.initState();
-    _loadLocations();
+    _loadIraqPlaces();
   }
 
-  Future<void> _loadLocations() async {
+  Future<List<IraqPlace>> _fetchPlaces(String url) async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw Exception('بيانات المواقع غير صحيحة');
+    }
+
+    return decoded
+        .map((item) => IraqPlace.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ))
+        .where((place) => place.id.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _loadIraqPlaces() async {
     setState(() {
-      loadingLocations = true;
-      locationsError = null;
+      loadingPlaces = true;
+      error = null;
     });
+
     try {
-      final response = await http.get(Uri.parse(_iraqDataUrl));
+      final results = await Future.wait<List<IraqPlace>>([
+        _fetchPlaces(_govUrl),
+        _fetchPlaces(_districtUrl),
+        _fetchPlaces(_subdistrictUrl),
+      ]);
+
+      final loadedGovernors = results[0];
+      final loadedDistricts = results[1];
+      final loadedSubdistricts = results[2];
+
+      // حلبجة: نضيفها صراحةً حتى تشمل النسخة الحالية 19 محافظة.
+      // المصدر المرجعي المفتوح أعلاه يحتوي 18 محافظة و101 قضاء و294 ناحية.
+      // حلبجة أضيفت هنا مع التقسيم المتاح في المرجع العراقي المفتوح.
+      loadedGovernors.add(
+        const IraqPlace(
+          id: 'IQ-HL',
+          level: 1,
+          name: 'حلبجة',
+          englishName: 'Halabja',
+          parentId: null,
+          lat: 35.1787,
+          lon: 45.9864,
+        ),
+      );
+
+      const halabjaDistrictId = 'IQ-HL-Q01';
+      loadedDistricts.add(
+        const IraqPlace(
+          id: halabjaDistrictId,
+          level: 2,
+          name: 'حلبجة',
+          englishName: 'Halabja',
+          parentId: 'IQ-HL',
+          lat: 35.1787,
+          lon: 45.9864,
+        ),
+      );
+
+      const halabjaSubdistricts = [
+        IraqPlace(
+          id: 'IQ-HL-Q01-N01',
+          level: 3,
+          name: 'حلبجة',
+          englishName: 'Halabja',
+          parentId: halabjaDistrictId,
+          lat: 35.1787,
+          lon: 45.9864,
+        ),
+        IraqPlace(
+          id: 'IQ-HL-Q01-N02',
+          level: 3,
+          name: 'سيروان',
+          englishName: 'Sirwan',
+          parentId: halabjaDistrictId,
+          lat: 35.2548,
+          lon: 45.9401,
+        ),
+        IraqPlace(
+          id: 'IQ-HL-Q01-N03',
+          level: 3,
+          name: 'خورمال',
+          englishName: 'Khurmal',
+          parentId: halabjaDistrictId,
+          lat: 35.2975,
+          lon: 46.0349,
+        ),
+        IraqPlace(
+          id: 'IQ-HL-Q01-N04',
+          level: 3,
+          name: 'بيارة',
+          englishName: 'Byara',
+          parentId: halabjaDistrictId,
+          lat: 35.2308,
+          lon: 46.1206,
+        ),
+        IraqPlace(
+          id: 'IQ-HL-Q01-N05',
+          level: 3,
+          name: 'بامو',
+          englishName: 'Bamo',
+          parentId: halabjaDistrictId,
+          lat: 35.1904,
+          lon: 45.9712,
+        ),
+      ];
+
+      loadedSubdistricts.addAll(halabjaSubdistricts);
+
+      loadedGovernors.sort((a, b) => a.name.compareTo(b.name));
+      loadedDistricts.sort((a, b) => a.name.compareTo(b.name));
+      loadedSubdistricts.sort((a, b) => a.name.compareTo(b.name));
+
+      if (!mounted) return;
+
+      final defaultGovernorate = loadedGovernors.firstWhere(
+        (item) => item.name == 'صلاح الدين',
+        orElse: () => loadedGovernors.first,
+      );
+
+      setState(() {
+        governorates = loadedGovernors;
+        districts = loadedDistricts;
+        subdistricts = loadedSubdistricts;
+        selectedGovernorate = defaultGovernorate;
+        selectedDistrict = _districtsFor(defaultGovernorate).isEmpty
+            ? null
+            : _districtsFor(defaultGovernorate).first;
+        selectedSubdistrict = selectedDistrict == null
+            ? null
+            : (_subdistrictsFor(selectedDistrict!).isEmpty
+                ? null
+                : _subdistrictsFor(selectedDistrict!).first);
+        loadingPlaces = false;
+      });
+
+      await _loadPrayerTimes();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loadingPlaces = false;
+        error = 'تعذر تحميل قائمة المحافظات والأقضية والنواحي. تحقق من الإنترنت.';
+      });
+    }
+  }
+
+  List<IraqPlace> _districtsFor(IraqPlace governorate) {
+    return districts
+        .where((item) => item.parentId == governorate.id)
+        .toList();
+  }
+
+  List<IraqPlace> _subdistrictsFor(IraqPlace district) {
+    return subdistricts
+        .where((item) => item.parentId == district.id)
+        .toList();
+  }
+
+  IraqPlace? get _activePlace =>
+      selectedSubdistrict ?? selectedDistrict ?? selectedGovernorate;
+
+  Future<void> _loadPrayerTimes() async {
+    final place = _activePlace;
+    if (place == null || place.lat == 0 || place.lon == 0) return;
+
+    setState(() {
+      loadingTimes = true;
+      error = null;
+    });
+
+    try {
+      final now = DateTime.now();
+      final date =
+          '${now.day.toString().padLeft(2, '0')}-'
+          '${now.month.toString().padLeft(2, '0')}-${now.year}';
+
+      final url = Uri.parse(
+        'https://api.aladhan.com/v1/timings/$date'
+        '?latitude=${place.lat}&longitude=${place.lon}'
+        '&method=8&school=0&timezonestring=Asia%2FBaghdad',
+      );
+
+      final response = await http.get(url);
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
-      final decoded = jsonDecode(response.body);
-      final raw = (decoded['governorates'] as List?) ?? const [];
-      final list = raw
-          .whereType<Map>()
-          .map((e) => IraqGovernorate.fromJson(Map<String, dynamic>.from(e)))
-          .where((e) => e.id.isNotEmpty && e.nameAr.isNotEmpty)
-          .toList();
-      if (list.isEmpty) throw Exception('لا توجد بيانات');
+
+      final body = jsonDecode(response.body);
+      final timings = Map<String, dynamic>.from(body['data']['timings']);
+      final metaDate = body['data']['date'];
 
       if (!mounted) return;
+
       setState(() {
-        governorates = list;
-        selectedGovernorate = list.firstWhere(
-          (g) => g.nameAr == 'بغداد',
-          orElse: () => list.first,
-        );
-        selectedDistrict = null;
-        selectedSubDistrict = null;
-        loadingLocations = false;
-      });
-      await _loadPrayerTimes();
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        loadingLocations = false;
-        locationsError = 'تعذر تحميل قائمة المحافظات والأقضية والنواحي.';
-      });
-    }
-  }
-
-  String get _selectedPlaceName {
-    if (selectedSubDistrict != null) return selectedSubDistrict!.nameAr;
-    if (selectedDistrict != null) return selectedDistrict!.nameAr;
-    return selectedGovernorate?.capitalAr ?? selectedGovernorate?.nameAr ?? 'بغداد';
-  }
-
-  Future<void> _loadPrayerTimes() async {
-    if (selectedGovernorate == null) return;
-    setState(() => loadingTimes = true);
-    final now = DateTime.now();
-    final date =
-        '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
-
-    try {
-      // نستخدم الاسم الأدق الذي اختاره المستخدم: ناحية ثم قضاء ثم مركز المحافظة.
-      // وإذا لم يتعرف عليه الخادم نرجع تلقائياً إلى عاصمة المحافظة.
-      final place = _selectedPlaceName;
-      final response = await http.get(
-        Uri.https('api.aladhan.com', '/v1/timingsByCity/$date', {
-          'city': place,
-          'country': 'Iraq',
-          'method': '3',
-          'school': '0',
-        }),
-      );
-      if (response.statusCode != 200) throw Exception();
-
-      final data = jsonDecode(response.body);
-      final raw = Map<String, dynamic>.from(data['data']['timings'] ?? {});
-      const wanted = [
-        'Fajr',
-        'Sunrise',
-        'Dhuhr',
-        'Asr',
-        'Maghrib',
-        'Isha',
-      ];
-      final loaded = {
-        for (final key in wanted)
-          key: raw[key]?.toString().split(' ').first ?? '--:--',
-      };
-
-      if (!mounted) return;
-      setState(() {
-        times = loaded;
-        hijri = data['data']?['date']?['hijri']?['date']?.toString();
+        times = {
+          'الفجر': timings['Fajr']?.toString() ?? '--:--',
+          'الشروق': timings['Sunrise']?.toString() ?? '--:--',
+          'الظهر': timings['Dhuhr']?.toString() ?? '--:--',
+          'العصر': timings['Asr']?.toString() ?? '--:--',
+          'المغرب': timings['Maghrib']?.toString() ?? '--:--',
+          'العشاء': timings['Isha']?.toString() ?? '--:--',
+        };
+        dateText =
+            '${metaDate?['gregorian']?['date'] ?? ''}  •  '
+            '${metaDate?['hijri']?['date'] ?? ''} هـ';
         loadingTimes = false;
       });
     } catch (_) {
-      // fallback إلى إحداثيات المحافظة عندما لا يتوفر اسم الناحية/القضاء في خدمة المدينة.
-      try {
-        final lat = selectedGovernorate!.latitude;
-        final lon = selectedGovernorate!.longitude;
-        if (lat == null || lon == null) throw Exception();
-        final response = await http.get(
-          Uri.https('api.aladhan.com', '/v1/timings/$date', {
-            'latitude': '$lat',
-            'longitude': '$lon',
-            'method': '3',
-            'school': '0',
-          }),
-        );
-        if (response.statusCode != 200) throw Exception();
-        final data = jsonDecode(response.body);
-        final raw = Map<String, dynamic>.from(data['data']['timings'] ?? {});
-        const wanted = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-        if (!mounted) return;
-        setState(() {
-          times = {
-            for (final key in wanted)
-              key: raw[key]?.toString().split(' ').first ?? '--:--',
-          };
-          hijri = data['data']?['date']?['hijri']?['date']?.toString();
-          loadingTimes = false;
-        });
-      } catch (_) {
-        if (!mounted) return;
-        setState(() => loadingTimes = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر جلب مواقيت الصلاة حالياً.')),
-        );
-      }
+      if (!mounted) return;
+      setState(() {
+        loadingTimes = false;
+        error = 'تعذر تحميل المواقيت. تحقق من الإنترنت.';
+      });
     }
   }
 
-  void _changeGovernorate(IraqGovernorate value) {
-    setState(() {
-      selectedGovernorate = value;
-      selectedDistrict = null;
-      selectedSubDistrict = null;
-    });
-    _loadPrayerTimes();
+  Future<void> _showPlacePicker({
+    required String title,
+    required List<IraqPlace> items,
+    required IraqPlace? selected,
+    required ValueChanged<IraqPlace> onSelected,
+  }) async {
+    if (items.isEmpty) return;
+
+    final result = await showModalBottomSheet<IraqPlace>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(sheetContext).size.height * 0.78,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    title,
+                    textDirection: TextDirection.rtl,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return ListTile(
+                        title: Text(
+                          item.name,
+                          textDirection: TextDirection.rtl,
+                        ),
+                        subtitle: Text(
+                          item.englishName,
+                          textDirection: TextDirection.ltr,
+                        ),
+                        trailing: item.id == selected?.id
+                            ? const Icon(Icons.check_circle)
+                            : const Icon(Icons.chevron_left),
+                        onTap: () => Navigator.pop(sheetContext, item),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result != null) {
+      onSelected(result);
+    }
   }
 
-  void _changeDistrict(IraqDistrict? value) {
-    setState(() {
-      selectedDistrict = value;
-      selectedSubDistrict = null;
-    });
-    _loadPrayerTimes();
-  }
-
-  void _changeSubDistrict(IraqSubDistrict? value) {
-    setState(() => selectedSubDistrict = value);
-    _loadPrayerTimes();
+  Widget _placeSelector({
+    required String label,
+    required String? value,
+    required VoidCallback? onTap,
+    required IconData icon,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(
+          label,
+          textDirection: TextDirection.rtl,
+          style: const TextStyle(fontSize: 12),
+        ),
+        subtitle: Text(
+          value ?? 'اختر',
+          textDirection: TextDirection.rtl,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        trailing: const Icon(Icons.keyboard_arrow_down_rounded),
+        onTap: onTap,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const labels = {
-      'Fajr': 'الفجر',
-      'Sunrise': 'الشروق',
-      'Dhuhr': 'الظهر',
-      'Asr': 'العصر',
-      'Maghrib': 'المغرب',
-      'Isha': 'العشاء',
-    };
-
-    final districts = selectedGovernorate?.districts ?? const <IraqDistrict>[];
-    final subDistricts = selectedDistrict?.subDistricts ?? const <IraqSubDistrict>[];
+    final governorate = selectedGovernorate;
+    final governorateDistricts =
+        governorate == null ? <IraqPlace>[] : _districtsFor(governorate);
+    final district = selectedDistrict;
+    final districtSubdistricts =
+        district == null ? <IraqPlace>[] : _subdistrictsFor(district);
+    final activePlace = _activePlace;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('مواقيت الصلاة'),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: _loadPrayerTimes, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: loadingPlaces || loadingTimes
+                ? null
+                : _loadPrayerTimes,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'تحديث',
+          ),
         ],
       ),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: loadingLocations
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
+      body: loadingPlaces
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadPrayerTimes,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 children: [
                   Card(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer,
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.end,
                         children: [
                           const Text(
-                            'اختيار الموقع',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          DropdownButtonFormField<IraqGovernorate>(
-                            value: selectedGovernorate,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'المحافظة',
-                              border: OutlineInputBorder(),
+                            'موقع مواقيت الصلاة',
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
                             ),
-                            items: governorates
-                                .map((g) => DropdownMenuItem(
-                                      value: g,
-                                      child: Text(g.nameAr),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) _changeGovernorate(value);
-                            },
                           ),
-                          const SizedBox(height: 10),
-                          DropdownButtonFormField<IraqDistrict>(
-                            value: selectedDistrict,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'القضاء',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: districts
-                                .map((d) => DropdownMenuItem(
-                                      value: d,
-                                      child: Text(d.nameAr),
-                                    ))
-                                .toList(),
-                            onChanged: districts.isEmpty ? null : _changeDistrict,
-                          ),
-                          const SizedBox(height: 10),
-                          DropdownButtonFormField<IraqSubDistrict>(
-                            value: selectedSubDistrict,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'الناحية',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: subDistricts
-                                .map((n) => DropdownMenuItem(
-                                      value: n,
-                                      child: Text(n.nameAr),
-                                    ))
-                                .toList(),
-                            onChanged: subDistricts.isEmpty ? null : _changeSubDistrict,
-                          ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Text(
-                            'الموقع المحدد: $_selectedPlaceName',
-                            style: const TextStyle(color: Colors.grey),
+                            'المحافظة ← القضاء ← الناحية',
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  if (locationsError != null)
+                  const SizedBox(height: 12),
+                  _placeSelector(
+                    label: 'المحافظة',
+                    value: governorate?.name,
+                    icon: Icons.map_outlined,
+                    onTap: () => _showPlacePicker(
+                      title: 'اختر المحافظة',
+                      items: governorates,
+                      selected: selectedGovernorate,
+                      onSelected: (value) {
+                        final nextDistricts = _districtsFor(value);
+                        final nextDistrict =
+                            nextDistricts.isEmpty
+                                ? null
+                                : nextDistricts.first;
+                        final nextSubs = nextDistrict == null
+                            ? <IraqPlace>[]
+                            : _subdistrictsFor(nextDistrict);
+
+                        setState(() {
+                          selectedGovernorate = value;
+                          selectedDistrict = nextDistrict;
+                          selectedSubdistrict =
+                              nextSubs.isEmpty ? null : nextSubs.first;
+                          times = {};
+                          dateText = '';
+                        });
+                        _loadPrayerTimes();
+                      },
+                    ),
+                  ),
+                  _placeSelector(
+                    label: 'القضاء',
+                    value: district?.name,
+                    icon: Icons.location_city_outlined,
+                    onTap: governorateDistricts.isEmpty
+                        ? null
+                        : () => _showPlacePicker(
+                              title: 'اختر القضاء',
+                              items: governorateDistricts,
+                              selected: selectedDistrict,
+                              onSelected: (value) {
+                                final nextSubs =
+                                    _subdistrictsFor(value);
+                                setState(() {
+                                  selectedDistrict = value;
+                                  selectedSubdistrict =
+                                      nextSubs.isEmpty
+                                          ? null
+                                          : nextSubs.first;
+                                  times = {};
+                                  dateText = '';
+                                });
+                                _loadPrayerTimes();
+                              },
+                            ),
+                  ),
+                  _placeSelector(
+                    label: 'الناحية',
+                    value: districtSubdistricts.isEmpty
+                        ? 'لا توجد نواحٍ مسجلة — يستخدم مركز القضاء'
+                        : selectedSubdistrict?.name,
+                    icon: Icons.place_outlined,
+                    onTap: districtSubdistricts.isEmpty
+                        ? null
+                        : () => _showPlacePicker(
+                              title: 'اختر الناحية',
+                              items: districtSubdistricts,
+                              selected: selectedSubdistrict,
+                              onSelected: (value) {
+                                setState(() {
+                                  selectedSubdistrict = value;
+                                  times = {};
+                                  dateText = '';
+                                });
+                                _loadPrayerTimes();
+                              },
+                            ),
+                  ),
+                  if (activePlace != null)
                     Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.error_outline),
-                        title: Text(locationsError!),
-                        subtitle: const Text('اضغط إعادة المحاولة لتحميل بيانات العراق.'),
-                        trailing: IconButton(
-                          onPressed: _loadLocations,
-                          icon: const Icon(Icons.refresh),
-                        ),
-                      ),
-                    ),
-                  if (loadingTimes)
-                    const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  if (hijri != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'التاريخ الهجري: $hijri',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  for (final entry in times.entries)
-                    Card(
-                      child: ListTile(
-                        leading: Icon(_iconForPrayer(entry.key)),
-                        title: Text(
-                          labels[entry.key] ?? entry.key,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        trailing: Text(
-                          entry.value,
-                          style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          'الإحداثيات: ${activePlace.lat.toStringAsFixed(4)}, '
+                          '${activePlace.lon.toStringAsFixed(4)}',
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 12),
                         ),
                       ),
                     ),
                   const SizedBox(height: 8),
+                  if (dateText.isNotEmpty)
+                    Center(
+                      child: Text(
+                        dateText,
+                        textDirection: TextDirection.rtl,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  if (loadingTimes)
+                    const Padding(
+                      padding: EdgeInsets.all(30),
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  if (error != null)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          error!,
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ...times.entries.map(
+                    (entry) => Card(
+                      child: ListTile(
+                        leading: Icon(
+                          _prayerIcon(entry.key),
+                          size: 30,
+                        ),
+                        title: Text(
+                          entry.key,
+                          textDirection: TextDirection.rtl,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        trailing: Text(
+                          entry.value,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const Text(
-                    'المواقيت محسوبة آلياً وقد تختلف قليلاً عن التوقيت الرسمي المحلي. البيانات الإدارية تشمل المحافظات والأقضية والنواحي، ومواقيت الصلاة تستخدم أدق موقع متاح ثم تعود إلى إحداثيات المحافظة عند الحاجة.',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    'المواقيت تُحسب حسب إحداثيات الموقع المختار. '
+                    'قد تختلف دقائق بسيطة عن توقيت المسجد أو الجهة الرسمية المحلية.',
+                    textDirection: TextDirection.rtl,
                     textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12),
                   ),
                 ],
               ),
-      ),
+            ),
     );
   }
 
-  IconData _iconForPrayer(String key) {
-    switch (key) {
-      case 'Fajr':
-        return Icons.nightlight;
-      case 'Sunrise':
+  IconData _prayerIcon(String name) {
+    switch (name) {
+      case 'الفجر':
+        return Icons.nightlight_round;
+      case 'الشروق':
         return Icons.wb_sunny_outlined;
-      case 'Dhuhr':
-        return Icons.light_mode;
-      case 'Asr':
+      case 'الظهر':
         return Icons.wb_sunny;
-      case 'Maghrib':
-        return Icons.brightness_4;
+      case 'العصر':
+        return Icons.sunny_snowing;
+      case 'المغرب':
+        return Icons.wb_twilight;
       default:
         return Icons.nights_stay;
     }
   }
 }
 
-class DuasPage extends StatelessWidget {
-  const DuasPage({super.key});
+class QiblaPage extends StatelessWidget {
+  const QiblaPage({super.key});
 
-  static const duas = [
-    ('رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ', 'البقرة: 201'),
-    ('رَبِّ اشْرَحْ لِي صَدْرِي ۝ وَيَسِّرْ لِي أَمْرِي', 'طه: 25-26'),
-    ('رَبِّ زِدْنِي عِلْمًا', 'طه: 114'),
-    ('رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً', 'آل عمران: 8'),
-    ('رَبِّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِمَن دَخَلَ بَيْتِيَ مُؤْمِنًا', 'نوح: 28'),
-    ('رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا', 'الفرقان: 74'),
-    ('اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي', 'دعاء مأثور'),
-    ('اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ', 'دعاء مأثور'),
-  ];
+  static const cityBearing = <String, double>{
+    'سامراء': 196.0,
+    'بغداد': 196.5,
+    'الموصل': 179.0,
+    'كركوك': 191.0,
+    'أربيل': 192.0,
+    'السليمانية': 202.0,
+    'دهوك': 169.0,
+    'النجف': 207.0,
+    'كربلاء': 203.0,
+    'البصرة': 225.0,
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الأدعية'), centerTitle: true),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: duas.length,
-          itemBuilder: (context, index) {
-            final dua = duas[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(dua.$1, style: const TextStyle(fontSize: 19, height: 1.8)),
-                    const SizedBox(height: 8),
-                    Text(dua.$2, style: const TextStyle(color: Colors.grey)),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        onPressed: () => Clipboard.setData(ClipboardData(text: dua.$1)),
-                        icon: const Icon(Icons.copy),
-                        tooltip: 'نسخ',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+      appBar: AppBar(title: const Text('القبلة'), centerTitle: true),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Icon(Icons.explore, size: 110),
+          const SizedBox(height: 20),
+          const Text('اتجاه القبلة التقريبي حسب المدينة', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 18),
+          ...cityBearing.entries.map((e) => Card(child: ListTile(title: Text(e.key, textDirection: TextDirection.rtl), trailing: Text('${e.value.toStringAsFixed(1)}°')))),
+          const SizedBox(height: 12),
+          const Text('هذه نسخة بدون حساس البوصلة. لاحقًا يمكن إضافة بوصلة حية عند إضافة حزمة المستشعرات.', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+        ],
       ),
     );
   }
@@ -2316,329 +2786,34 @@ class TasbihPage extends StatefulWidget {
 
 class _TasbihPageState extends State<TasbihPage> {
   int count = 0;
-  String phrase = 'سبحان الله';
+  int target = 33;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('المسبحة الإلكترونية'), centerTitle: true),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              DropdownButton<String>(
-                value: phrase,
-                items: const [
-                  DropdownMenuItem(value: 'سبحان الله', child: Text('سبحان الله')),
-                  DropdownMenuItem(value: 'الحمد لله', child: Text('الحمد لله')),
-                  DropdownMenuItem(value: 'الله أكبر', child: Text('الله أكبر')),
-                  DropdownMenuItem(value: 'لا إله إلا الله', child: Text('لا إله إلا الله')),
-                  DropdownMenuItem(value: 'أستغفر الله', child: Text('أستغفر الله')),
-                ],
-                onChanged: (v) => setState(() => phrase = v ?? phrase),
-              ),
-              const SizedBox(height: 18),
-              Text('$count', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Text(phrase, style: const TextStyle(fontSize: 22)),
-              const SizedBox(height: 28),
-              FilledButton(
-                onPressed: () => setState(() => count++),
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: const EdgeInsets.all(42),
-                ),
-                child: const Icon(Icons.touch_app, size: 42),
-              ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: () => setState(() => count = 0),
-                icon: const Icon(Icons.restart_alt),
-                label: const Text('تصفير'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class QiblaPage extends StatelessWidget {
-  const QiblaPage({super.key});
-
-  static const double kaabaLat = 21.422487;
-  static const double kaabaLon = 39.826206;
-
-  double _bearing(double lat, double lon) {
-    const pi = 3.141592653589793;
-    final lat1 = lat * pi / 180;
-    final lat2 = kaabaLat * pi / 180;
-    final dLon = (kaabaLon - lon) * pi / 180;
-    final y = _sin(dLon);
-    final x = _cos(lat1) * _sin(lat2) - _sin(lat1) * _cos(lat2) * _cos(dLon);
-    var bearing = _atan2(y, x) * 180 / pi;
-    if (bearing < 0) bearing += 360;
-    return bearing;
-  }
-
-  // Small local math helpers avoid adding another package only for a static bearing.
-  double _sin(double x) => _Taylor.sin(x);
-  double _cos(double x) => _Taylor.cos(x);
-  double _atan2(double y, double x) => _Taylor.atan2(y, x);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('القبلة'), centerTitle: true),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const Icon(Icons.explore, size: 90),
-              const SizedBox(height: 20),
-              const Text('اتجاه القبلة', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              const Text('يُحسب الاتجاه اعتماداً على مركز بغداد كقيمة افتراضية. يمكن ربطه لاحقاً بحساس البوصلة وموقع الجهاز.'),
-              const SizedBox(height: 24),
-              Text('${_bearing(33.3152, 44.3661).toStringAsFixed(1)}° من الشمال', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              const Text('النسخة الحالية لا تحتاج صلاحية الموقع أو إضافة حزمة جديدة.'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Taylor {
-  static double sin(double x) {
-    var term = x;
-    var sum = x;
-    for (var n = 1; n <= 12; n++) {
-      term *= -x * x / ((2 * n) * (2 * n + 1));
-      sum += term;
-    }
-    return sum;
-  }
-
-  static double cos(double x) {
-    var term = 1.0;
-    var sum = 1.0;
-    for (var n = 1; n <= 12; n++) {
-      term *= -x * x / ((2 * n - 1) * (2 * n));
-      sum += term;
-    }
-    return sum;
-  }
-
-  static double atan2(double y, double x) {
-    const pi = 3.141592653589793;
-    if (x > 0) return _atan(y / x);
-    if (x < 0 && y >= 0) return _atan(y / x) + pi;
-    if (x < 0 && y < 0) return _atan(y / x) - pi;
-    if (x == 0 && y > 0) return pi / 2;
-    if (x == 0 && y < 0) return -pi / 2;
-    return 0;
-  }
-
-  static double _atan(double z) {
-    const pi = 3.141592653589793;
-    if (z.abs() <= 1) {
-      var term = z;
-      var sum = z;
-      for (var n = 1; n <= 40; n++) {
-        term *= -z * z;
-        sum += term / (2 * n + 1);
-      }
-      return sum;
-    }
-    if (z > 0) return pi / 2 - _atan(1 / z);
-    return -pi / 2 - _atan(1 / z);
-  }
-}
-
-class AdhkarPage extends StatefulWidget {
-  const AdhkarPage({super.key});
-
-  @override
-  State<AdhkarPage> createState() => _AdhkarPageState();
-}
-
-class _AdhkarPageState extends State<AdhkarPage> {
-  int tab = 0;
-  final Map<String, int> counts = {};
-
-  static const morning = [
-    'أصبحنا وأصبح الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.',
-    'اللهم بك أصبحنا وبك أمسينا وبك نحيا وبك نموت وإليك النشور.',
-    'رضيت بالله رباً وبالإسلام ديناً وبمحمد ﷺ نبياً.',
-    'سبحان الله وبحمده.',
-  ];
-
-  static const evening = [
-    'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.',
-    'اللهم إني أمسيت أشهدك وأشهد حملة عرشك وملائكتك وجميع خلقك.',
-    'أعوذ بكلمات الله التامات من شر ما خلق.',
-    'سبحان الله وبحمده.',
-  ];
-
-  static const duas = [
-    'ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار.',
-    'رب ارحمهما كما ربياني صغيراً.',
-    'رب اغفر لي وتب علي إنك أنت التواب الرحيم.',
-    'لا إله إلا الله العظيم الحليم، لا إله إلا الله رب العرش العظيم.',
-  ];
-
-  List<String> get items {
-    if (tab == 0) return morning;
-    if (tab == 1) return evening;
-    return duas;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الأذكار والأدعية'),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('الصباح')),
-                ButtonSegment(value: 1, label: Text('المساء')),
-                ButtonSegment(value: 2, label: Text('الأدعية')),
-              ],
-              selected: {tab},
-              onSelectionChanged: (v) => setState(() => tab = v.first),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: items.length,
-              itemBuilder: (_, i) {
-                final key = '$tab-$i';
-                final count = counts[key] ?? 0;
-                return Card(
-                  child: InkWell(
-                    onTap: () => setState(() => counts[key] = count + 1),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              items[i],
-                              textDirection: TextDirection.rtl,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                height: 1.8,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          CircleAvatar(child: Text('$count')),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class DownloadsPage extends StatelessWidget {
-  const DownloadsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('التنزيلات'), centerTitle: true),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.headphones),
-              title: Text('أصوات القراء'),
-              subtitle: Text(
-                'تنزيل صوت السورة يتم من صفحة الاستماع داخل المصحف، وبعد التنزيل يعمل بدون إنترنت.',
-              ),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.menu_book),
-              title: Text('المصاحف'),
-              subtitle: Text('قسم جاهز لإضافة تنزيل المصحف المفضل لاحقاً.'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class KhatmaPage extends StatefulWidget {
-  const KhatmaPage({super.key});
-
-  @override
-  State<KhatmaPage> createState() => _KhatmaPageState();
-}
-
-class _KhatmaPageState extends State<KhatmaPage> {
-  int pages = 0;
-  static const total = 604;
-
-  @override
-  Widget build(BuildContext context) {
-    final value = (pages / total).clamp(0.0, 1.0);
-    return Scaffold(
-      appBar: AppBar(title: const Text('ختم القرآن'), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      appBar: AppBar(title: const Text('التسبيح'), centerTitle: true, actions: [IconButton(onPressed: () => setState(() => count = 0), icon: const Icon(Icons.refresh))]),
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.flag, size: 60),
-            const SizedBox(height: 12),
-            Text(
-              '$pages من $total صفحة',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+            const Text('سبحان الله', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 18),
+            Text('$count', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold)),
+            Text('من $target', textDirection: TextDirection.rtl),
+            const SizedBox(height: 30),
+            GestureDetector(
+              onTap: () => setState(() => count = (count + 1) % (target + 1)),
+              child: Container(
+                width: 190,
+                height: 190,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.primaryContainer),
+                child: const Center(child: Icon(Icons.touch_app, size: 70)),
               ),
             ),
-            const SizedBox(height: 12),
-            LinearProgressIndicator(value: value, minHeight: 10),
-            const SizedBox(height: 12),
-            Text('${(value * 100).toStringAsFixed(1)}%'),
-            Slider(
-              value: pages.toDouble(),
-              min: 0,
-              max: total.toDouble(),
-              divisions: total,
-              onChanged: (v) => setState(() => pages = v.round()),
-            ),
-            FilledButton.icon(
-              onPressed: () => setState(() => pages = 0),
-              icon: const Icon(Icons.refresh),
-              label: const Text('بدء ختمة جديدة'),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              children: [33, 100, 1000].map((v) => ChoiceChip(label: Text('$v'), selected: target == v, onSelected: (_) => setState(() { target = v; count = 0; }))).toList(),
             ),
           ],
         ),
@@ -2647,62 +2822,12 @@ class _KhatmaPageState extends State<KhatmaPage> {
   }
 }
 
-class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
-
-  @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  bool night = false;
-  bool keepScreen = true;
-  bool notifications = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('الإعدادات'), centerTitle: true),
-      body: ListView(
-        children: [
-          SwitchListTile(
-            title: const Text('الوضع الليلي'),
-            value: night,
-            onChanged: (v) => setState(() => night = v),
-          ),
-          SwitchListTile(
-            title: const Text('إبقاء الشاشة مضاءة'),
-            value: keepScreen,
-            onChanged: (v) => setState(() => keepScreen = v),
-          ),
-          SwitchListTile(
-            title: const Text('تنبيهات الأذكار والمواقيت'),
-            value: notifications,
-            onChanged: (v) => setState(() => notifications = v),
-          ),
-          const ListTile(
-            leading: Icon(Icons.display_settings),
-            title: Text('خصائص العرض'),
-            subtitle: Text('يمكن توسيعها لاحقاً لإضافة ألوان وخيارات المصحف.'),
-          ),
-          const ListTile(
-            leading: Icon(Icons.language),
-            title: Text('اللغة'),
-            subtitle: Text('العربية'),
-          ),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('عن نور القرآن'),
-            subtitle: Text('تطبيق قرآن متعدد الميزات.'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
+
+  void _open(BuildContext context, Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2711,71 +2836,12 @@ class LibraryPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.menu_book, size: 35),
-              title: const Text('القرآن الكريم'),
-              subtitle: const Text('قراءة واستماع وتفسير'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QuranPage()),
-              ),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.favorite, size: 35),
-              title: const Text('الأذكار والأدعية'),
-              subtitle: const Text('الصباح والمساء والأدعية'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdhkarPage()),
-              ),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.access_time, size: 35),
-              title: const Text('مواقيت الصلاة'),
-              subtitle: const Text('مواقيت اليوم حسب المدينة'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PrayerTimesPage()),
-              ),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.download, size: 35),
-              title: const Text('التنزيلات'),
-              subtitle: const Text('الأصوات والمحتوى المتاح بدون إنترنت'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const DownloadsPage()),
-              ),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.flag, size: 35),
-              title: const Text('ختم القرآن'),
-              subtitle: const Text('متابعة التقدم'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const KhatmaPage()),
-              ),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.settings, size: 35),
-              title: const Text('الإعدادات'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsPage()),
-              ),
-            ),
-          ),
+          Card(child: ListTile(leading: const Icon(Icons.menu_book, size: 35), title: const Text('القرآن الكريم', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('قراءة واستماع وحفظ الآيات', textDirection: TextDirection.rtl), onTap: () => _open(context, const QuranPage()))),
+          Card(child: ListTile(leading: const Icon(Icons.favorite, size: 35), title: const Text('الأذكار', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('الصباح والمساء وبعد الصلاة والنوم', textDirection: TextDirection.rtl), onTap: () => _open(context, const AdhkarPage()))),
+          Card(child: ListTile(leading: const Icon(Icons.auto_awesome, size: 35), title: const Text('الأدعية', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('أدعية مختارة', textDirection: TextDirection.rtl), onTap: () => _open(context, const DuasPage()))),
+          Card(child: ListTile(leading: const Icon(Icons.access_time_filled, size: 35), title: const Text('مواقيت الصلاة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('اختر مدينتك', textDirection: TextDirection.rtl), onTap: () => _open(context, const PrayerTimesPage()))),
+          Card(child: ListTile(leading: const Icon(Icons.explore, size: 35), title: const Text('القبلة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const QiblaPage()))),
+          Card(child: ListTile(leading: const Icon(Icons.touch_app, size: 35), title: const Text('التسبيح الإلكتروني', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const TasbihPage()))),
         ],
       ),
     );
