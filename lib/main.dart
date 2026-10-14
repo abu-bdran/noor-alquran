@@ -1820,6 +1820,96 @@ void dispose() {
   }
 }
   
+class IraqSubDistrict {
+  final String id;
+  final String nameAr;
+  final String nameEn;
+
+  const IraqSubDistrict({
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+  });
+
+  factory IraqSubDistrict.fromJson(Map<String, dynamic> json) {
+    final name = Map<String, dynamic>.from(json['name'] ?? {});
+    return IraqSubDistrict(
+      id: json['id']?.toString() ?? '',
+      nameAr: name['ar']?.toString() ?? '',
+      nameEn: name['en']?.toString() ?? '',
+    );
+  }
+}
+
+class IraqDistrict {
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final List<IraqSubDistrict> subDistricts;
+
+  const IraqDistrict({
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    required this.subDistricts,
+  });
+
+  factory IraqDistrict.fromJson(Map<String, dynamic> json) {
+    final name = Map<String, dynamic>.from(json['name'] ?? {});
+    final raw = (json['sub_districts'] as List?) ?? const [];
+    return IraqDistrict(
+      id: json['id']?.toString() ?? '',
+      nameAr: name['ar']?.toString() ?? '',
+      nameEn: name['en']?.toString() ?? '',
+      subDistricts: raw
+          .whereType<Map>()
+          .map((e) => IraqSubDistrict.fromJson(Map<String, dynamic>.from(e)))
+          .where((e) => e.id.isNotEmpty && e.nameAr.isNotEmpty)
+          .toList(),
+    );
+  }
+}
+
+class IraqGovernorate {
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String capitalAr;
+  final double? latitude;
+  final double? longitude;
+  final List<IraqDistrict> districts;
+
+  const IraqGovernorate({
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    required this.capitalAr,
+    required this.latitude,
+    required this.longitude,
+    required this.districts,
+  });
+
+  factory IraqGovernorate.fromJson(Map<String, dynamic> json) {
+    final name = Map<String, dynamic>.from(json['name'] ?? {});
+    final capital = Map<String, dynamic>.from(json['capital'] ?? {});
+    final coords = Map<String, dynamic>.from(json['coordinates'] ?? {});
+    final raw = (json['districts'] as List?) ?? const [];
+    return IraqGovernorate(
+      id: json['id']?.toString() ?? '',
+      nameAr: name['ar']?.toString() ?? '',
+      nameEn: name['en']?.toString() ?? '',
+      capitalAr: capital['ar']?.toString() ?? name['ar']?.toString() ?? '',
+      latitude: double.tryParse(coords['latitude']?.toString() ?? ''),
+      longitude: double.tryParse(coords['longitude']?.toString() ?? ''),
+      districts: raw
+          .whereType<Map>()
+          .map((e) => IraqDistrict.fromJson(Map<String, dynamic>.from(e)))
+          .where((e) => e.id.isNotEmpty && e.nameAr.isNotEmpty)
+          .toList(),
+    );
+  }
+}
+
 class PrayerTimesPage extends StatefulWidget {
   const PrayerTimesPage({super.key});
 
@@ -1828,39 +1918,95 @@ class PrayerTimesPage extends StatefulWidget {
 }
 
 class _PrayerTimesPageState extends State<PrayerTimesPage> {
-  String city = 'Baghdad';
-  String country = 'Iraq';
+  static const _iraqDataUrl =
+      'https://raw.githubusercontent.com/Iraqi-Open-Source/official-iraqi-governorates/main/data/governorates.json';
+
+  List<IraqGovernorate> governorates = [];
+  IraqGovernorate? selectedGovernorate;
+  IraqDistrict? selectedDistrict;
+  IraqSubDistrict? selectedSubDistrict;
+
   Map<String, String> times = {};
   String? hijri;
-  bool loading = false;
+  bool loadingLocations = true;
+  bool loadingTimes = false;
+  String? locationsError;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadLocations();
   }
 
-  Future<void> _load() async {
-    setState(() => loading = true);
+  Future<void> _loadLocations() async {
+    setState(() {
+      loadingLocations = true;
+      locationsError = null;
+    });
+    try {
+      final response = await http.get(Uri.parse(_iraqDataUrl));
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+      final decoded = jsonDecode(response.body);
+      final raw = (decoded['governorates'] as List?) ?? const [];
+      final list = raw
+          .whereType<Map>()
+          .map((e) => IraqGovernorate.fromJson(Map<String, dynamic>.from(e)))
+          .where((e) => e.id.isNotEmpty && e.nameAr.isNotEmpty)
+          .toList();
+      if (list.isEmpty) throw Exception('لا توجد بيانات');
+
+      if (!mounted) return;
+      setState(() {
+        governorates = list;
+        selectedGovernorate = list.firstWhere(
+          (g) => g.nameAr == 'بغداد',
+          orElse: () => list.first,
+        );
+        selectedDistrict = null;
+        selectedSubDistrict = null;
+        loadingLocations = false;
+      });
+      await _loadPrayerTimes();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        loadingLocations = false;
+        locationsError = 'تعذر تحميل قائمة المحافظات والأقضية والنواحي.';
+      });
+    }
+  }
+
+  String get _selectedPlaceName {
+    if (selectedSubDistrict != null) return selectedSubDistrict!.nameAr;
+    if (selectedDistrict != null) return selectedDistrict!.nameAr;
+    return selectedGovernorate?.capitalAr ?? selectedGovernorate?.nameAr ?? 'بغداد';
+  }
+
+  Future<void> _loadPrayerTimes() async {
+    if (selectedGovernorate == null) return;
+    setState(() => loadingTimes = true);
     final now = DateTime.now();
     final date =
         '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
+
     try {
-      final uri = Uri.https(
-        'api.aladhan.com',
-        '/v1/timingsByCity/$date',
-        {
-          'city': city,
-          'country': country,
+      // نستخدم الاسم الأدق الذي اختاره المستخدم: ناحية ثم قضاء ثم مركز المحافظة.
+      // وإذا لم يتعرف عليه الخادم نرجع تلقائياً إلى عاصمة المحافظة.
+      final place = _selectedPlaceName;
+      final response = await http.get(
+        Uri.https('api.aladhan.com', '/v1/timingsByCity/$date', {
+          'city': place,
+          'country': 'Iraq',
           'method': '3',
           'school': '0',
-        },
+        }),
       );
-      final response = await http.get(uri);
       if (response.statusCode != 200) throw Exception();
+
       final data = jsonDecode(response.body);
-      final raw =
-          Map<String, dynamic>.from(data['data']['timings'] ?? {});
+      final raw = Map<String, dynamic>.from(data['data']['timings'] ?? {});
       const wanted = [
         'Fajr',
         'Sunrise',
@@ -1869,21 +2015,74 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
         'Maghrib',
         'Isha',
       ];
-      times = {
+      final loaded = {
         for (final key in wanted)
           key: raw[key]?.toString().split(' ').first ?? '--:--',
       };
-      hijri = data['data']?['date']?['hijri']?['date']?.toString();
+
+      if (!mounted) return;
+      setState(() {
+        times = loaded;
+        hijri = data['data']?['date']?['hijri']?['date']?.toString();
+        loadingTimes = false;
+      });
     } catch (_) {
-      if (mounted) {
+      // fallback إلى إحداثيات المحافظة عندما لا يتوفر اسم الناحية/القضاء في خدمة المدينة.
+      try {
+        final lat = selectedGovernorate!.latitude;
+        final lon = selectedGovernorate!.longitude;
+        if (lat == null || lon == null) throw Exception();
+        final response = await http.get(
+          Uri.https('api.aladhan.com', '/v1/timings/$date', {
+            'latitude': '$lat',
+            'longitude': '$lon',
+            'method': '3',
+            'school': '0',
+          }),
+        );
+        if (response.statusCode != 200) throw Exception();
+        final data = jsonDecode(response.body);
+        final raw = Map<String, dynamic>.from(data['data']['timings'] ?? {});
+        const wanted = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+        if (!mounted) return;
+        setState(() {
+          times = {
+            for (final key in wanted)
+              key: raw[key]?.toString().split(' ').first ?? '--:--',
+          };
+          hijri = data['data']?['date']?['hijri']?['date']?.toString();
+          loadingTimes = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => loadingTimes = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر جلب المواقيت. تحقق من المدينة والإنترنت.'),
-          ),
+          const SnackBar(content: Text('تعذر جلب مواقيت الصلاة حالياً.')),
         );
       }
     }
-    if (mounted) setState(() => loading = false);
+  }
+
+  void _changeGovernorate(IraqGovernorate value) {
+    setState(() {
+      selectedGovernorate = value;
+      selectedDistrict = null;
+      selectedSubDistrict = null;
+    });
+    _loadPrayerTimes();
+  }
+
+  void _changeDistrict(IraqDistrict? value) {
+    setState(() {
+      selectedDistrict = value;
+      selectedSubDistrict = null;
+    });
+    _loadPrayerTimes();
+  }
+
+  void _changeSubDistrict(IraqSubDistrict? value) {
+    setState(() => selectedSubDistrict = value);
+    _loadPrayerTimes();
   }
 
   @override
@@ -1896,57 +2095,142 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
       'Maghrib': 'المغرب',
       'Isha': 'العشاء',
     };
+
+    final districts = selectedGovernorate?.districts ?? const <IraqDistrict>[];
+    final subDistricts = selectedDistrict?.subDistricts ?? const <IraqSubDistrict>[];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('مواقيت الصلاة'),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _loadPrayerTimes, icon: const Icon(Icons.refresh)),
         ],
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.location_city),
-                title: Text('$city، $country'),
-                subtitle: Text(hijri == null ? 'اليوم' : 'التاريخ الهجري: $hijri'),
-                trailing: const Icon(Icons.edit),
-                onTap: _editLocation,
-              ),
-            ),
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            for (final entry in times.entries)
-              Card(
-                child: ListTile(
-                  leading: Icon(_iconForPrayer(entry.key)),
-                  title: Text(
-                    labels[entry.key] ?? entry.key,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  trailing: Text(
-                    entry.value,
-                    style: const TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w600,
+        child: loadingLocations
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'اختيار الموقع',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<IraqGovernorate>(
+                            value: selectedGovernorate,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'المحافظة',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: governorates
+                                .map((g) => DropdownMenuItem(
+                                      value: g,
+                                      child: Text(g.nameAr),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) _changeGovernorate(value);
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<IraqDistrict>(
+                            value: selectedDistrict,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'القضاء',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: districts
+                                .map((d) => DropdownMenuItem(
+                                      value: d,
+                                      child: Text(d.nameAr),
+                                    ))
+                                .toList(),
+                            onChanged: districts.isEmpty ? null : _changeDistrict,
+                          ),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<IraqSubDistrict>(
+                            value: selectedSubDistrict,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'الناحية',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: subDistricts
+                                .map((n) => DropdownMenuItem(
+                                      value: n,
+                                      child: Text(n.nameAr),
+                                    ))
+                                .toList(),
+                            onChanged: subDistricts.isEmpty ? null : _changeSubDistrict,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'الموقع المحدد: $_selectedPlaceName',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  if (locationsError != null)
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.error_outline),
+                        title: Text(locationsError!),
+                        subtitle: const Text('اضغط إعادة المحاولة لتحميل بيانات العراق.'),
+                        trailing: IconButton(
+                          onPressed: _loadLocations,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                      ),
+                    ),
+                  if (loadingTimes)
+                    const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  if (hijri != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'التاريخ الهجري: $hijri',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  for (final entry in times.entries)
+                    Card(
+                      child: ListTile(
+                        leading: Icon(_iconForPrayer(entry.key)),
+                        title: Text(
+                          labels[entry.key] ?? entry.key,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        trailing: Text(
+                          entry.value,
+                          style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'المواقيت محسوبة آلياً وقد تختلف قليلاً عن التوقيت الرسمي المحلي. البيانات الإدارية تشمل المحافظات والأقضية والنواحي، ومواقيت الصلاة تستخدم أدق موقع متاح ثم تعود إلى إحداثيات المحافظة عند الحاجة.',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-            const SizedBox(height: 8),
-            const Text(
-              'المواقيت محسوبة آلياً وقد تختلف قليلاً عن التوقيت الرسمي المحلي؛ يمكن تعديلها لاحقاً.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1967,44 +2251,215 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
         return Icons.nights_stay;
     }
   }
+}
 
-  void _editLocation() {
-    final cityController = TextEditingController(text: city);
-    final countryController = TextEditingController(text: country);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('موقع المواقيت'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: cityController,
-              decoration: const InputDecoration(labelText: 'المدينة'),
-            ),
-            TextField(
-              controller: countryController,
-              decoration: const InputDecoration(labelText: 'الدولة'),
-            ),
-          ],
+class DuasPage extends StatelessWidget {
+  const DuasPage({super.key});
+
+  static const duas = [
+    ('رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ', 'البقرة: 201'),
+    ('رَبِّ اشْرَحْ لِي صَدْرِي ۝ وَيَسِّرْ لِي أَمْرِي', 'طه: 25-26'),
+    ('رَبِّ زِدْنِي عِلْمًا', 'طه: 114'),
+    ('رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً', 'آل عمران: 8'),
+    ('رَبِّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِمَن دَخَلَ بَيْتِيَ مُؤْمِنًا', 'نوح: 28'),
+    ('رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا', 'الفرقان: 74'),
+    ('اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي', 'دعاء مأثور'),
+    ('اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ', 'دعاء مأثور'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('الأدعية'), centerTitle: true),
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: duas.length,
+          itemBuilder: (context, index) {
+            final dua = duas[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(dua.$1, style: const TextStyle(fontSize: 19, height: 1.8)),
+                    const SizedBox(height: 8),
+                    Text(dua.$2, style: const TextStyle(color: Colors.grey)),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => Clipboard.setData(ClipboardData(text: dua.$1)),
+                        icon: const Icon(Icons.copy),
+                        tooltip: 'نسخ',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () {
-              city = cityController.text.trim();
-              country = countryController.text.trim();
-              Navigator.pop(ctx);
-              _load();
-            },
-            child: const Text('حفظ'),
-          ),
-        ],
       ),
     );
+  }
+}
+
+class TasbihPage extends StatefulWidget {
+  const TasbihPage({super.key});
+
+  @override
+  State<TasbihPage> createState() => _TasbihPageState();
+}
+
+class _TasbihPageState extends State<TasbihPage> {
+  int count = 0;
+  String phrase = 'سبحان الله';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('المسبحة الإلكترونية'), centerTitle: true),
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              DropdownButton<String>(
+                value: phrase,
+                items: const [
+                  DropdownMenuItem(value: 'سبحان الله', child: Text('سبحان الله')),
+                  DropdownMenuItem(value: 'الحمد لله', child: Text('الحمد لله')),
+                  DropdownMenuItem(value: 'الله أكبر', child: Text('الله أكبر')),
+                  DropdownMenuItem(value: 'لا إله إلا الله', child: Text('لا إله إلا الله')),
+                  DropdownMenuItem(value: 'أستغفر الله', child: Text('أستغفر الله')),
+                ],
+                onChanged: (v) => setState(() => phrase = v ?? phrase),
+              ),
+              const SizedBox(height: 18),
+              Text('$count', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text(phrase, style: const TextStyle(fontSize: 22)),
+              const SizedBox(height: 28),
+              FilledButton(
+                onPressed: () => setState(() => count++),
+                style: FilledButton.styleFrom(
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(42),
+                ),
+                child: const Icon(Icons.touch_app, size: 42),
+              ),
+              const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: () => setState(() => count = 0),
+                icon: const Icon(Icons.restart_alt),
+                label: const Text('تصفير'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class QiblaPage extends StatelessWidget {
+  const QiblaPage({super.key});
+
+  static const double kaabaLat = 21.422487;
+  static const double kaabaLon = 39.826206;
+
+  double _bearing(double lat, double lon) {
+    const pi = 3.141592653589793;
+    final lat1 = lat * pi / 180;
+    final lat2 = kaabaLat * pi / 180;
+    final dLon = (kaabaLon - lon) * pi / 180;
+    final y = _sin(dLon);
+    final x = _cos(lat1) * _sin(lat2) - _sin(lat1) * _cos(lat2) * _cos(dLon);
+    var bearing = _atan2(y, x) * 180 / pi;
+    if (bearing < 0) bearing += 360;
+    return bearing;
+  }
+
+  // Small local math helpers avoid adding another package only for a static bearing.
+  double _sin(double x) => _Taylor.sin(x);
+  double _cos(double x) => _Taylor.cos(x);
+  double _atan2(double y, double x) => _Taylor.atan2(y, x);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('القبلة'), centerTitle: true),
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const Icon(Icons.explore, size: 90),
+              const SizedBox(height: 20),
+              const Text('اتجاه القبلة', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              const Text('يُحسب الاتجاه اعتماداً على مركز بغداد كقيمة افتراضية. يمكن ربطه لاحقاً بحساس البوصلة وموقع الجهاز.'),
+              const SizedBox(height: 24),
+              Text('${_bearing(33.3152, 44.3661).toStringAsFixed(1)}° من الشمال', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              const Text('النسخة الحالية لا تحتاج صلاحية الموقع أو إضافة حزمة جديدة.'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Taylor {
+  static double sin(double x) {
+    var term = x;
+    var sum = x;
+    for (var n = 1; n <= 12; n++) {
+      term *= -x * x / ((2 * n) * (2 * n + 1));
+      sum += term;
+    }
+    return sum;
+  }
+
+  static double cos(double x) {
+    var term = 1.0;
+    var sum = 1.0;
+    for (var n = 1; n <= 12; n++) {
+      term *= -x * x / ((2 * n - 1) * (2 * n));
+      sum += term;
+    }
+    return sum;
+  }
+
+  static double atan2(double y, double x) {
+    const pi = 3.141592653589793;
+    if (x > 0) return _atan(y / x);
+    if (x < 0 && y >= 0) return _atan(y / x) + pi;
+    if (x < 0 && y < 0) return _atan(y / x) - pi;
+    if (x == 0 && y > 0) return pi / 2;
+    if (x == 0 && y < 0) return -pi / 2;
+    return 0;
+  }
+
+  static double _atan(double z) {
+    const pi = 3.141592653589793;
+    if (z.abs() <= 1) {
+      var term = z;
+      var sum = z;
+      for (var n = 1; n <= 40; n++) {
+        term *= -z * z;
+        sum += term / (2 * n + 1);
+      }
+      return sum;
+    }
+    if (z > 0) return pi / 2 - _atan(1 / z);
+    return -pi / 2 - _atan(1 / z);
   }
 }
 
