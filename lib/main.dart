@@ -994,7 +994,7 @@ Future<void> _showReciters() async {
     final dir = await getApplicationDocumentsDirectory();
 
     final file = File(
-      '${dir.path}/surah_${surahNumber}_${moshaf.id}.mp3',
+      '${dir.path}/surah_${surahNumber}_${moshaf.name.hashCode}.mp3',
     );
 
     if (!await file.exists()) {
