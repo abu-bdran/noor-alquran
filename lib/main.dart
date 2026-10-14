@@ -349,18 +349,28 @@ class AyahTiming {
   final int ayah;
   final int startTime;
   final int endTime;
+  final String? polygon;
+  final int? page;
 
   const AyahTiming({
     required this.ayah,
     required this.startTime,
     required this.endTime,
+    this.polygon,
+    this.page,
   });
 
   factory AyahTiming.fromJson(Map<String, dynamic> json) {
+    final pageUrl = json['page']?.toString();
+    final pageMatch = pageUrl == null
+        ? null
+        : RegExp(r'/([0-9]{3})\.svg').firstMatch(pageUrl);
     return AyahTiming(
       ayah: int.tryParse(json['ayah']?.toString() ?? '') ?? -1,
       startTime: int.tryParse(json['start_time']?.toString() ?? '') ?? 0,
       endTime: int.tryParse(json['end_time']?.toString() ?? '') ?? 0,
+      polygon: json['polygon']?.toString(),
+      page: int.tryParse(pageMatch?.group(1) ?? ''),
     );
   }
 }
@@ -393,6 +403,11 @@ List<TimingRead> timingReads = [];
   int _repeatCount = 1;
   int _completedRepeats = 0;
   bool _handlingCompletion = false;
+  bool _isFullSurahPlayback = false;
+  String? _lastHighlightedAyah;
+  int? _lastHighlightedPage;
+  StreamSubscription<ProcessingState>? _processingSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -403,7 +418,7 @@ List<TimingRead> timingReads = [];
     _positionSubscription =
         _audioPlayer.positionStream.listen(_onAudioPosition);
 
-    _audioPlayer.processingStateStream.listen((state) {
+    _processingSubscription = _audioPlayer.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) {
         _handleAudioCompleted();
       }
@@ -443,6 +458,18 @@ List<TimingRead> timingReads = [];
             setState(() {
               currentPage = page;
             });
+
+            if (_isFullSurahPlayback && _lastHighlightedAyah != null) {
+              final parts = _lastHighlightedAyah!.split(':');
+              if (parts.length == 2) {
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  if (!mounted) return;
+                  controller.runJavaScript(
+                    "setNoorAyahHighlight('${parts[0]}', '${parts[1]}');",
+                  );
+                });
+              }
+            }
           }
         },
       )
@@ -610,6 +637,7 @@ Future<void> _loadReciters() async {
 
       _selectedAyah = ayah;
       _selectedRead = read;
+      _isFullSurahPlayback = false;
       _speed = speed ?? _speed;
       _repeatCount = repeatCount ?? _repeatCount;
       _completedRepeats = 0;
@@ -640,7 +668,7 @@ Future<void> _loadReciters() async {
 
       await _audioPlayer.setSpeed(_speed);
 
-      _highlightAyah(ayah);
+      _highlightTiming(timing);
       await _audioPlayer.play();
     } catch (e) {
       if (!mounted) return;
@@ -653,45 +681,85 @@ Future<void> _loadReciters() async {
   }
 
   void _onAudioPosition(Duration position) {
-    if (_ayahTimings.isEmpty || _selectedRead == null) {
-      return;
-    }
+    if (!_isFullSurahPlayback || _ayahTimings.isEmpty) return;
 
     final ms = position.inMilliseconds;
-
     for (final item in _ayahTimings) {
-      if (ms >= item.startTime &&
-          ms < item.endTime) {
-        _highlightAyah(
-          '${widget.surahNumber}:${item.ayah}',
-        );
+      if (ms >= item.startTime && ms < item.endTime) {
+        if (_lastHighlightedAyah != '${widget.surahNumber}:${item.ayah}') {
+          _highlightTiming(item);
+        }
+        if (item.page != null && item.page != _lastHighlightedPage) {
+          _lastHighlightedPage = item.page;
+          _changePage(item.page!);
+        }
         break;
       }
     }
   }
 
-  void _highlightAyah(String ayah) {
-    final parts = ayah.split(':');
-    if (parts.length != 2) return;
+  void _highlightTiming(AyahTiming timing) {
+    _lastHighlightedAyah = '${widget.surahNumber}:${timing.ayah}';
+    controller.runJavaScript(
+      "setNoorAyahHighlight('${widget.surahNumber}', '${timing.ayah}');",
+    );
+  }
 
-    final surah = parts[0].replaceAll("'", "\\'");
-    final verse = parts[1].replaceAll("'", "\\'");
-
+  void _clearAyahHighlight() {
+    _lastHighlightedAyah = null;
     controller.runJavaScript("""
+      window.noorHighlightSurah = null;
+      window.noorHighlightAyah = null;
       document.querySelectorAll('.ayahPolygon').forEach(function(el) {
         el.classList.remove('selected');
-        if (
-          el.getAttribute('surah') === '$surah' &&
-          el.getAttribute('ayah') === '$verse'
-        ) {
-          el.classList.add('selected');
-        }
+        if (el.dataset.noorOriginalFill) el.style.setProperty('fill', el.dataset.noorOriginalFill, 'important');
+        else el.style.removeProperty('fill');
+        if (el.dataset.noorOriginalStroke) el.style.setProperty('stroke', el.dataset.noorOriginalStroke, 'important');
+        else el.style.removeProperty('stroke');
+        if (el.dataset.noorOriginalStrokeWidth) el.style.setProperty('stroke-width', el.dataset.noorOriginalStrokeWidth, 'important');
+        else el.style.removeProperty('stroke-width');
+        if (el.dataset.noorOriginalFillOpacity) el.style.setProperty('fill-opacity', el.dataset.noorOriginalFillOpacity, 'important');
+        else el.style.removeProperty('fill-opacity');
       });
     """);
   }
 
+  Future<void> _playFullSurah(TimingRead read) async {
+    try {
+      _ayahTimings = await _loadAyahTimings(read);
+      if (_ayahTimings.isEmpty) throw Exception('لا توجد توقيتات متاحة لهذه السورة');
+
+      _selectedRead = read;
+      _selectedAyah = null;
+      _isFullSurahPlayback = true;
+      _lastHighlightedPage = null;
+      _completedRepeats = 0;
+      _handlingCompletion = false;
+
+      await _audioPlayer.stop();
+      final offlineFile = await _surahFile(read);
+      if (await offlineFile.exists()) {
+        await _audioPlayer.setFilePath(offlineFile.path);
+      } else {
+        await _audioPlayer.setUrl(_surahAudioUrl(read));
+      }
+      await _audioPlayer.setClip(start: null, end: null);
+      await _audioPlayer.setSpeed(_speed);
+      await _audioPlayer.play();
+
+      final first = _ayahTimings.first;
+      if (first.page != null) {
+        _lastHighlightedPage = first.page;
+        await _changePage(first.page!);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage('تعذر تشغيل السورة: ${e.toString().replaceFirst('Exception: ', '')}');
+    }
+  }
+
   void _handleAudioCompleted() {
-    if (_handlingCompletion || _selectedAyah == null) {
+    if (_handlingCompletion || _selectedAyah == null || _isFullSurahPlayback) {
       return;
     }
 
@@ -762,9 +830,9 @@ body {
 }
 
 .ayahPolygon.selected {
-  fill: rgba(103, 58, 183, 0.28) !important;
-  stroke: #673AB7 !important;
-  stroke-width: 2 !important;
+  fill: rgba(103, 58, 183, 0.30) !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
 }
 </style>
 </head>
@@ -776,6 +844,39 @@ body {
 <script>
 
 const pageNumber = $page;
+
+function setNoorAyahHighlight(surah, ayah) {
+  window.noorHighlightSurah = String(surah);
+  window.noorHighlightAyah = String(ayah);
+  document.querySelectorAll('.ayahPolygon').forEach(function(el) {
+    if (!el.dataset.noorOriginalFill) {
+      el.dataset.noorOriginalFill = el.getAttribute('fill') || '';
+      el.dataset.noorOriginalStroke = el.getAttribute('stroke') || '';
+      el.dataset.noorOriginalStrokeWidth = el.getAttribute('stroke-width') || '';
+      el.dataset.noorOriginalFillOpacity = el.getAttribute('fill-opacity') || '';
+    }
+    const match = el.getAttribute('surah') === String(surah) &&
+                  el.getAttribute('ayah') === String(ayah);
+    if (match) {
+      el.classList.add('selected');
+      el.style.setProperty('fill', 'rgba(103,58,183,0.30)', 'important');
+      el.style.setProperty('fill-opacity', '1', 'important');
+      el.style.setProperty('stroke', 'none', 'important');
+      el.style.setProperty('stroke-width', '0', 'important');
+    } else {
+      el.classList.remove('selected');
+      if (el.dataset.noorOriginalFill) el.style.setProperty('fill', el.dataset.noorOriginalFill, 'important');
+      else el.style.removeProperty('fill');
+      if (el.dataset.noorOriginalStroke) el.style.setProperty('stroke', el.dataset.noorOriginalStroke, 'important');
+      else el.style.removeProperty('stroke');
+      if (el.dataset.noorOriginalStrokeWidth) el.style.setProperty('stroke-width', el.dataset.noorOriginalStrokeWidth, 'important');
+      else el.style.removeProperty('stroke-width');
+      if (el.dataset.noorOriginalFillOpacity) el.style.setProperty('fill-opacity', el.dataset.noorOriginalFillOpacity, 'important');
+      else el.style.removeProperty('fill-opacity');
+    }
+  });
+}
+window.setNoorAyahHighlight = setNoorAyahHighlight;
 
 fetch('$svgUrl')
   .then(response => response.text())
@@ -831,6 +932,11 @@ document.addEventListener('touchend', function(event) {
     PageChannel.postMessage(
       pageNumber.toString()
     );
+    if (window.noorHighlightSurah && window.noorHighlightAyah) {
+      setTimeout(function() {
+        setNoorAyahHighlight(window.noorHighlightSurah, window.noorHighlightAyah);
+      }, 80);
+    }
   })
   .catch(function(error) {
 
@@ -906,6 +1012,7 @@ document.addEventListener('touchend', function(event) {
   @override
 void dispose() {
     _positionSubscription?.cancel();
+    _processingSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -1195,8 +1302,12 @@ void dispose() {
                         IconButton(
                           iconSize: 38,
                           tooltip: 'إيقاف',
-                          onPressed: () =>
-                              _audioPlayer.stop(),
+                          onPressed: () async {
+                            _isFullSurahPlayback = false;
+                            _selectedAyah = null;
+                            await _audioPlayer.stop();
+                            _clearAyahHighlight();
+                          },
                           icon: const Icon(
                             Icons.stop_circle,
                           ),
@@ -1230,6 +1341,15 @@ void dispose() {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(sheetContext);
+                        await _playFullSurah(read);
+                      },
+                      icon: const Icon(Icons.library_music),
+                      label: const Text('تشغيل السورة كاملة مع التضليل'),
                     ),
                     const SizedBox(height: 12),
                     const Align(
