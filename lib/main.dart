@@ -1121,7 +1121,7 @@ Future<void> _showReciters(String ayah) async {
   ),
   onTap: () {
     Navigator.pop(context);
-    _showAudioControls(ayah, reciter);
+    _showAudioControls(ayah);
   },
 );
                   },
@@ -1134,6 +1134,14 @@ Future<void> _showReciters(String ayah) async {
     },
   );
 }
+  String _surahAudioUrl(TimingRead read) {
+  final surahId = widget.surahNumber.toString().padLeft(3, '0');
+  final folder = read.folderUrl.endsWith('/')
+      ? read.folderUrl
+      : '${read.folderUrl}/';
+
+  return '$folder$surahId.mp3';
+  }
   Future<File> _downloadSurahForRead(
   TimingRead read, {
   bool showMessage = true,
