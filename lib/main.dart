@@ -3032,8 +3032,9 @@ Future<void> _loadMushafPage(int page) async {
     );
 
     try {
-      {
-      final response = await http.get(url);
+      final response = await http.get(url).timeout(
+        const Duration(seconds: 20),
+      );
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
@@ -3124,7 +3125,20 @@ svg{width:100%;height:auto;display:block}
    try{const u=qsvg+String(p).padStart(3,'0')+'.svg'; const r=await fetch(u); if(!r.ok) throw 0; const txt=await r.text(); pageEl.style.opacity='.2'; pageEl.innerHTML=txt.replace(/<\?xml[^>]*>/,'').replace(/<!DOCTYPE[^>]*>/i,''); pageEl.style.opacity='1'; bindPolygons();}
    finally{loadingPage=false;}
  }
- function bindPolygons(){document.querySelectorAll('.ayahPolygon').forEach(el=>{el.style.cursor='pointer';el.onclick=()=>{const s=el.getAttribute('surah'),a=el.getAttribute('ayah');if(s&&a)openAyah(s+':'+a);};}); if(currentTiming) highlight(SURAH,currentTiming.ayah);}
+ function bindPolygons(){
+  document.querySelectorAll('.ayahPolygon').forEach(el=>{
+   el.style.cursor='pointer';
+   var sendAyah=function(){
+    const s=el.getAttribute('surah'),a=el.getAttribute('ayah');
+    if(!s||!a)return;
+    if(window.AyahChannel){AyahChannel.postMessage(s+':'+a);}
+    else{openAyah(s+':'+a);}
+   };
+   el.onclick=sendAyah;
+   el.addEventListener('pointerup',function(e){if(e.pointerType==='touch')sendAyah();},{passive:true});
+  });
+  if(currentTiming)highlight(SURAH,currentTiming.ayah);
+ }
  async function play(mode){
    if(!selectedReader||!selectedAyah) return;
    try{
@@ -3155,6 +3169,25 @@ svg{width:100%;height:auto;display:block}
  document.getElementById('stopBtn').onclick=()=>{audio.pause();audio.currentTime=0;clearHighlight();player.style.display='none';};
  progress.oninput=()=>{if(audio.duration) audio.currentTime=(Number(progress.value)/100)*audio.duration;};
  readerSearch.oninput=renderReaders;
+ var swipeStartX=null,swipeStartY=null,swiped=false;
+ document.addEventListener('touchstart',function(e){
+  if(!e.touches||!e.touches.length)return;
+  swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;swiped=false;
+ },{passive:true});
+ document.addEventListener('touchend',function(e){
+  if(swipeStartX===null)return;
+  var dx=e.changedTouches[0].clientX-swipeStartX;
+  var dy=e.changedTouches[0].clientY-swipeStartY;
+  swipeStartX=null;swipeStartY=null;
+  if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.15){
+   swiped=true;
+   if(window.NavigationChannel){NavigationChannel.postMessage(dx<0?'next':'prev');}
+   setTimeout(function(){swiped=false;},100);
+  }
+ },{passive:true});
+ document.addEventListener('click',function(e){
+  if(swiped){e.preventDefault();e.stopPropagation();swiped=false;}
+ },true);
  bindPolygons();
 })();
 </script></body></html>
@@ -3163,15 +3196,16 @@ svg{width:100%;height:auto;display:block}
       final webHtml = html
           .replaceFirst('%SURAH%', '${widget.surahNumber}')
           .replaceFirst('%PAGE%', '$page');
+
       await controller.loadHtmlString(webHtml);
       _loadedPage = page;
-      return;
     } catch (e) {
       if (mounted) {
         _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
       }
     }
   }
+
   Future<void> _installMushafInteractions() async {
     try {
       await controller.runJavaScript('''
@@ -3203,17 +3237,11 @@ svg{width:100%;height:auto;display:block}
 
           document.querySelectorAll('.ayahPolygon').forEach(function(el) {
             el.style.cursor = 'pointer';
-            var sendAyah = function() {
+            el.onclick = function() {
               var surah = el.getAttribute('surah');
               var ayah = el.getAttribute('ayah');
-              if (surah && ayah && window.AyahChannel) {
-                AyahChannel.postMessage(surah + ':' + ayah);
-              }
+              if (surah && ayah && window.AyahChannel) AyahChannel.postMessage(surah + ':' + ayah);
             };
-            el.onclick = sendAyah;
-            el.addEventListener('pointerup', function(e) {
-              if (e.pointerType === 'touch') sendAyah();
-            }, {passive: true});
           });
 
           var startX = null;
