@@ -11,13 +11,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
-import 'package:webview_flutter_web/webview_flutter_web.dart';
+import 'webview_platform.dart';
 
 void main() {
-  if (kIsWeb) {
-    WebViewPlatform.instance = WebWebViewPlatform();
-  }
+  registerWebViewPlatform();
   runApp(const NoorAlQuranApp());
 }
 
@@ -3038,7 +3035,7 @@ svg{width:100%;height:auto;display:block}
 
       final webHtml = html
           .replaceFirst('%SURAH%', '${widget.surahNumber}')
-          .replaceFirst('%PAGE%', '$currentPage');
+          .replaceFirst('%PAGE%', '$page');
       await controller.loadHtmlString(webHtml);
       _loadedPage = page;
       return;
