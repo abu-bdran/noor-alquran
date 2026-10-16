@@ -926,6 +926,9 @@ List<TimingRead> timingReads = [];
   // متزامنة مع صفحة المصحف الظاهرة.
   int? _loadedPage;
 
+  // يمنع الانتقال السريع المتكرر بين الصفحات عند السحب المتتابع.
+  bool _isPageSwipeBusy = false;
+
   @override
   void initState() {
     super.initState();
@@ -965,12 +968,39 @@ List<TimingRead> timingReads = [];
         )
         ..addJavaScriptChannel(
           'NavigationChannel',
-          onMessageReceived: (message) {
-            if (message.message == 'next') {
-              _changePage(currentPage + 1);
-            } else if (message.message == 'prev') {
-              _changePage(currentPage - 1);
+          onMessageReceived: (message) async {
+            if (_isPageSwipeBusy) return;
+
+            final isNext = message.message == 'next';
+            final isPrev = message.message == 'prev';
+            if (!isNext && !isPrev) return;
+
+            _isPageSwipeBusy = true;
+
+            // تباطؤ بسيط حتى يكون الانتقال مريحاً ولا تقفز عدة صفحات.
+            await Future<void>.delayed(
+              const Duration(milliseconds: 180),
+            );
+
+            if (!mounted) {
+              _isPageSwipeBusy = false;
+              return;
             }
+
+            // في وضع المصحف العربي: السحب لليمين = الصفحة التالية.
+            final targetPage = isNext
+                ? currentPage + 1
+                : currentPage - 1;
+
+            await _changePage(targetPage);
+
+            if (mounted) {
+              await Future<void>.delayed(
+                const Duration(milliseconds: 120),
+              );
+            }
+
+            _isPageSwipeBusy = false;
           },
         )
         ..addJavaScriptChannel(
@@ -3063,7 +3093,7 @@ Future<void> _loadMushafPage(int page) async {
 <style>
 html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
 #page{width:100%;display:block;transition:opacity .15s ease;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-svg{width:108%;height:auto;display:block;margin-right:-4%;max-width:none}
+svg{width:112%;height:auto;display:block;margin-left:-6%;margin-right:0;max-width:none}
 .ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
 .noor-active{fill:#7652d6!important;fill-opacity:.38!important}
 #readerSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:20}
@@ -3241,9 +3271,9 @@ svg{width:108%;height:auto;display:block;margin-right:-4%;max-width:none}
   var dx=e.changedTouches[0].clientX-swipeStartX;
   var dy=e.changedTouches[0].clientY-swipeStartY;
   swipeStartX=null;swipeStartY=null;
-  if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.15){
+  if(Math.abs(dx)>105&&Math.abs(dx)>Math.abs(dy)*1.15){
    swiped=true;
-   if(window.NavigationChannel){NavigationChannel.postMessage(dx<0?'next':'prev');}
+   if(window.NavigationChannel){NavigationChannel.postMessage(dx>0?'next':'prev');}
    setTimeout(function(){swiped=false;},100);
   }
  },{passive:true});
@@ -3333,9 +3363,9 @@ svg{width:108%;height:auto;display:block;margin-right:-4%;max-width:none}
             startX = null;
             startY = null;
 
-            if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+            if (Math.abs(dx) > 105 && Math.abs(dx) > Math.abs(dy) * 1.15) {
               didSwipe = true;
-              if (window.NavigationChannel) NavigationChannel.postMessage(dx < 0 ? 'next' : 'prev');
+              if (window.NavigationChannel) NavigationChannel.postMessage(dx > 0 ? 'next' : 'prev');
               setTimeout(function(){ didSwipe = false; }, 80);
             }
           }, {passive: true});
