@@ -1412,7 +1412,7 @@ Future<void> _loadReciters() async {
                             children: [
                               Text(
                                 currentSurahTitle,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: isLandscape ? 17 : 20,
                                   fontWeight: FontWeight.w800,
