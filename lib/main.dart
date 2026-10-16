@@ -2414,8 +2414,15 @@ void dispose() {
                                       onTap: () {
                                         _lastReciterId = read.id;
                                         _saveReaderPreferences();
+
+                                        // Close the reader list first, then open
+                                        // the audio controls as a fresh sheet.
                                         Navigator.pop(sheetContext);
-                                        _showAudioControls(ayah, read);
+                                        Future.microtask(() {
+                                          if (mounted) {
+                                            _showAudioControls(ayah, read);
+                                          }
+                                        });
                                       },
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
@@ -2603,6 +2610,7 @@ void dispose() {
                           iconSize: 42,
                           tooltip: 'تشغيل',
                           onPressed: () {
+                            Navigator.pop(sheetContext);
                             _prepareAndPlayAyah(
                               ayah,
                               read,
@@ -2973,7 +2981,8 @@ void dispose() {
   Future<void> _loadReaderPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedPage = prefs.getInt('noor_last_read_page');
+      final savedPage =
+          prefs.getInt('noor_last_read_page_${widget.surahNumber}');
       final bookmark = prefs.getInt('noor_bookmark_page');
       final night = prefs.getBool('noor_night_mode') ?? false;
       final saved = prefs.getStringList('noor_saved_ayahs') ?? <String>[];
@@ -3008,7 +3017,10 @@ void dispose() {
   Future<void> _saveReaderPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('noor_last_read_page', currentPage);
+      await prefs.setInt(
+        'noor_last_read_page_${widget.surahNumber}',
+        currentPage,
+      );
       if (_bookmarkPage == null) {
         await prefs.remove('noor_bookmark_page');
       } else {
@@ -3051,7 +3063,7 @@ Future<void> _loadMushafPage(int page) async {
 <style>
 html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
 #page{width:100%;display:block;transition:opacity .15s ease;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-svg{width:100%;height:auto;display:block}
+svg{width:108%;height:auto;display:block;margin-right:-4%;max-width:none}
 .ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
 .noor-active{fill:#7652d6!important;fill-opacity:.38!important}
 #readerSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:20}
@@ -3127,15 +3139,65 @@ svg{width:100%;height:auto;display:block}
  }
  function bindPolygons(){
   document.querySelectorAll('.ayahPolygon').forEach(el=>{
-   el.style.cursor='pointer';
+   el.style.cursor='default';
+   var pressTimer=null;
+   var longPressed=false;
+   var startX=0;
+   var startY=0;
+
    var sendAyah=function(){
     const s=el.getAttribute('surah'),a=el.getAttribute('ayah');
     if(!s||!a)return;
+    longPressed=true;
     if(window.AyahChannel){AyahChannel.postMessage(s+':'+a);}
     else{openAyah(s+':'+a);}
    };
-   el.onclick=sendAyah;
-   el.addEventListener('pointerup',function(e){if(e.pointerType==='touch')sendAyah();},{passive:true});
+
+   var cancelPress=function(){
+    if(pressTimer!==null){
+      clearTimeout(pressTimer);
+      pressTimer=null;
+    }
+   };
+
+   el.onclick=function(e){
+    // A normal tap only selects the page; it does not open the reciter list.
+    if(longPressed){
+      e.preventDefault();
+      e.stopPropagation();
+      longPressed=false;
+    }
+   };
+
+   el.addEventListener('touchstart',function(e){
+    if(!e.touches||!e.touches.length)return;
+    startX=e.touches[0].clientX;
+    startY=e.touches[0].clientY;
+    longPressed=false;
+    cancelPress();
+    pressTimer=setTimeout(function(){
+      pressTimer=null;
+      sendAyah();
+    },650);
+   },{passive:true});
+
+   el.addEventListener('touchmove',function(e){
+    if(!e.touches||!e.touches.length)return;
+    var dx=e.touches[0].clientX-startX;
+    var dy=e.touches[0].clientY-startY;
+    if(Math.abs(dx)>12||Math.abs(dy)>12) cancelPress();
+   },{passive:true});
+
+   el.addEventListener('touchend',function(e){
+    cancelPress();
+    if(longPressed){
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(function(){longPressed=false;},0);
+    }
+   },{passive:false});
+
+   el.addEventListener('touchcancel',cancelPress,{passive:true});
   });
   if(currentTiming)highlight(SURAH,currentTiming.ayah);
  }
