@@ -2,15 +2,22 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
+import 'package:webview_flutter_web/webview_flutter_web.dart';
 
 void main() {
+  if (kIsWeb) {
+    WebViewPlatform.instance = WebWebViewPlatform();
+  }
   runApp(const NoorAlQuranApp());
 }
 
@@ -24,8 +31,24 @@ class NoorAlQuranApp extends StatelessWidget {
       title: 'نور القرآن',
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'Arial',
+        scaffoldBackgroundColor: const Color(0xFFF7F4EC),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF673AB7),
+          seedColor: const Color(0xFF173F35),
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF7F4EC),
+          foregroundColor: Color(0xFF173F35),
+          elevation: 0,
+          centerTitle: true,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          indicatorColor: Color(0xFFDDEBE5),
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          ),
         ),
       ),
       home: const HomePage(),
@@ -208,6 +231,11 @@ class _HomePageState extends State<HomePage> {
             label: 'الأذكار',
           ),
           NavigationDestination(
+            icon: Icon(Icons.access_time_outlined),
+            selectedIcon: Icon(Icons.access_time_filled),
+            label: 'الصلاة',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.library_books_outlined),
             selectedIcon: Icon(Icons.library_books),
             label: 'المكتبة',
@@ -229,141 +257,343 @@ class HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('نور القرآن'),
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF673AB7), Color(0xFF8E63C7)],
+      backgroundColor: const Color(0xFFF7F4EC),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 760;
+            final horizontal = wide ? 48.0 : 20.0;
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1050),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(horizontal, 20, horizontal, 8),
+                      sliver: SliverToBoxAdapter(
+                        child: Row(
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF173F35),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(
+                                Icons.menu_book_rounded,
+                                color: Color(0xFFE8D7A8),
+                                size: 26,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'نور القرآن',
+                                    textDirection: TextDirection.rtl,
+                                    style: TextStyle(
+                                      color: Color(0xFF173F35),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'رفيقك في تلاوة القرآن والذكر',
+                                    textDirection: TextDirection.rtl,
+                                    style: TextStyle(
+                                      color: Color(0xFF6F746D),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'الإعدادات',
+                              onPressed: () => _open(context, const LibraryPage()),
+                              icon: const Icon(Icons.settings_outlined),
+                              color: const Color(0xFF173F35),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topRight,
+                              end: Alignment.bottomLeft,
+                              colors: [Color(0xFF173F35), Color(0xFF245B4D)],
+                            ),
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF173F35).withOpacity(.16),
+                                blurRadius: 22,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                textDirection: TextDirection.rtl,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(.12),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      'وردك اليومي',
+                                      textDirection: TextDirection.rtl,
+                                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFFE8D7A8), size: 24),
+                                ],
+                              ),
+                              const SizedBox(height: 22),
+                              const Text(
+                                'وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا',
+                                textDirection: TextDirection.rtl,
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 25,
+                                  height: 1.7,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'سورة المزمل • 4',
+                                textDirection: TextDirection.rtl,
+                                style: TextStyle(color: Color(0xFFD5E0D9), fontSize: 12),
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                height: 48,
+                                child: FilledButton.icon(
+                                  onPressed: () => _open(context, const QuranPage()),
+                                  icon: const Icon(Icons.arrow_back_rounded),
+                                  label: const Text('ابدأ التلاوة'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE8D7A8),
+                                    foregroundColor: const Color(0xFF173F35),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                    textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Row(
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            Text(
+                              'الوصول السريع',
+                              textDirection: TextDirection.rtl,
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: scheme.onSurface),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'كل ما تحتاجه',
+                              textDirection: TextDirection.rtl,
+                              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+                      sliver: SliverGrid(
+                        delegate: SliverChildListDelegate([
+                          _ModernFeatureCard(
+                            icon: Icons.menu_book_rounded,
+                            title: 'القرآن الكريم',
+                            subtitle: 'تلاوة وتصفح المصحف',
+                            color: const Color(0xFFE4EFE9),
+                            iconColor: const Color(0xFF1E5A4A),
+                            onTap: () => _open(context, const QuranPage()),
+                          ),
+                          _ModernFeatureCard(
+                            icon: Icons.wb_sunny_rounded,
+                            title: 'الأذكار',
+                            subtitle: 'صباحًا ومساءً',
+                            color: const Color(0xFFF2E9D5),
+                            iconColor: const Color(0xFF8B6B2F),
+                            onTap: () => _open(context, const AdhkarPage()),
+                          ),
+                          _ModernFeatureCard(
+                            icon: Icons.auto_awesome_rounded,
+                            title: 'الأدعية',
+                            subtitle: 'أدعية مختارة',
+                            color: const Color(0xFFE9E5F2),
+                            iconColor: const Color(0xFF66558A),
+                            onTap: () => _open(context, const DuasPage()),
+                          ),
+                          _ModernFeatureCard(
+                            icon: Icons.access_time_filled_rounded,
+                            title: 'مواقيت الصلاة',
+                            subtitle: 'مواقيتك اليومية',
+                            color: const Color(0xFFE6EDF2),
+                            iconColor: const Color(0xFF41677C),
+                            onTap: () => _open(context, const PrayerTimesPage()),
+                          ),
+                          _ModernFeatureCard(
+                            icon: Icons.explore_rounded,
+                            title: 'القبلة',
+                            subtitle: 'اتجاه القبلة',
+                            color: const Color(0xFFE8EFE8),
+                            iconColor: const Color(0xFF47734A),
+                            onTap: () => _open(context, const QiblaPage()),
+                          ),
+                          _ModernFeatureCard(
+                            icon: Icons.touch_app_rounded,
+                            title: 'التسبيح',
+                            subtitle: 'عداد التسبيح',
+                            color: const Color(0xFFF1E6E1),
+                            iconColor: const Color(0xFF8A5A49),
+                            onTap: () => _open(context, const TasbihPage()),
+                          ),
+                        ]),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: wide ? 3 : 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: wide ? 1.75 : 1.35,
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 30),
+                      sliver: SliverToBoxAdapter(
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: const Color(0xFFE6E1D5)),
+                          ),
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                textDirection: TextDirection.rtl,
+                                children: [
+                                  Icon(Icons.format_quote_rounded, color: Color(0xFFB49455), size: 25),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'آية اليوم',
+                                    textDirection: TextDirection.rtl,
+                                    style: TextStyle(color: Color(0xFF173F35), fontWeight: FontWeight.w800, fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'إِنَّ مَعَ الْعُسْرِ يُسْرًا',
+                                textDirection: TextDirection.rtl,
+                                textAlign: TextAlign.right,
+                                style: TextStyle(color: Color(0xFF2C332F), fontSize: 22, height: 1.8, fontWeight: FontWeight.w700),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                'سورة الشرح • 6',
+                                textDirection: TextDirection.rtl,
+                                style: TextStyle(color: Color(0xFF777C76), fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'نور القرآن — قرآن، أذكار، أدعية ومواقيت الصلاة',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _HomeFeatureCard(
-            icon: Icons.menu_book,
-            title: 'القرآن الكريم',
-            subtitle: 'قراءة، استماع، تضليل الآية، تفسير وتنزيل',
-            onTap: () => _open(context, const QuranPage()),
-          ),
-          _HomeFeatureCard(
-            icon: Icons.wb_sunny,
-            title: 'أذكار الصباح والمساء',
-            subtitle: 'أذكار مع عدّاد للتكرار',
-            onTap: () => _open(context, const AdhkarPage()),
-          ),
-          _HomeFeatureCard(
-            icon: Icons.auto_awesome,
-            title: 'الأدعية',
-            subtitle: 'أدعية القرآن والأنبياء والأدعية اليومية',
-            onTap: () => _open(context, const DuasPage()),
-          ),
-          _HomeFeatureCard(
-            icon: Icons.access_time_filled,
-            title: 'مواقيت الصلاة',
-            subtitle: 'الفجر والشروق والظهر والعصر والمغرب والعشاء',
-            onTap: () => _open(context, const PrayerTimesPage()),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: _SmallFeatureCard(
-                  icon: Icons.explore,
-                  title: 'القبلة',
-                  onTap: () => _open(context, const QiblaPage()),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _SmallFeatureCard(
-                  icon: Icons.touch_app,
-                  title: 'التسبيح',
-                  onTap: () => _open(context, const TasbihPage()),
-                ),
-              ),
-            ],
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-class _HomeFeatureCard extends StatelessWidget {
+class _ModernFeatureCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color color;
+  final Color iconColor;
   final VoidCallback onTap;
 
-  const _HomeFeatureCard({
+  const _ModernFeatureCard({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.color,
+    required this.iconColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: Icon(icon),
-        ),
-        title: Text(title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, textDirection: TextDirection.rtl),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 17),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
-class _SmallFeatureCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _SmallFeatureCard({required this.icon, required this.title, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18),
+          padding: const EdgeInsets.all(14),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 32),
-              const SizedBox(height: 7),
-              Text(title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
+                child: Icon(icon, color: iconColor, size: 23),
+              ),
+              const Spacer(),
+              Text(
+                title,
+                textDirection: TextDirection.rtl,
+                style: const TextStyle(color: Color(0xFF27312C), fontSize: 14, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                textDirection: TextDirection.rtl,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF7B817C), fontSize: 11),
+              ),
             ],
           ),
         ),
@@ -372,51 +602,231 @@ class _SmallFeatureCard extends StatelessWidget {
   }
 }
 
-class QuranPage extends StatelessWidget {
+class QuranPage extends StatefulWidget {
   const QuranPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('القرآن الكريم'),
-        centerTitle: true,
-      ),
-      body: ListView.builder(
-        itemCount: surahNames.length,
-        itemBuilder: (context, index) {
-          final surahNumber = index + 1;
+  State<QuranPage> createState() => _QuranPageState();
+}
 
-          return ListTile(
-            leading: CircleAvatar(
-              child: Text('$surahNumber'),
-            ),
-            title: Text(
-              'سورة ${surahNames[index]}',
-              textDirection: TextDirection.rtl,
-            ),
-            subtitle: Text(
-              'صفحة ${surahStartPages[index]}',
-              textDirection: TextDirection.rtl,
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => QuranReaderPage(
-                    surahNumber: surahNumber,
-                    surahName: surahNames[index],
+class _QuranPageState extends State<QuranPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  List<int> get _filteredIndices {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) {
+      return List<int>.generate(surahNames.length, (index) => index);
+    }
+
+    return List<int>.generate(surahNames.length, (index) => index)
+        .where((index) {
+      final number = (index + 1).toString();
+      final name = surahNames[index].toLowerCase();
+      return name.contains(query) || number == query;
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _openSurah(int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuranReaderPage(
+          surahNumber: index + 1,
+          surahName: surahNames[index],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final results = _filteredIndices;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F1E8),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xFF174A43),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        title: const Text(
+          'القرآن الكريم',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              color: const Color(0xFF174A43),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+              child: TextField(
+                controller: _searchController,
+                textDirection: TextDirection.rtl,
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: 'ابحث باسم السورة أو رقمها',
+                  hintTextDirection: TextDirection.rtl,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          tooltip: 'مسح البحث',
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                          icon: const Icon(Icons.close_rounded),
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFFFFCF5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-              );
-            },
-          );
-        },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'السور',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Color(0xFF24332D),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${results.length} سورة',
+                    style: const TextStyle(
+                      color: Color(0xFF7B817C),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: results.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'لم أجد سورة بهذا الاسم أو الرقم',
+                        textDirection: TextDirection.rtl,
+                        style: TextStyle(
+                          color: Color(0xFF6F756F),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
+                      itemCount: results.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, position) {
+                        final index = results[position];
+                        final number = index + 1;
+
+                        return Material(
+                          color: const Color(0xFFFFFCF5),
+                          borderRadius: BorderRadius.circular(18),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () => _openSurah(index),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: const Color(0xFFE2D9C8),
+                                ),
+                              ),
+                              child: Row(
+                                textDirection: TextDirection.rtl,
+                                children: [
+                                  Container(
+                                    width: 46,
+                                    height: 46,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE8F0EB),
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '$number',
+                                      style: const TextStyle(
+                                        color: Color(0xFF174A43),
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          'سورة ${surahNames[index]}',
+                                          textDirection: TextDirection.rtl,
+                                          style: const TextStyle(
+                                            color: Color(0xFF24332D),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'تبدأ من الصفحة ${surahStartPages[index]}',
+                                          textDirection: TextDirection.rtl,
+                                          style: const TextStyle(
+                                            color: Color(0xFF7B817C),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    size: 16,
+                                    color: Color(0xFF8A918B),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
 class TimingRead {
   final int id;
   final String name;
@@ -506,12 +916,27 @@ List<TimingRead> timingReads = [];
   int? _lastHighlightedPage;
   StreamSubscription<ProcessingState>? _processingSubscription;
 
+  // إضافات واجهة القارئ الاحترافية
+  bool _isNightMode = false;
+  int? _bookmarkPage;
+  int? _lastReadPage;
+  final Set<String> _savedAyahs = <String>{};
+  final Set<int> _favoriteReciterIds = <int>{};
+  int? _lastReciterId;
+  bool _prefsLoaded = false;
+
+  // آخر صفحة تم تحميلها فعلياً؛ نستخدمها حتى تبقى أدوات القارئ
+  // متزامنة مع صفحة المصحف الظاهرة.
+  int? _loadedPage;
+
   @override
   void initState() {
     super.initState();
 
     currentPage =
         surahStartPages[widget.surahNumber - 1];
+    _bookmarkPage = currentPage;
+    _loadReaderPreferences();
 
     _positionSubscription =
         _audioPlayer.positionStream.listen(_onAudioPosition);
@@ -522,41 +947,45 @@ List<TimingRead> timingReads = [];
       }
     });
 
-    controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFFF7F1DF))
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (_) {
-            _installMushafInteractions();
+    controller = WebViewController();
+
+    if (!kIsWeb) {
+      controller
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setBackgroundColor(const Color(0xFFFFF7F1))
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageFinished: (_) {
+              _installMushafInteractions();
+            },
+          ),
+        )
+        ..addJavaScriptChannel(
+          'AyahChannel',
+          onMessageReceived: (message) {
+            _showAyahMenu(message.message);
           },
-        ),
-      )
-      ..addJavaScriptChannel(
-        'AyahChannel',
-        onMessageReceived: (message) {
-          _showAyahMenu(message.message);
-        },
-      )
-      ..addJavaScriptChannel(
-        'NavigationChannel',
-        onMessageReceived: (message) {
-          if (message.message == 'next') {
-            _changePage(currentPage + 1);
-          } else if (message.message == 'prev') {
-            _changePage(currentPage - 1);
-          }
-        },
-      )
-      ..addJavaScriptChannel(
-        'PageChannel',
-        onMessageReceived: (message) {
-          final page = int.tryParse(message.message);
-          if (page != null && mounted) {
-            setState(() => currentPage = page);
-          }
-        },
-      );
+        )
+        ..addJavaScriptChannel(
+          'NavigationChannel',
+          onMessageReceived: (message) {
+            if (message.message == 'next') {
+              _changePage(currentPage + 1);
+            } else if (message.message == 'prev') {
+              _changePage(currentPage - 1);
+            }
+          },
+        )
+        ..addJavaScriptChannel(
+          'PageChannel',
+          onMessageReceived: (message) {
+            final page = int.tryParse(message.message);
+            if (page != null && mounted) {
+              setState(() => currentPage = page);
+            }
+          },
+        );
+    }
 
     _loadMushafPage(currentPage);
   }
@@ -784,6 +1213,7 @@ Future<void> _loadReciters() async {
 
   void _highlightTiming(AyahTiming timing) {
     _lastHighlightedAyah = '${widget.surahNumber}:${timing.ayah}';
+    if (kIsWeb) return;
     controller.runJavaScript(
       "setNoorAyahHighlight('${widget.surahNumber}', '${timing.ayah}');",
     );
@@ -791,6 +1221,7 @@ Future<void> _loadReciters() async {
 
   void _clearAyahHighlight() {
     _lastHighlightedAyah = null;
+    if (kIsWeb) return;
     controller.runJavaScript("""
       window.noorHighlightSurah = null;
       window.noorHighlightAyah = null;
@@ -868,48 +1299,557 @@ Future<void> _loadReciters() async {
     }
   }
 
+  String get _currentSurahName {
+    var index = 0;
+    for (var i = 0; i < surahStartPages.length; i++) {
+      if (surahStartPages[i] <= currentPage) {
+        index = i;
+      } else {
+        break;
+      }
+    }
+    return surahNames[index];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final pageText = 'الصفحة $currentPage من 604';
+    final juzText = 'الجزء ${_juz(currentPage)}';
+    final currentSurahTitle = 'سورة $_currentSurahName';
+    final isBookmarked = _bookmarkPage == currentPage;
+
+    final shellBackground =
+        _isNightMode ? const Color(0xFF121917) : const Color(0xFFF4F0E6);
+    final cardBackground =
+        _isNightMode ? const Color(0xFF1A2421) : const Color(0xFFFFFCF5);
+    final borderColor =
+        _isNightMode ? const Color(0xFF31413B) : const Color(0xFFE1D8C7);
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'سورة ${widget.surahName}',
+      backgroundColor: shellBackground,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(88),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF174A43),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 16,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'رجوع',
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                currentSurahTitle,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '$pageText  •  $juzText',
+                                style: const TextStyle(
+                                  color: Color(0xFFD8E7DF),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: isBookmarked
+                              ? 'إزالة العلامة'
+                              : 'حفظ موضع القراءة',
+                          onPressed: () {
+                            setState(() {
+                              _bookmarkPage =
+                                  isBookmarked ? null : currentPage;
+                            });
+                            _saveReaderPreferences();
+                            _showMessage(
+                              isBookmarked
+                                  ? 'تمت إزالة علامة القراءة'
+                                  : 'تم حفظ الصفحة $currentPage كعلامة قراءة',
+                            );
+                          },
+                          icon: Icon(
+                            isBookmarked
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
+                            color: const Color(0xFFF2D58A),
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          tooltip: 'خيارات القارئ',
+                          icon: const Icon(
+                            Icons.more_vert_rounded,
+                            color: Colors.white,
+                          ),
+                          onSelected: (value) {
+                            if (value == 'jump') {
+                              _showGoToPageDialog();
+                            } else if (value == 'bookmark') {
+                              if (_bookmarkPage != null) {
+                                _changePage(_bookmarkPage!);
+                              } else {
+                                _showMessage('لا توجد علامة محفوظة بعد');
+                              }
+                            } else if (value == 'night') {
+                              _toggleNightMode();
+                            } else if (value == 'saved') {
+                              _showSavedAyahs();
+                            } else if (value == 'surahs') {
+                              _showReaderTools();
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'jump',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.find_in_page_rounded),
+                                  SizedBox(width: 12),
+                                  Text('الانتقال إلى صفحة'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'bookmark',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.bookmark_rounded),
+                                  SizedBox(width: 12),
+                                  Text('العودة إلى العلامة'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'night',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.dark_mode_rounded),
+                                  SizedBox(width: 12),
+                                  Expanded(child: Text('الوضع الليلي')),
+                                  Switch(
+                                    value: _isNightMode,
+                                    onChanged: null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'saved',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.bookmarks_rounded),
+                                  SizedBox(width: 12),
+                                  Text('الآيات المحفوظة'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'surahs',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.swap_horiz_rounded),
+                                  SizedBox(width: 12),
+                                  Text('السورة السابقة / التالية'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                LinearProgressIndicator(
+                  minHeight: 3,
+                  value: currentPage / 604,
+                  backgroundColor: const Color(0x335E8B7C),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFFF2D58A),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        centerTitle: true,
       ),
-      body: WebViewWidget(
-        controller: controller,
+      body: Container(
+        color: shellBackground,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 7),
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardBackground,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: borderColor,
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _isNightMode
+                      ? const Color(0x55000000)
+                      : const Color(0x1A000000),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 7),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _isNightMode
+                            ? const Color(0xFF151B19)
+                            : const Color(0xFFFFFEFA),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: _isNightMode
+                              ? const Color(0xFF34453E)
+                              : const Color(0xFFE4DCCB),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _isNightMode
+                                ? const Color(0x33000000)
+                                : const Color(0x10000000),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(17),
+                        child: kIsWeb && _isNightMode
+                            ? ColorFiltered(
+                                colorFilter: const ColorFilter.matrix([
+                                  -0.8, 0, 0, 0, 204,
+                                  0, -0.8, 0, 0, 204,
+                                  0, 0, -0.8, 0, 204,
+                                  0, 0, 0, 1, 0,
+                                ]),
+                                child: WebViewWidget(controller: controller),
+                              )
+                            : WebViewWidget(controller: controller),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_selectedRead != null) _buildAudioBar(),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 8,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 4, 10, 9),
+          color: shellBackground,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_selectedRead != null) _buildAudioBar(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: cardBackground,
+                  borderRadius: BorderRadius.circular(21),
+                  border: Border.all(color: borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _isNightMode
+                          ? const Color(0x33000000)
+                          : const Color(0x14000000),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    _pageButton(
+                      icon: Icons.keyboard_arrow_right_rounded,
+                      label: 'السابق',
+                      onPressed: currentPage > 1
+                          ? () => _changePage(currentPage - 1)
+                          : null,
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(15),
+                        onTap: _showGoToPageDialog,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.menu_book_rounded,
+                                    size: 15,
+                                    color: _isNightMode
+                                        ? const Color(0xFFF2D58A)
+                                        : const Color(0xFF174A43),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    'مصحف المدينة',
+                                    style: TextStyle(
+                                      color: _isNightMode
+                                          ? Colors.white
+                                          : const Color(0xFF174A43),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '$pageText  •  $juzText',
+                                style: TextStyle(
+                                  color: _isNightMode
+                                      ? const Color(0xFFB9C7C1)
+                                      : const Color(0xFF766F63),
+                                  fontSize: 10,
+                                ),
+                              ),
+                              if (isBookmarked)
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    '★ علامة القراءة محفوظة',
+                                    style: TextStyle(
+                                      color: Color(0xFFB58A2A),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    _pageButton(
+                      icon: Icons.keyboard_arrow_left_rounded,
+                      label: 'التالي',
+                      onPressed: currentPage < 604
+                          ? () => _changePage(currentPage + 1)
+                          : null,
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleNightMode() async {
+    final nextMode = !_isNightMode;
+    if (!mounted) return;
+
+    setState(() {
+      _isNightMode = nextMode;
+    });
+    await _saveReaderPreferences();
+
+    // ColorFiltered لا يؤثر على WebView كـ Platform View في Chrome،
+    // لذلك نعيد تحميل صفحة الـ SVG مع CSS مختلف فعلياً.
+    if (kIsWeb) {
+      await _loadMushafPage(currentPage);
+    }
+  }
+
+  Future<void> _showGoToPageDialog() async {
+    final pageController = TextEditingController(
+      text: currentPage.toString(),
+    );
+
+    final page = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text(
+          'الانتقال إلى صفحة',
+          textAlign: TextAlign.right,
+        ),
+        content: TextField(
+          controller: pageController,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.digitsOnly,
+          ],
+          decoration: InputDecoration(
+            hintText: '1 - 604',
+            suffixIcon: const Icon(Icons.menu_book_rounded),
+            filled: true,
+            fillColor: const Color(0xFFF5F1E8),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = int.tryParse(pageController.text.trim());
+              if (value == null || value < 1 || value > 604) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('اكتبي رقم صفحة من 1 إلى 604'),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(dialogContext).pop(value);
+            },
+            child: const Text('انتقال'),
+          ),
+        ],
+      ),
+    );
+
+    pageController.dispose();
+
+    if (page != null && mounted) {
+      // نغيّر الرقم أولاً ثم نطلب تحميل SVG الصفحة المطلوبة مباشرة.
+      await _changePage(page, forceReload: true);
+    }
+  }
+
+  void _showReaderTools() {
+    final currentIndex = _currentSurahIndex;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: _isNightMode
+          ? const Color(0xFF1A2421)
+          : const Color(0xFFFFFCF5),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'التنقل بين السور',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  Text(
-                    'الصفحة $currentPage',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: currentIndex > 0
+                          ? () {
+                              Navigator.pop(context);
+                              _openSurah(currentIndex);
+                            }
+                          : null,
+                      icon: const Icon(Icons.arrow_forward_rounded),
+                      label: const Text('السورة السابقة'),
                     ),
                   ),
-                  Text(
-                    'الجزء ${_juz(currentPage)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: currentIndex < surahNames.length - 1
+                          ? () {
+                              Navigator.pop(context);
+                              _openSurah(currentIndex + 2);
+                            }
+                          : null,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('السورة التالية'),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'أنت الآن في سورة $_currentSurahName',
+                style: const TextStyle(
+                  color: Color(0xFF766F63),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  int get _currentSurahIndex {
+    var index = 0;
+    for (var i = 0; i < surahStartPages.length; i++) {
+      if (surahStartPages[i] <= currentPage) {
+        index = i;
+      } else {
+        break;
+      }
+    }
+    return index;
+  }
+
+  void _openSurah(int surahNumber) {
+    if (surahNumber < 1 || surahNumber > surahNames.length) return;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => QuranReaderPage(
+          surahNumber: surahNumber,
+          surahName: surahNames[surahNumber - 1],
         ),
       ),
     );
@@ -1183,13 +2123,97 @@ void dispose() {
     return data['data']['text']?.toString() ??
         'تعذر تحميل الآية';
   }
-    void _saveAyah(String ayah) {
+  Future<void> _saveAyah(String ayah) async {
+    final wasSaved = _savedAyahs.contains(ayah);
+    setState(() {
+      if (wasSaved) {
+        _savedAyahs.remove(ayah);
+      } else {
+        _savedAyahs.add(ayah);
+      }
+    });
+    await _saveReaderPreferences();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'تم حفظ الآية $ayah',
+          wasSaved ? 'تمت إزالة الآية $ayah من المحفوظات' : 'تم حفظ الآية $ayah في المحفوظات',
+        ),
+        action: SnackBarAction(
+          label: 'المحفوظات',
+          onPressed: _showSavedAyahs,
         ),
       ),
+    );
+  }
+
+  Future<void> _showSavedAyahs() async {
+    final saved = _savedAyahs.toList()..sort();
+    if (!mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: _isNightMode ? const Color(0xFF1A2421) : const Color(0xFFFFFCF5),
+      builder: (sheetContext) {
+        if (saved.isEmpty) {
+          return const SafeArea(
+            child: SizedBox(
+              height: 220,
+              child: Center(child: Text('لا توجد آيات محفوظة بعد')),
+            ),
+          );
+        }
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(sheetContext).size.height * .62,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(18, 4, 18, 10),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text('الآيات المحفوظة', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: saved.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) {
+                      final ayah = saved[index];
+                      final parts = ayah.split(':');
+                      final surah = int.tryParse(parts.isNotEmpty ? parts[0] : '') ?? 1;
+                      final number = int.tryParse(parts.length > 1 ? parts[1] : '') ?? 1;
+                      return ListTile(
+                        leading: const CircleAvatar(child: Icon(Icons.bookmark_rounded)),
+                        title: Text('سورة ${surah >= 1 && surah <= surahNames.length ? surahNames[surah - 1] : ''} — الآية $number', textDirection: TextDirection.rtl),
+                        subtitle: Text(ayah, textDirection: TextDirection.rtl),
+                        trailing: IconButton(
+                          tooltip: 'حذف',
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          onPressed: () async {
+                            setState(() => _savedAyahs.remove(ayah));
+                            await _saveReaderPreferences();
+                            if (sheetContext.mounted) Navigator.pop(sheetContext);
+                            if (mounted) _showSavedAyahs();
+                          },
+                        ),
+                        onTap: () async {
+                          Navigator.pop(sheetContext);
+                          if (surah >= 1 && surah <= surahNames.length) {
+                            _openSurah(surah);
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
   Future<void> _showReciters(String ayah) async {
@@ -1203,81 +2227,194 @@ void dispose() {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) {
+      backgroundColor: _isNightMode ? const Color(0xFF18211E) : const Color(0xFFFFFCF5),
+      builder: (sheetContext) {
         if (loadingReciters) {
           return const SizedBox(
-            height: 250,
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
+            height: 280,
+            child: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (timingReads.isEmpty) {
           return const SizedBox(
             height: 250,
-            child: Center(
-              child: Text('تعذر تحميل قائمة القرّاء'),
-            ),
+            child: Center(child: Text('تعذر تحميل قائمة القرّاء')),
           );
         }
 
-        return SafeArea(
-          child: SizedBox(
-            height:
-                MediaQuery.of(context).size.height * 0.78,
-            child: Column(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'اختر القارئ',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Divider(),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: timingReads.length,
-                    itemBuilder: (context, index) {
-                      final read = timingReads[index];
+        String query = '';
+        bool onlyFavorites = false;
 
-                      return ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.person),
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final filtered = timingReads.where((read) {
+              final q = query.trim().toLowerCase();
+              final matchesQuery = q.isEmpty ||
+                  read.name.toLowerCase().contains(q) ||
+                  read.rewaya.toLowerCase().contains(q);
+              final matchesFavorite = !onlyFavorites || _favoriteReciterIds.contains(read.id);
+              return matchesQuery && matchesFavorite;
+            }).toList()
+              ..sort((a, b) {
+                final af = _favoriteReciterIds.contains(a.id) ? 0 : 1;
+                final bf = _favoriteReciterIds.contains(b.id) ? 0 : 1;
+                if (af != bf) return af.compareTo(bf);
+                return a.name.compareTo(b.name);
+              });
+
+            return SafeArea(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * .84,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                  child: Column(
+                    children: [
+                      Row(
+                        textDirection: TextDirection.rtl,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: _isNightMode ? const Color(0xFF29483D) : const Color(0xFFE2EFE9),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.graphic_eq_rounded, color: Color(0xFF173F35)),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text('القرّاء', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+                                SizedBox(height: 2),
+                                Text('اختر قارئك المفضل للاستماع والتكرار', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        textDirection: TextDirection.rtl,
+                        decoration: InputDecoration(
+                          hintText: 'ابحث باسم القارئ أو الرواية',
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: query.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: () => setSheetState(() => query = ''),
+                                  icon: const Icon(Icons.clear_rounded),
+                                ),
+                          filled: true,
+                          fillColor: _isNightMode ? const Color(0xFF22302B) : const Color(0xFFF3F0E8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
-                        title: Text(
-                          read.name,
-                          textDirection: TextDirection.rtl,
-                        ),
-                        subtitle: read.rewaya.isEmpty
-                            ? null
-                            : Text(
-                                read.rewaya,
-                                textDirection:
-                                    TextDirection.rtl,
+                        onChanged: (value) => setSheetState(() => query = value),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          FilterChip(
+                            avatar: const Icon(Icons.star_rounded, size: 17),
+                            label: const Text('المفضلون'),
+                            selected: onlyFavorites,
+                            onSelected: (value) => setSheetState(() => onlyFavorites = value),
+                          ),
+                          const Spacer(),
+                          Text('${filtered.length} قارئ', textDirection: TextDirection.rtl, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(child: Text('لا يوجد قارئ مطابق للبحث', textDirection: TextDirection.rtl))
+                            : ListView.separated(
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) => const SizedBox(height: 5),
+                                itemBuilder: (context, index) {
+                                  final read = filtered[index];
+                                  final favorite = _favoriteReciterIds.contains(read.id);
+                                  final selected = _lastReciterId == read.id;
+                                  return Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(17),
+                                      onTap: () {
+                                        _lastReciterId = read.id;
+                                        _saveReaderPreferences();
+                                        Navigator.pop(sheetContext);
+                                        _showAudioControls(ayah, read);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: selected
+                                              ? (_isNightMode ? const Color(0xFF29483D) : const Color(0xFFE8F1EC))
+                                              : (_isNightMode ? const Color(0xFF1F2A27) : Colors.white),
+                                          borderRadius: BorderRadius.circular(17),
+                                          border: Border.all(
+                                            color: selected ? const Color(0xFF6C9B8B) : (_isNightMode ? const Color(0xFF31413B) : const Color(0xFFE9E4D9)),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          textDirection: TextDirection.rtl,
+                                          children: [
+                                            Container(
+                                              width: 42,
+                                              height: 42,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: favorite ? const Color(0xFFF2D58A) : const Color(0xFFE5EEE9),
+                                              ),
+                                              child: Icon(favorite ? Icons.star_rounded : Icons.person_rounded, color: const Color(0xFF173F35)),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                children: [
+                                                  Text(read.name, textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                                                  if (read.rewaya.isNotEmpty)
+                                                    Text(read.rewaya, textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                ],
+                                              ),
+                                            ),
+                                            IconButton(
+                                              tooltip: favorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+                                              onPressed: () async {
+                                                setState(() {
+                                                  if (favorite) {
+                                                    _favoriteReciterIds.remove(read.id);
+                                                  } else {
+                                                    _favoriteReciterIds.add(read.id);
+                                                  }
+                                                });
+                                                await _saveReaderPreferences();
+                                                setSheetState(() {});
+                                              },
+                                              icon: Icon(favorite ? Icons.star_rounded : Icons.star_border_rounded),
+                                              color: favorite ? const Color(0xFFC79622) : Colors.grey,
+                                            ),
+                                            const Icon(Icons.play_circle_fill_rounded, color: Color(0xFF173F35), size: 31),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                        trailing: const Icon(
-                          Icons.arrow_back_ios,
-                          size: 16,
-                        ),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showAudioControls(
-                            ayah,
-                            read,
-                          );
-                        },
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -1709,20 +2846,298 @@ void dispose() {
       ),
     );
   }
-  Future<void> _loadMushafPage(int page) async {
+  Future<void> _loadReaderPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedPage = prefs.getInt('noor_last_read_page');
+      final bookmark = prefs.getInt('noor_bookmark_page');
+      final night = prefs.getBool('noor_night_mode') ?? false;
+      final saved = prefs.getStringList('noor_saved_ayahs') ?? <String>[];
+      final favoriteReciters = prefs.getStringList('noor_favorite_reciters') ?? <String>[];
+      final lastReciter = prefs.getInt('noor_last_reciter_id');
+
+      if (!mounted) return;
+      setState(() {
+        _lastReadPage = savedPage;
+        _bookmarkPage = bookmark ?? currentPage;
+        _isNightMode = night;
+        _savedAyahs
+          ..clear()
+          ..addAll(saved);
+        _favoriteReciterIds
+          ..clear()
+          ..addAll(favoriteReciters.map((e) => int.tryParse(e)).whereType<int>());
+        _lastReciterId = lastReciter;
+        _prefsLoaded = true;
+      });
+
+      if (savedPage != null && savedPage >= 1 && savedPage <= 604 && savedPage != currentPage) {
+        await _changePage(savedPage, forceReload: true);
+      } else if (kIsWeb && night) {
+        await _loadMushafPage(currentPage);
+      }
+    } catch (_) {
+      _prefsLoaded = true;
+    }
+  }
+
+  Future<void> _saveReaderPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('noor_last_read_page', currentPage);
+      if (_bookmarkPage == null) {
+        await prefs.remove('noor_bookmark_page');
+      } else {
+        await prefs.setInt('noor_bookmark_page', _bookmarkPage!);
+      }
+      await prefs.setBool('noor_night_mode', _isNightMode);
+      await prefs.setStringList('noor_saved_ayahs', _savedAyahs.toList()..sort());
+      await prefs.setStringList('noor_favorite_reciters', _favoriteReciterIds.map((e) => e.toString()).toList()..sort());
+      if (_lastReciterId == null) {
+        await prefs.remove('noor_last_reciter_id');
+      } else {
+        await prefs.setInt('noor_last_reciter_id', _lastReciterId!);
+      }
+    } catch (_) {}
+  }
+
+Future<void> _loadMushafPage(int page) async {
     final p = page.toString().padLeft(3, '0');
     final url = Uri.parse(
       'https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/$p.svg',
     );
+
     try {
-      await controller.loadRequest(url);
+      if (kIsWeb) {
+      final response = await http.get(url);
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+
+      var svg = response.body
+          .replaceFirst(RegExp(r'<\?xml[^>]*>'), '')
+          .replaceFirst(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '');
+
+      final html = '''
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow-x:hidden}
+#page{width:100%;display:block;transition:opacity .15s ease}
+svg{width:100%;height:auto;display:block}
+.ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
+.noor-active{fill:#7652d6!important;fill-opacity:.38!important}
+#readerSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:20}
+#readerPanel{position:relative;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;max-height:78%;border-radius:22px 22px 0 0;padding:18px 16px 22px;box-sizing:border-box;box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+#readerTitle{font-size:18px;font-weight:700;text-align:center;margin-bottom:8px}
+#readerAyah{font-size:13px;opacity:.7;text-align:center;margin-bottom:12px}
+#readerSearch{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:12px;padding:11px 13px;font-size:15px;background:transparent;color:inherit;outline:none;margin-bottom:10px}
+#readerList{max-height:38vh;overflow:auto}
+.readerRow{display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid rgba(127,127,127,.16);cursor:pointer}
+.readerRow:hover{background:rgba(118,82,214,.08)}
+.readerAvatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(118,82,214,.12);font-weight:700;color:#7652d6;flex:0 0 auto}
+.readerName{font-weight:700;font-size:14px;flex:1}.readerRewaya{font-size:11px;opacity:.62;margin-top:2px}
+#choiceSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:30}
+#choicePanel{background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;border-radius:22px 22px 0 0;padding:20px;box-sizing:border-box}
+.choiceBtn{width:100%;border:0;border-radius:14px;padding:14px;margin-top:9px;font-size:15px;font-weight:700;cursor:pointer;background:rgba(118,82,214,.12);color:inherit}
+.choiceBtn.primary{background:#7652d6;color:white}
+#player{position:fixed;left:10px;right:10px;bottom:10px;display:none;z-index:15;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#fff' : '#222'};border-radius:18px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:rtl}
+#playerTop{display:flex;align-items:center;gap:8px}.playerInfo{flex:1}.playerName{font-weight:700;font-size:13px}.playerStatus{font-size:11px;opacity:.65;margin-top:2px}
+.playerBtn{border:0;background:rgba(118,82,214,.12);border-radius:12px;width:40px;height:40px;cursor:pointer;font-size:17px}
+#progress{width:100%;margin-top:8px;accent-color:#7652d6}
+#playerTools{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.speedBtn,.downloadBtn{border:0;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;background:rgba(118,82,214,.10);color:inherit}
+.speedBtn.active{background:#7652d6;color:#fff}.downloadBtn{background:#174A43;color:#fff}.repeatBtn.active{background:#174A43;color:#fff}.favBtn{border:0;background:transparent;color:#C79622;font-size:18px;cursor:pointer;padding:4px}.favFilter{border:0;border-radius:10px;padding:7px 10px;background:rgba(118,82,214,.10);color:inherit;font-weight:700;cursor:pointer}.favFilter.active{background:#7652d6;color:#fff}
+#closeReader{position:absolute;left:12px;top:10px;border:0;background:transparent;color:inherit;font-size:24px;cursor:pointer}
+</style></head>
+<body>
+<div id="page">$svg</div>
+<div id="readerSheet"><div id="readerPanel"><button id="closeReader">×</button><div id="readerTitle">اختر القارئ</div><div id="readerAyah"></div><input id="readerSearch" placeholder="ابحث عن اسم القارئ..."/><div style="display:flex;justify-content:flex-start;margin-bottom:8px"><button id="favFilter" class="favFilter">★ المفضلة فقط</button></div><div id="readerList"></div></div></div>
+<div id="choiceSheet"><div id="choicePanel"><div id="readerTitle">ماذا تريد أن تسمع؟</div><div id="readerAyah"></div><button class="choiceBtn primary" id="playAyah">▶ الاستماع إلى الآية</button><button class="choiceBtn" id="playSurah">▶ الاستماع إلى السورة كاملة</button><button class="choiceBtn" id="cancelChoice">إلغاء</button></div></div>
+<div id="player"><div id="playerTop"><div class="playerInfo"><div class="playerName" id="playerName">نور القرآن</div><div class="playerStatus" id="playerStatus">جاهز</div></div><button class="playerBtn" id="stopBtn">■</button><button class="playerBtn" id="pauseBtn">Ⅱ</button></div><input id="progress" type="range" min="0" max="100" value="0" step="0.1"/><div id="playerTools"><button class="speedBtn" data-speed="0.75">0.75×</button><button class="speedBtn active" data-speed="1">1×</button><button class="speedBtn" data-speed="1.25">1.25×</button><button class="speedBtn" data-speed="1.5">1.5×</button><button class="speedBtn" data-speed="2">2×</button><button class="repeatBtn" data-repeat="1">مرة</button><button class="repeatBtn" data-repeat="2">2×</button><button class="repeatBtn" data-repeat="3">3×</button><button class="repeatBtn" data-repeat="5">5×</button><button class="repeatBtn" data-repeat="0">∞</button><button class="downloadBtn" id="downloadBtn">⬇ تنزيل السورة</button></div></div>
+<audio id="audio" preload="auto"></audio>
+<script>
+(function(){
+ const SURAH=%SURAH%;
+ const INITIAL_PAGE=%PAGE%;
+ const pageEl=document.getElementById('page'), audio=document.getElementById('audio');
+ const readerSheet=document.getElementById('readerSheet'), choiceSheet=document.getElementById('choiceSheet');
+ const readerList=document.getElementById('readerList'), readerSearch=document.getElementById('readerSearch');
+ const readerAyah=document.querySelector('#readerPanel #readerAyah'), choiceAyah=document.querySelector('#choicePanel #readerAyah');
+ const player=document.getElementById('player'), playerName=document.getElementById('playerName'), playerStatus=document.getElementById('playerStatus'), progress=document.getElementById('progress');
+ let readers=[], timings=[], selectedAyah=null, selectedReader=null, playMode='ayah', currentTiming=null, loadingPage=false, favoriteIds=new Set(), onlyFavorites=false, repeatCount=1, completedRepeats=0;
+ const api='https://mp3quran.net/api/v3';
+ const qsvg='https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/';
+ const DB_NAME='noor_quran_offline_v1', STORE='surahs';
+ function esc(v){return String(v||'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));}
+ function setSheet(el,on){el.style.display=on?'flex':'none';}
+ function idbOpen(){
+   return new Promise((resolve,reject)=>{
+     const req=indexedDB.open(DB_NAME,1);
+     req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);};
+     req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+   });
+ }
+ async function idbPut(key,value){
+   try{const db=await idbOpen();return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);});}catch(e){return false;}
+ }
+ async function idbGet(key){
+   try{const db=await idbOpen();return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}catch(e){return null;}
+ }
+ function loadLocalPrefs(){
+   try{
+     const fav=JSON.parse(localStorage.getItem('noor_favorite_reciters')||'[]');
+     favoriteIds=new Set(Array.isArray(fav)?fav.map(String):[]);
+     repeatCount=parseInt(localStorage.getItem('noor_repeat_count')||'1',10);
+     if(![0,1,2,3,5].includes(repeatCount)) repeatCount=1;
+     const savedSpeed=localStorage.getItem('noor_speed');
+     if(savedSpeed){
+       document.querySelectorAll('.speedBtn').forEach(b=>b.classList.toggle('active',b.dataset.speed===savedSpeed));
+     }
+   }catch(e){}
+ }
+ function saveLocalPrefs(){
+   try{localStorage.setItem('noor_favorite_reciters',JSON.stringify(Array.from(favoriteIds)));localStorage.setItem('noor_repeat_count',String(repeatCount));localStorage.setItem('noor_speed',document.querySelector('.speedBtn.active')?.dataset.speed||'1');}catch(e){}
+ }
+ function toggleFavorite(id){const k=String(id); if(favoriteIds.has(k)) favoriteIds.delete(k); else favoriteIds.add(k); saveLocalPrefs(); renderReaders();}
+ async function loadReaders(){
+   if(readers.length) return readers;
+   try{
+     const cached=await idbGet('readers');
+     if(Array.isArray(cached)&&cached.length){readers=cached;renderReaders();}
+     const r=await fetch(api+'/ayat_timing/reads');
+     if(r.ok){const fresh=await r.json();readers=fresh.filter(x=>x&&x.id&&x.folder_url);await idbPut('readers',readers);}
+     renderReaders(); return readers;
+   }catch(e){
+     const cached=await idbGet('readers');
+     if(Array.isArray(cached)&&cached.length){readers=cached;renderReaders();return readers;}
+     readerList.innerHTML='<div style="padding:20px;text-align:center;opacity:.7">لا توجد قائمة قراء محفوظة. افتح الإنترنت مرة واحدة لتحميلها.</div>'; return [];
+   }
+ }
+ function renderReaders(){
+   const q=(readerSearch.value||'').trim();
+   const list=readers.filter(r=>(!onlyFavorites||favoriteIds.has(String(r.id))) && (!q || (r.name||'').includes(q) || (r.rewaya||'').includes(q))).slice(0,80);
+   readerList.innerHTML=list.map(r=>{const fav=favoriteIds.has(String(r.id)); return `<div class="readerRow" data-id="\${r.id}"><div class="readerAvatar">\${esc((r.name||'ق').trim().charAt(0))}</div><div class="readerName">\${esc(r.name)}<div class="readerRewaya">\${esc(r.rewaya||'رواية غير محددة')}</div></div><button class="favBtn" data-fav="\${r.id}" title="\${fav?'إزالة من المفضلة':'إضافة للمفضلة'}">\${fav?'★':'☆'}</button><div>›</div></div>`;}).join('') || '<div style="padding:20px;text-align:center;opacity:.7">لا توجد نتائج</div>';
+   readerList.querySelectorAll('.readerRow').forEach(row=>row.onclick=()=>{const picked=readers.find(r=>String(r.id)===row.dataset.id); if(!picked) return; selectedReader=picked; try{localStorage.setItem('noor_last_reciter_id',String(picked.id));}catch(e){} setSheet(readerSheet,false);setSheet(choiceSheet,true);choiceAyah.textContent='الآية '+selectedAyah;});
+   readerList.querySelectorAll('.favBtn').forEach(btn=>btn.onclick=(ev)=>{ev.stopPropagation();toggleFavorite(btn.dataset.fav);});
+ }
+ async function openAyah(ayah){
+   selectedAyah=ayah;
+   readerAyah.textContent='الآية '+ayah;
+   setSheet(readerSheet,true); readerSearch.value='';
+   await loadReaders(); renderReaders();
+ }
+ function clearHighlight(){document.querySelectorAll('.ayahPolygon').forEach(e=>e.classList.remove('noor-active'));}
+ function highlight(surah,ayah){clearHighlight(); document.querySelectorAll('.ayahPolygon').forEach(e=>{if(e.getAttribute('surah')==String(surah)&&e.getAttribute('ayah')==String(ayah)) e.classList.add('noor-active');});}
+ async function loadTimings(read){
+   const key='timings_'+SURAH+'_'+read.id;
+   const cached=await idbGet(key);
+   if(Array.isArray(cached)&&cached.length) timings=cached;
+   try{
+     const r=await fetch(api+'/ayat_timing?surah='+SURAH+'&read='+read.id);
+     if(!r.ok) throw 0;
+     timings=(await r.json()).filter(x=>x.ayah>=1&&x.end_time>x.start_time);
+     await idbPut(key,timings);
+   }catch(e){
+     if(!timings.length) throw e;
+   }
+   return timings;
+ }
+ function audioUrl(read){return read.folder_url+String(SURAH).padStart(3,'0')+'.mp3';}
+ async function getOfflineAudio(read){
+   const cached=await idbGet('audio_'+SURAH+'_'+read.id);
+   if(!cached) return null;
+   try{return URL.createObjectURL(new Blob([cached],{type:'audio/mpeg'}));}catch(e){return null;}
+ }
+ async function downloadOffline(read){
+   playerStatus.textContent='جاري تنزيل السورة...';
+   try{
+     const r=await fetch(audioUrl(read));
+     if(!r.ok) throw 0;
+     const buf=await r.arrayBuffer();
+     const saved=await idbPut('audio_'+SURAH+'_'+read.id,buf);
+     if(!saved) throw 0;
+     await loadTimings(read);
+     playerStatus.textContent='تم التنزيل — متاحة بدون إنترنت';
+     return true;
+   }catch(e){playerStatus.textContent='فشل التنزيل؛ تحقق من الإنترنت';return false;}
+ }
+ function pageFromTiming(t){const m=String(t.page||'').match(/(\d{3})\.svg/); return m?parseInt(m[1],10):null;}
+ async function loadPage(p){
+   if(loadingPage) return; loadingPage=true;
+   try{const u=qsvg+String(p).padStart(3,'0')+'.svg'; const r=await fetch(u); if(!r.ok) throw 0; const txt=await r.text(); pageEl.style.opacity='.2'; pageEl.innerHTML=txt.replace(/<\?xml[^>]*>/,'').replace(/<!DOCTYPE[^>]*>/i,''); pageEl.style.opacity='1'; bindPolygons();}
+   finally{loadingPage=false;}
+ }
+ function bindPolygons(){document.querySelectorAll('.ayahPolygon').forEach(el=>{el.style.cursor='pointer';el.onclick=()=>{const s=el.getAttribute('surah'),a=el.getAttribute('ayah');if(s&&a)openAyah(s+':'+a);};}); if(currentTiming) highlight(SURAH,currentTiming.ayah);}
+ async function play(mode){
+   if(!selectedReader||!selectedAyah) return;
+   try{
+     if(!timings.length) await loadTimings(selectedReader);
+     if(!timings.length) throw 0;
+     playMode=mode; completedRepeats=0; const verse=parseInt(selectedAyah.split(':')[1],10); currentTiming=timings.find(x=>x.ayah===verse)||timings[0];
+     const offline=await getOfflineAudio(selectedReader);
+     audio.src=offline||audioUrl(selectedReader); audio.playbackRate=Number(document.querySelector('.speedBtn.active')?.dataset.speed||1);
+     if(mode==='ayah') audio.currentTime=currentTiming.start_time/1000;
+     await audio.play();
+     playerName.textContent=selectedReader.name+' • '+(selectedReader.rewaya||''); playerStatus.textContent=(offline?'بدون إنترنت • ':'')+(mode==='ayah'?'تشغيل الآية':'تشغيل السورة كاملة'); player.style.display='block'; setSheet(choiceSheet,false); highlight(SURAH,currentTiming.ayah);
+   }catch(e){playerStatus.textContent='تعذر تشغيل الصوت؛ تحقق من الإنترنت';player.style.display='block';}
+ }
+ audio.ontimeupdate=async()=>{
+   if(!currentTiming||!timings.length) return;
+   const ms=audio.currentTime*1000;
+   if(playMode==='ayah' && ms>=currentTiming.end_time){
+     if(repeatCount===0 || completedRepeats+1<repeatCount){completedRepeats++;audio.currentTime=currentTiming.start_time/1000;highlight(SURAH,currentTiming.ayah);await audio.play();playerStatus.textContent='تكرار الآية '+(repeatCount===0?'∞':completedRepeats+'/'+repeatCount);return;}
+     audio.pause();playerStatus.textContent='انتهت الآية';return;
+   }
+   if(playMode==='surah'){
+     const t=timings.find(x=>ms>=x.start_time&&ms<x.end_time);
+     if(t&&t.ayah!==currentTiming.ayah){currentTiming=t;highlight(SURAH,t.ayah);const pg=pageFromTiming(t);if(pg) await loadPage(pg);}
+   }
+   if(audio.duration) progress.value=(audio.currentTime/audio.duration)*100;
+ };
+ audio.onended=()=>{clearHighlight();playerStatus.textContent=playMode==='ayah'?'انتهت الآية':'انتهت السورة';};
+ document.getElementById('playAyah').onclick=()=>play('ayah');
+ document.getElementById('playSurah').onclick=()=>play('surah');
+ document.getElementById('cancelChoice').onclick=()=>setSheet(choiceSheet,false);
+ document.getElementById('closeReader').onclick=()=>setSheet(readerSheet,false);
+ document.getElementById('pauseBtn').onclick=()=>{if(audio.paused){audio.play();}else{audio.pause();}};
+ document.getElementById('stopBtn').onclick=()=>{audio.pause();audio.currentTime=0;clearHighlight();player.style.display='none';};
+ document.querySelectorAll('.speedBtn').forEach(btn=>btn.onclick=()=>{
+   document.querySelectorAll('.speedBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+   audio.playbackRate=Number(btn.dataset.speed||1);
+   try{localStorage.setItem('noor_speed',String(btn.dataset.speed||1));}catch(e){}
+   playerStatus.textContent='السرعة '+btn.dataset.speed+'×';
+ });
+ document.querySelectorAll('.repeatBtn').forEach(btn=>btn.onclick=()=>{repeatCount=Number(btn.dataset.repeat);completedRepeats=0;document.querySelectorAll('.repeatBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');try{localStorage.setItem('noor_repeat_count',String(repeatCount));}catch(e){} playerStatus.textContent=repeatCount===0?'تكرار الآية: مستمر':'تكرار الآية: '+repeatCount+' مرة';});
+ document.getElementById('downloadBtn').onclick=async()=>{if(selectedReader!=null) await downloadOffline(selectedReader);};
+ progress.oninput=()=>{if(audio.duration) audio.currentTime=(Number(progress.value)/100)*audio.duration;};
+ readerSearch.oninput=renderReaders;
+ document.getElementById('favFilter').onclick=()=>{onlyFavorites=!onlyFavorites;document.getElementById('favFilter').classList.toggle('active',onlyFavorites);renderReaders();};
+ bindPolygons();
+ loadLocalPrefs();
+ document.querySelectorAll('.repeatBtn').forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.repeat)===repeatCount));
+})();
+</script></body></html>
+''';
+
+      final webHtml = html
+          .replaceFirst('%SURAH%', '${widget.surahNumber}')
+          .replaceFirst('%PAGE%', '$currentPage');
+      await controller.loadHtmlString(webHtml);
+      _loadedPage = page;
+      return;
+    }
+
+    await controller.loadRequest(url);
+      _loadedPage = page;
     } catch (e) {
       if (mounted) {
         _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
       }
     }
   }
-
   Future<void> _installMushafInteractions() async {
     try {
       await controller.runJavaScript('''
@@ -1775,7 +3190,7 @@ void dispose() {
           }, {passive: true});
           PageChannel.postMessage(String(%PAGE%));
         })();
-      '''.replaceAll('%PAGE%', '$page'),
+      '''.replaceAll('%PAGE%', '$currentPage'),
       );
 
       if (_lastHighlightedAyah != null) {
@@ -1789,26 +3204,79 @@ void dispose() {
     } catch (_) {}
   }
 
-    Future<void> _changePage(int newPage) async {
+  Future<void> _changePage(
+    int newPage, {
+    bool forceReload = false,
+  }) async {
     if (newPage < 1 || newPage > 604) {
       return;
     }
 
-    setState(() {
-      currentPage = newPage;
-    });
+    if (newPage == currentPage && !forceReload) {
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        currentPage = newPage;
+      });
+    }
 
     await _loadMushafPage(newPage);
+    _lastReadPage = newPage;
+    await _saveReaderPreferences();
   }
 
   Widget _pageButton({
     required IconData icon,
-    required VoidCallback onPressed,
+    required String label,
+    required VoidCallback? onPressed,
   }) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      tooltip: 'تغيير الصفحة',
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 3,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: onPressed == null
+                      ? const Color(0xFFECE8DE)
+                      : const Color(0xFF174A43),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: onPressed == null
+                      ? const Color(0xFFAAA396)
+                      : Colors.white,
+                  size: 25,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  color: onPressed == null
+                      ? const Color(0xFFAAA396)
+                      : const Color(0xFF174A43),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
