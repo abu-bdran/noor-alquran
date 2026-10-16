@@ -3186,7 +3186,7 @@ Future<void> _loadMushafPage(int page) async {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
-#page{width:100%;display:block;transition:opacity .15s ease;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+#page{width:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
 svg{
 width:${(112 * _mushafTextScale).toStringAsFixed(1)}%;
 height:auto;
@@ -3363,24 +3363,36 @@ max-width:none
  progress.oninput=()=>{if(audio.duration) audio.currentTime=(Number(progress.value)/100)*audio.duration;};
  readerSearch.oninput=renderReaders;
  var swipeStartX=null,swipeStartY=null,swiped=false;
+ var pinchStartDistance=null,pinchStartZoom=1,zoom=1;
+ var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
+ function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+zoom+')';}
+ function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
  document.addEventListener('touchstart',function(e){
+  if(!e.touches||!e.touches.length)return;swiped=false;
+  if(e.touches.length>=2){pinchStartDistance=dist(e.touches[0],e.touches[1]);pinchStartZoom=zoom;swipeStartX=null;return;}
+  swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;panStartX=swipeStartX;panStartY=swipeStartY;panStartPanX=panX;panStartPanY=panY;
+ },{passive:true});
+ document.addEventListener('touchmove',function(e){
   if(!e.touches||!e.touches.length)return;
-  swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;swiped=false;
+  if(e.touches.length>=2){
+   var d=dist(e.touches[0],e.touches[1]);
+   if(pinchStartDistance===null){pinchStartDistance=d;pinchStartZoom=zoom;}
+   zoom=Math.max(1,Math.min(3,pinchStartZoom*(d/pinchStartDistance)));swiped=zoom>1;applyZoom();return;
+  }
+  if(swipeStartX===null)return;
+  var dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
+  if(zoom>1.01){panX=panStartPanX+(e.touches[0].clientX-panStartX);panY=panStartPanY+(e.touches[0].clientY-panStartY);applyZoom();swiped=true;return;}
+  if(Math.abs(dx)>35&&Math.abs(dx)>Math.abs(dy)*1.15)swiped=true;
  },{passive:true});
  document.addEventListener('touchend',function(e){
+  if(e.touches&&e.touches.length>=2)return;
+  if(pinchStartDistance!==null){pinchStartDistance=null;if(zoom<1.05){zoom=1;panX=0;panY=0;applyZoom();}swipeStartX=null;return;}
   if(swipeStartX===null)return;
-  var dx=e.changedTouches[0].clientX-swipeStartX;
-  var dy=e.changedTouches[0].clientY-swipeStartY;
-  swipeStartX=null;swipeStartY=null;
-  if(Math.abs(dx)>105&&Math.abs(dx)>Math.abs(dy)*1.15){
-   swiped=true;
-   if(window.NavigationChannel){NavigationChannel.postMessage(dx>0?'next':'prev');}
-   setTimeout(function(){swiped=false;},100);
-  }
+  var dx=e.changedTouches[0].clientX-swipeStartX,dy=e.changedTouches[0].clientY-swipeStartY;swipeStartX=null;swipeStartY=null;
+  if(zoom<=1.01&&Math.abs(dx)>105&&Math.abs(dx)>Math.abs(dy)*1.15){swiped=true;if(window.NavigationChannel)NavigationChannel.postMessage(dx>0?'next':'prev');setTimeout(function(){swiped=false;},100);}
  },{passive:true});
- document.addEventListener('click',function(e){
-  if(swiped){e.preventDefault();e.stopPropagation();swiped=false;}
- },true);
+ document.addEventListener('dblclick',function(){zoom=1;panX=0;panY=0;applyZoom();});
+ document.addEventListener('click',function(e){if(swiped){e.preventDefault();e.stopPropagation();swiped=false;}},true);
  bindPolygons();
 })();
 </script></body></html>
@@ -3437,47 +3449,32 @@ max-width:none
             };
           });
 
-          var startX = null;
-          var startY = null;
-          var didSwipe = false;
-
-          document.addEventListener('touchstart', function(e) {
-            if (!e.touches || !e.touches.length) return;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            didSwipe = false;
-          }, {passive: true});
-
-          document.addEventListener('touchmove', function(e) {
-            if (startX === null || !e.touches || !e.touches.length) return;
-            var dx = e.touches[0].clientX - startX;
-            var dy = e.touches[0].clientY - startY;
-            if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy) * 1.15) {
-              didSwipe = true;
-            }
-          }, {passive: true});
-
-          document.addEventListener('touchend', function(e) {
-            if (startX === null) return;
-            var dx = e.changedTouches[0].clientX - startX;
-            var dy = e.changedTouches[0].clientY - startY;
-            startX = null;
-            startY = null;
-
-            if (Math.abs(dx) > 105 && Math.abs(dx) > Math.abs(dy) * 1.15) {
-              didSwipe = true;
-              if (window.NavigationChannel) NavigationChannel.postMessage(dx > 0 ? 'next' : 'prev');
-              setTimeout(function(){ didSwipe = false; }, 80);
-            }
-          }, {passive: true});
-
-          document.addEventListener('click', function(e) {
-            if (didSwipe) {
-              e.preventDefault();
-              e.stopPropagation();
-              didSwipe = false;
-            }
-          }, true);
+          var startX=null,startY=null,didSwipe=false;
+          var pinchStartDistance=null,pinchStartZoom=1,zoom=1;
+          var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
+          var pageEl=document.querySelector('#page')||document.body;
+          pageEl.style.touchAction='none';pageEl.style.transformOrigin='center top';
+          function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+zoom+')';}
+          function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
+          document.addEventListener('touchstart',function(e){
+            if(!e.touches||!e.touches.length)return;didSwipe=false;
+            if(e.touches.length>=2){pinchStartDistance=dist(e.touches[0],e.touches[1]);pinchStartZoom=zoom;startX=null;return;}
+            startX=e.touches[0].clientX;startY=e.touches[0].clientY;panStartX=startX;panStartY=startY;panStartPanX=panX;panStartPanY=panY;
+          },{passive:true});
+          document.addEventListener('touchmove',function(e){
+            if(!e.touches||!e.touches.length)return;
+            if(e.touches.length>=2){var d=dist(e.touches[0],e.touches[1]);if(pinchStartDistance===null){pinchStartDistance=d;pinchStartZoom=zoom;}zoom=Math.max(1,Math.min(3,pinchStartZoom*(d/pinchStartDistance)));didSwipe=zoom>1;applyZoom();return;}
+            if(startX===null)return;var dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;
+            if(zoom>1.01){panX=panStartPanX+(e.touches[0].clientX-panStartX);panY=panStartPanY+(e.touches[0].clientY-panStartY);applyZoom();didSwipe=true;return;}
+            if(Math.abs(dx)>35&&Math.abs(dx)>Math.abs(dy)*1.15)didSwipe=true;
+          },{passive:true});
+          document.addEventListener('touchend',function(e){
+            if(e.touches&&e.touches.length>=2)return;if(pinchStartDistance!==null){pinchStartDistance=null;if(zoom<1.05){zoom=1;panX=0;panY=0;applyZoom();}startX=null;return;}
+            if(startX===null)return;var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;startX=null;startY=null;
+            if(zoom<=1.01&&Math.abs(dx)>105&&Math.abs(dx)>Math.abs(dy)*1.15){didSwipe=true;if(window.NavigationChannel)NavigationChannel.postMessage(dx>0?'next':'prev');setTimeout(function(){didSwipe=false;},80);}
+          },{passive:true});
+          document.addEventListener('dblclick',function(){zoom=1;panX=0;panY=0;applyZoom();});
+          document.addEventListener('click',function(e){if(didSwipe){e.preventDefault();e.stopPropagation();didSwipe=false;}},true);
           PageChannel.postMessage(String(%PAGE%));
         })();
       '''.replaceAll('%PAGE%', '$currentPage'),
