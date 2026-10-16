@@ -960,7 +960,7 @@ List<TimingRead> timingReads = [];
         ..addJavaScriptChannel(
           'AyahChannel',
           onMessageReceived: (message) {
-            _showAyahMenu(message.message);
+            _showReciters(message.message);
           },
         )
         ..addJavaScriptChannel(
@@ -1600,13 +1600,6 @@ Future<void> _loadReciters() async {
                 ),
                 child: Row(
                   children: [
-                    _pageButton(
-                      icon: Icons.keyboard_arrow_right_rounded,
-                      label: 'السابق',
-                      onPressed: currentPage > 1
-                          ? () => _changePage(currentPage - 1)
-                          : null,
-                    ),
                     Expanded(
                       child: InkWell(
                         borderRadius: BorderRadius.circular(15),
@@ -1627,7 +1620,7 @@ Future<void> _loadReciters() async {
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
-                                    'مصحف المدينة',
+                                    'مصحف المدينة • اسحب للتصفح',
                                     style: TextStyle(
                                       color: _isNightMode
                                           ? Colors.white
@@ -1664,13 +1657,6 @@ Future<void> _loadReciters() async {
                           ),
                         ),
                       ),
-                    ),
-                    _pageButton(
-                      icon: Icons.keyboard_arrow_left_rounded,
-                      label: 'التالي',
-                      onPressed: currentPage < 604
-                          ? () => _changePage(currentPage + 1)
-                          : null,
                     ),
                   ],
                 ),
@@ -3229,17 +3215,46 @@ svg{width:100%;height:auto;display:block}
           });
 
           var startX = null;
+          var startY = null;
+          var didSwipe = false;
+
           document.addEventListener('touchstart', function(e) {
+            if (!e.touches || !e.touches.length) return;
             startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            didSwipe = false;
           }, {passive: true});
+
+          document.addEventListener('touchmove', function(e) {
+            if (startX === null || !e.touches || !e.touches.length) return;
+            var dx = e.touches[0].clientX - startX;
+            var dy = e.touches[0].clientY - startY;
+            if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+              didSwipe = true;
+            }
+          }, {passive: true});
+
           document.addEventListener('touchend', function(e) {
             if (startX === null) return;
             var dx = e.changedTouches[0].clientX - startX;
+            var dy = e.changedTouches[0].clientY - startY;
             startX = null;
-            if (Math.abs(dx) > 80) {
+            startY = null;
+
+            if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+              didSwipe = true;
               NavigationChannel.postMessage(dx < 0 ? 'next' : 'prev');
+              setTimeout(function(){ didSwipe = false; }, 80);
             }
           }, {passive: true});
+
+          document.addEventListener('click', function(e) {
+            if (didSwipe) {
+              e.preventDefault();
+              e.stopPropagation();
+              didSwipe = false;
+            }
+          }, true);
           PageChannel.postMessage(String(%PAGE%));
         })();
       '''.replaceAll('%PAGE%', '$currentPage'),
