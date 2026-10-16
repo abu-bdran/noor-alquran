@@ -946,6 +946,8 @@ List<TimingRead> timingReads = [];
 
   // يمنع الانتقال السريع المتكرر بين الصفحات عند السحب المتتابع.
   bool _isPageSwipeBusy = false;
+  Orientation? _lastMushafOrientation;
+  bool _orientationRefreshScheduled = false;
 
   @override
   void initState() {
@@ -1371,8 +1373,9 @@ Future<void> _loadReciters() async {
         _isNightMode ? const Color(0xFF1A2421) : const Color(0xFFFFFCF5);
     final borderColor =
         _isNightMode ? const Color(0xFF31413B) : const Color(0xFFE1D8C7);
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
+    _scheduleMushafOrientationRefresh(orientation);
 
     return Scaffold(
       backgroundColor: shellBackground,
@@ -1738,6 +1741,30 @@ Future<void> _loadReciters() async {
         ),
       ),
     );
+  }
+
+  void _scheduleMushafOrientationRefresh(Orientation orientation) {
+    if (_lastMushafOrientation == null) {
+      _lastMushafOrientation = orientation;
+      return;
+    }
+
+    if (_lastMushafOrientation == orientation || _orientationRefreshScheduled) {
+      return;
+    }
+
+    _lastMushafOrientation = orientation;
+    _orientationRefreshScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _orientationRefreshScheduled = false;
+      if (!mounted) return;
+      try {
+        // إعادة تحميل الصفحة بعد التدوير حتى يعاد حساب مساحة WebView وSVG
+        // من الصفر، بدلاً من بقاء أبعاد الوضع السابق.
+        await _loadMushafPage(currentPage);
+      } catch (_) {}
+    });
   }
 
   Future<void> _showMushafTextSizeDialog() async {
@@ -3219,15 +3246,16 @@ Future<void> _loadMushafPage(int page) async {
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
-#page{width:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
-svg{
+html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
+#page{width:100%;min-height:100%;display:flex;align-items:flex-start;justify-content:center;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center center;will-change:transform;box-sizing:border-box}
+#page svg{
 width:${(112 * _mushafTextScale).toStringAsFixed(1)}%;
 height:auto;
+min-width:100%;
 display:block;
-margin-left:${((100 - (112 * _mushafTextScale)) / 2).toStringAsFixed(1)}%;
-margin-right:0;
-max-width:none
+margin:0 auto;
+max-width:none;
+flex:0 0 auto
 }
 .ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
 .noor-active{fill:#7652d6!important;fill-opacity:.38!important}
@@ -3400,6 +3428,8 @@ max-width:none
  var pinchStartDistance=null,pinchStartZoom=1,zoom=1;
  var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
  function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+zoom+')';}
+ window.resetNoorView=function(){zoom=1;panX=0;panY=0;applyZoom();};
+ window.addEventListener('resize',function(){setTimeout(function(){if(window.resetNoorView)window.resetNoorView();},80);});
  function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
  document.addEventListener('touchstart',function(e){
   if(!e.touches||!e.touches.length)return;swiped=false;
@@ -3457,6 +3487,8 @@ max-width:none
           if (svg) {
             svg.style.height = 'auto';
             svg.style.display = 'block';
+            svg.style.minWidth = '100%';
+            svg.style.margin = '0 auto';
             svg.style.maxWidth = 'none';
           }
 
@@ -3465,13 +3497,15 @@ max-width:none
             var s = Number(scale);
             if (!isFinite(s)) s = 1;
             s = Math.max(0.85, Math.min(1.40, s));
-            var svgEl = document.querySelector('svg');
+            var svgEl = document.querySelector('#page svg');
             if (!svgEl) return;
             svgEl.style.width = (112 * s).toFixed(1) + '%';
-            svgEl.style.marginLeft = ((100 - (112 * s)) / 2).toFixed(1) + '%';
-            svgEl.style.marginRight = '0';
+            svgEl.style.minWidth = '100%';
+            svgEl.style.margin = '0 auto';
             svgEl.style.height = 'auto';
             svgEl.style.maxWidth = 'none';
+            // حافظ على أعلى الصفحة مرئياً بعد تغيير الحجم.
+            if (window.resetNoorView) window.resetNoorView();
           };
 
           window.setNoorAyahHighlight = function(surah, ayah) {
@@ -3503,6 +3537,8 @@ max-width:none
           var pageEl=document.querySelector('#page')||document.body;
           pageEl.style.touchAction='none';pageEl.style.transformOrigin='center top';
           function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+zoom+')';}
+          window.resetNoorView=function(){zoom=1;panX=0;panY=0;applyZoom();};
+          window.addEventListener('resize',function(){setTimeout(function(){if(window.resetNoorView)window.resetNoorView();var s=Number(%TEXT_SCALE%);var svg=document.querySelector('#page svg');if(svg){svg.style.width=(112*s).toFixed(1)+'%';svg.style.minWidth='100%';svg.style.margin='0 auto';svg.style.height='auto';}},80);});
           function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
           document.addEventListener('touchstart',function(e){
             if(!e.touches||!e.touches.length)return;didSwipe=false;
