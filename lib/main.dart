@@ -14,8 +14,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'webview_platform.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   registerWebViewPlatform();
+
+  // تشغيل البرنامج بكامل الشاشة مع دعم التدوير التلقائي.
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+
+  if (!kIsWeb) {
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.immersiveSticky,
+    );
+  }
+
   runApp(const NoorAlQuranApp());
 }
 
@@ -1355,11 +1371,13 @@ Future<void> _loadReciters() async {
         _isNightMode ? const Color(0xFF1A2421) : const Color(0xFFFFFCF5);
     final borderColor =
         _isNightMode ? const Color(0xFF31413B) : const Color(0xFFE1D8C7);
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: shellBackground,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(88),
+        preferredSize: Size.fromHeight(isLandscape ? 62 : 82),
         child: Container(
           decoration: const BoxDecoration(
             color: Color(0xFF174A43),
@@ -1396,7 +1414,7 @@ Future<void> _loadReciters() async {
                                 currentSurahTitle,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 20,
+                                  fontSize: isLandscape ? 17 : 20,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -1547,7 +1565,12 @@ Future<void> _loadReciters() async {
       body: Container(
         color: shellBackground,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 7),
+          padding: EdgeInsets.fromLTRB(
+            isLandscape ? 4 : 8,
+            isLandscape ? 4 : 8,
+            isLandscape ? 4 : 8,
+            isLandscape ? 3 : 6,
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: cardBackground,
@@ -1617,7 +1640,12 @@ Future<void> _loadReciters() async {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 4, 10, 9),
+          padding: EdgeInsets.fromLTRB(
+            isLandscape ? 4 : 8,
+            3,
+            isLandscape ? 4 : 8,
+            isLandscape ? 4 : 7,
+          ),
           color: shellBackground,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1773,9 +1801,15 @@ Future<void> _loadReciters() async {
                   onPressed: () async {
                     setState(() => _mushafTextScale = draftScale);
                     await _saveReaderPreferences();
+
+                    try {
+                      await controller.runJavaScript(
+                        "if(window.setNoorTextScale){window.setNoorTextScale(${draftScale.toStringAsFixed(3)});}",
+                      );
+                    } catch (_) {}
+
                     if (mounted) {
                       Navigator.pop(dialogContext);
-                      await _loadMushafPage(currentPage);
                     }
                   },
                   child: const Text('تطبيق'),
@@ -3421,10 +3455,24 @@ max-width:none
           document.body.style.background = '#f7f1df';
           var svg = document.querySelector('svg');
           if (svg) {
-            svg.style.width = '100%';
             svg.style.height = 'auto';
             svg.style.display = 'block';
+            svg.style.maxWidth = 'none';
           }
+
+          // تطبيق حجم خط المصحف فعلياً بعد كل تحميل للصفحة.
+          window.setNoorTextScale = function(scale) {
+            var s = Number(scale);
+            if (!isFinite(s)) s = 1;
+            s = Math.max(0.85, Math.min(1.40, s));
+            var svgEl = document.querySelector('svg');
+            if (!svgEl) return;
+            svgEl.style.width = (112 * s).toFixed(1) + '%';
+            svgEl.style.marginLeft = ((100 - (112 * s)) / 2).toFixed(1) + '%';
+            svgEl.style.marginRight = '0';
+            svgEl.style.height = 'auto';
+            svgEl.style.maxWidth = 'none';
+          };
 
           window.setNoorAyahHighlight = function(surah, ayah) {
             document.querySelectorAll('.ayahPolygon').forEach(function(el) {
@@ -3475,9 +3523,14 @@ max-width:none
           },{passive:true});
           document.addEventListener('dblclick',function(){zoom=1;panX=0;panY=0;applyZoom();});
           document.addEventListener('click',function(e){if(didSwipe){e.preventDefault();e.stopPropagation();didSwipe=false;}},true);
+          if (window.setNoorTextScale) {
+            window.setNoorTextScale(%TEXT_SCALE%);
+          }
           PageChannel.postMessage(String(%PAGE%));
         })();
-      '''.replaceAll('%PAGE%', '$currentPage'),
+      '''
+          .replaceAll('%PAGE%', '$currentPage')
+          .replaceAll('%TEXT_SCALE%', _mushafTextScale.toStringAsFixed(3)),
       );
 
       if (_lastHighlightedAyah != null) {
