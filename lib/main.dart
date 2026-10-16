@@ -992,11 +992,13 @@ Future<void> _loadReciters() async {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse(
-          'https://mp3quran.net/api/v3/ayat_timing/reads',
-        ),
-      );
+      final response = await http
+          .get(
+            Uri.parse(
+              'https://mp3quran.net/api/v3/ayat_timing/reads',
+            ),
+          )
+          .timeout(const Duration(seconds: 12));
 
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
@@ -1098,9 +1100,9 @@ Future<void> _loadReciters() async {
       );
     }
 
-    final response = await http.get(
-      Uri.parse(_surahAudioUrl(read)),
-    );
+    final response = await http
+        .get(Uri.parse(_surahAudioUrl(read)))
+        .timeout(const Duration(seconds: 60));
 
     if (response.statusCode != 200) {
       throw Exception('فشل تنزيل الصوت');
@@ -2214,43 +2216,45 @@ void dispose() {
     );
   }
   Future<void> _showReciters(String ayah) async {
-    if (timingReads.isEmpty) {
-      await _loadReciters();
-    }
-
     if (!mounted) return;
+
+    String query = '';
+    bool onlyFavorites = false;
+    bool sheetLoading = timingReads.isEmpty;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: _isNightMode ? const Color(0xFF18211E) : const Color(0xFFFFFCF5),
+      backgroundColor:
+          _isNightMode ? const Color(0xFF18211E) : const Color(0xFFFFFCF5),
       builder: (sheetContext) {
-        if (loadingReciters) {
-          return const SizedBox(
-            height: 280,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (timingReads.isEmpty) {
-          return const SizedBox(
-            height: 250,
-            child: Center(child: Text('تعذر تحميل قائمة القرّاء')),
-          );
-        }
-
-        String query = '';
-        bool onlyFavorites = false;
-
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            if (sheetLoading) {
+              Future.microtask(() async {
+                try {
+                  await _loadReciters().timeout(
+                    const Duration(seconds: 12),
+                  );
+                } catch (_) {
+                  // _loadReciters already updates its loading state.
+                }
+                if (sheetContext.mounted) {
+                  setSheetState(() {
+                    sheetLoading = false;
+                  });
+                }
+              });
+            }
+
             final filtered = timingReads.where((read) {
               final q = query.trim().toLowerCase();
               final matchesQuery = q.isEmpty ||
                   read.name.toLowerCase().contains(q) ||
                   read.rewaya.toLowerCase().contains(q);
-              final matchesFavorite = !onlyFavorites || _favoriteReciterIds.contains(read.id);
+              final matchesFavorite =
+                  !onlyFavorites || _favoriteReciterIds.contains(read.id);
               return matchesQuery && matchesFavorite;
             }).toList()
               ..sort((a, b) {
@@ -2259,6 +2263,45 @@ void dispose() {
                 if (af != bf) return af.compareTo(bf);
                 return a.name.compareTo(b.name);
               });
+
+            if (sheetLoading || loadingReciters) {
+              return const SafeArea(
+                child: SizedBox(
+                  height: 320,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 14),
+                        Text(
+                          'جاري تحميل قائمة القرّاء...',
+                          textDirection: TextDirection.rtl,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            if (timingReads.isEmpty) {
+              return const SafeArea(
+                child: SizedBox(
+                  height: 280,
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'تعذر تحميل قائمة القرّاء.\nتأكدي من اتصال الإنترنت ثم حاولي مرة أخرى.',
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
 
             return SafeArea(
               child: SizedBox(
@@ -2274,19 +2317,38 @@ void dispose() {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: _isNightMode ? const Color(0xFF29483D) : const Color(0xFFE2EFE9),
+                              color: _isNightMode
+                                  ? const Color(0xFF29483D)
+                                  : const Color(0xFFE2EFE9),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.graphic_eq_rounded, color: Color(0xFF173F35)),
+                            child: const Icon(
+                              Icons.graphic_eq_rounded,
+                              color: Color(0xFF173F35),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text('القرّاء', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+                                Text(
+                                  'القرّاء',
+                                  textDirection: TextDirection.rtl,
+                                  style: TextStyle(
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                                 SizedBox(height: 2),
-                                Text('اختر قارئك المفضل للاستماع والتكرار', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                Text(
+                                  'اختر قارئك المفضل للاستماع والتكرار',
+                                  textDirection: TextDirection.rtl,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -2301,41 +2363,63 @@ void dispose() {
                           suffixIcon: query.isEmpty
                               ? null
                               : IconButton(
-                                  onPressed: () => setSheetState(() => query = ''),
+                                  onPressed: () =>
+                                      setSheetState(() => query = ''),
                                   icon: const Icon(Icons.clear_rounded),
                                 ),
                           filled: true,
-                          fillColor: _isNightMode ? const Color(0xFF22302B) : const Color(0xFFF3F0E8),
+                          fillColor: _isNightMode
+                              ? const Color(0xFF22302B)
+                              : const Color(0xFFF3F0E8),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
                           ),
                         ),
-                        onChanged: (value) => setSheetState(() => query = value),
+                        onChanged: (value) =>
+                            setSheetState(() => query = value),
                       ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
                           FilterChip(
-                            avatar: const Icon(Icons.star_rounded, size: 17),
+                            avatar: const Icon(
+                              Icons.star_rounded,
+                              size: 17,
+                            ),
                             label: const Text('المفضلون'),
                             selected: onlyFavorites,
-                            onSelected: (value) => setSheetState(() => onlyFavorites = value),
+                            onSelected: (value) =>
+                                setSheetState(() => onlyFavorites = value),
                           ),
                           const Spacer(),
-                          Text('${filtered.length} قارئ', textDirection: TextDirection.rtl, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            '${filtered.length} قارئ',
+                            textDirection: TextDirection.rtl,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Expanded(
                         child: filtered.isEmpty
-                            ? const Center(child: Text('لا يوجد قارئ مطابق للبحث', textDirection: TextDirection.rtl))
+                            ? const Center(
+                                child: Text(
+                                  'لا يوجد قارئ مطابق للبحث',
+                                  textDirection: TextDirection.rtl,
+                                ),
+                              )
                             : ListView.separated(
                                 itemCount: filtered.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 5),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 5),
                                 itemBuilder: (context, index) {
                                   final read = filtered[index];
-                                  final favorite = _favoriteReciterIds.contains(read.id);
+                                  final favorite =
+                                      _favoriteReciterIds.contains(read.id);
                                   final selected = _lastReciterId == read.id;
                                   return Material(
                                     color: Colors.transparent,
@@ -2348,14 +2432,26 @@ void dispose() {
                                         _showAudioControls(ayah, read);
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: selected
-                                              ? (_isNightMode ? const Color(0xFF29483D) : const Color(0xFFE8F1EC))
-                                              : (_isNightMode ? const Color(0xFF1F2A27) : Colors.white),
-                                          borderRadius: BorderRadius.circular(17),
+                                              ? (_isNightMode
+                                                  ? const Color(0xFF29483D)
+                                                  : const Color(0xFFE8F1EC))
+                                              : (_isNightMode
+                                                  ? const Color(0xFF1F2A27)
+                                                  : Colors.white),
+                                          borderRadius:
+                                              BorderRadius.circular(17),
                                           border: Border.all(
-                                            color: selected ? const Color(0xFF6C9B8B) : (_isNightMode ? const Color(0xFF31413B) : const Color(0xFFE9E4D9)),
+                                            color: selected
+                                                ? const Color(0xFF6C9B8B)
+                                                : (_isNightMode
+                                                    ? const Color(0xFF31413B)
+                                                    : const Color(0xFFE9E4D9)),
                                           ),
                                         ),
                                         child: Row(
@@ -2366,38 +2462,83 @@ void dispose() {
                                               height: 42,
                                               decoration: BoxDecoration(
                                                 shape: BoxShape.circle,
-                                                color: favorite ? const Color(0xFFF2D58A) : const Color(0xFFE5EEE9),
+                                                color: favorite
+                                                    ? const Color(0xFFF2D58A)
+                                                    : const Color(0xFFE5EEE9),
                                               ),
-                                              child: Icon(favorite ? Icons.star_rounded : Icons.person_rounded, color: const Color(0xFF173F35)),
+                                              child: Icon(
+                                                favorite
+                                                    ? Icons.star_rounded
+                                                    : Icons.person_rounded,
+                                                color: const Color(0xFF173F35),
+                                              ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
                                                 children: [
-                                                  Text(read.name, textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                                                  Text(
+                                                    read.name,
+                                                    textDirection:
+                                                        TextDirection.rtl,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 15,
+                                                    ),
+                                                  ),
                                                   if (read.rewaya.isNotEmpty)
-                                                    Text(read.rewaya, textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                    Text(
+                                                      read.rewaya,
+                                                      textDirection:
+                                                          TextDirection.rtl,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    ),
                                                 ],
                                               ),
                                             ),
                                             IconButton(
-                                              tooltip: favorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+                                              tooltip: favorite
+                                                  ? 'إزالة من المفضلة'
+                                                  : 'إضافة للمفضلة',
                                               onPressed: () async {
                                                 setState(() {
                                                   if (favorite) {
-                                                    _favoriteReciterIds.remove(read.id);
+                                                    _favoriteReciterIds
+                                                        .remove(read.id);
                                                   } else {
-                                                    _favoriteReciterIds.add(read.id);
+                                                    _favoriteReciterIds
+                                                        .add(read.id);
                                                   }
                                                 });
                                                 await _saveReaderPreferences();
                                                 setSheetState(() {});
                                               },
-                                              icon: Icon(favorite ? Icons.star_rounded : Icons.star_border_rounded),
-                                              color: favorite ? const Color(0xFFC79622) : Colors.grey,
+                                              icon: Icon(
+                                                favorite
+                                                    ? Icons.star_rounded
+                                                    : Icons.star_border_rounded,
+                                              ),
+                                              color: favorite
+                                                  ? const Color(0xFFC79622)
+                                                  : Colors.grey,
                                             ),
-                                            const Icon(Icons.play_circle_fill_rounded, color: Color(0xFF173F35), size: 31),
+                                            const Icon(
+                                              Icons.play_circle_fill_rounded,
+                                              color: Color(0xFF173F35),
+                                              size: 31,
+                                            ),
                                           ],
                                         ),
                                       ),
