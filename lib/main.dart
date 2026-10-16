@@ -3032,7 +3032,7 @@ Future<void> _loadMushafPage(int page) async {
     );
 
     try {
-      if (kIsWeb) {
+      {
       final response = await http.get(url);
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
@@ -3048,8 +3048,8 @@ Future<void> _loadMushafPage(int page) async {
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow-x:hidden}
-#page{width:100%;display:block;transition:opacity .15s ease}
+html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
+#page{width:100%;display:block;transition:opacity .15s ease;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 svg{width:100%;height:auto;display:block}
 .ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
 .noor-active{fill:#7652d6!important;fill-opacity:.38!important}
@@ -3166,10 +3166,6 @@ svg{width:100%;height:auto;display:block}
       await controller.loadHtmlString(webHtml);
       _loadedPage = page;
       return;
-    }
-
-    await controller.loadRequest(url);
-      _loadedPage = page;
     } catch (e) {
       if (mounted) {
         _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
@@ -3207,11 +3203,17 @@ svg{width:100%;height:auto;display:block}
 
           document.querySelectorAll('.ayahPolygon').forEach(function(el) {
             el.style.cursor = 'pointer';
-            el.onclick = function() {
+            var sendAyah = function() {
               var surah = el.getAttribute('surah');
               var ayah = el.getAttribute('ayah');
-              if (surah && ayah) AyahChannel.postMessage(surah + ':' + ayah);
+              if (surah && ayah && window.AyahChannel) {
+                AyahChannel.postMessage(surah + ':' + ayah);
+              }
             };
+            el.onclick = sendAyah;
+            el.addEventListener('pointerup', function(e) {
+              if (e.pointerType === 'touch') sendAyah();
+            }, {passive: true});
           });
 
           var startX = null;
@@ -3243,7 +3245,7 @@ svg{width:100%;height:auto;display:block}
 
             if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.15) {
               didSwipe = true;
-              NavigationChannel.postMessage(dx < 0 ? 'next' : 'prev');
+              if (window.NavigationChannel) NavigationChannel.postMessage(dx < 0 ? 'next' : 'prev');
               setTimeout(function(){ didSwipe = false; }, 80);
             }
           }, {passive: true});
