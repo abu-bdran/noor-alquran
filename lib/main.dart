@@ -2944,19 +2944,16 @@ svg{width:100%;height:auto;display:block}
 .choiceBtn{width:100%;border:0;border-radius:14px;padding:14px;margin-top:9px;font-size:15px;font-weight:700;cursor:pointer;background:rgba(118,82,214,.12);color:inherit}
 .choiceBtn.primary{background:#7652d6;color:white}
 #player{position:fixed;left:10px;right:10px;bottom:10px;display:none;z-index:15;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#fff' : '#222'};border-radius:18px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:rtl}
-#playerTop{display:flex;align-items:center;gap:8px}.playerInfo{flex:1}.playerName{font-weight:700;font-size:13px}.playerStatus{font-size:11px;opacity:.65;margin-top:2px}
-.playerBtn{border:0;background:rgba(118,82,214,.12);border-radius:12px;width:40px;height:40px;cursor:pointer;font-size:17px}
+#playerTop{display:flex;align-items:center;gap:10px}.playerInfo{flex:1}.playerName{font-weight:700;font-size:13px}.playerStatus{font-size:11px;opacity:.65;margin-top:2px}
+.playerBtn{border:0;background:rgba(118,82,214,.12);border-radius:12px;width:42px;height:42px;cursor:pointer;font-size:18px}
 #progress{width:100%;margin-top:8px;accent-color:#7652d6}
-#playerTools{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
-.speedBtn,.downloadBtn{border:0;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer;background:rgba(118,82,214,.10);color:inherit}
-.speedBtn.active{background:#7652d6;color:#fff}.downloadBtn{background:#174A43;color:#fff}.repeatBtn.active{background:#174A43;color:#fff}.favBtn{border:0;background:transparent;color:#C79622;font-size:18px;cursor:pointer;padding:4px}.favFilter{border:0;border-radius:10px;padding:7px 10px;background:rgba(118,82,214,.10);color:inherit;font-weight:700;cursor:pointer}.favFilter.active{background:#7652d6;color:#fff}
 #closeReader{position:absolute;left:12px;top:10px;border:0;background:transparent;color:inherit;font-size:24px;cursor:pointer}
 </style></head>
 <body>
 <div id="page">$svg</div>
-<div id="readerSheet"><div id="readerPanel"><button id="closeReader">×</button><div id="readerTitle">اختر القارئ</div><div id="readerAyah"></div><input id="readerSearch" placeholder="ابحث عن اسم القارئ..."/><div style="display:flex;justify-content:flex-start;margin-bottom:8px"><button id="favFilter" class="favFilter">★ المفضلة فقط</button></div><div id="readerList"></div></div></div>
+<div id="readerSheet"><div id="readerPanel"><button id="closeReader">×</button><div id="readerTitle">اختر القارئ</div><div id="readerAyah"></div><input id="readerSearch" placeholder="ابحث عن اسم القارئ..."/><div id="readerList"></div></div></div>
 <div id="choiceSheet"><div id="choicePanel"><div id="readerTitle">ماذا تريد أن تسمع؟</div><div id="readerAyah"></div><button class="choiceBtn primary" id="playAyah">▶ الاستماع إلى الآية</button><button class="choiceBtn" id="playSurah">▶ الاستماع إلى السورة كاملة</button><button class="choiceBtn" id="cancelChoice">إلغاء</button></div></div>
-<div id="player"><div id="playerTop"><div class="playerInfo"><div class="playerName" id="playerName">نور القرآن</div><div class="playerStatus" id="playerStatus">جاهز</div></div><button class="playerBtn" id="stopBtn">■</button><button class="playerBtn" id="pauseBtn">Ⅱ</button></div><input id="progress" type="range" min="0" max="100" value="0" step="0.1"/><div id="playerTools"><button class="speedBtn" data-speed="0.75">0.75×</button><button class="speedBtn active" data-speed="1">1×</button><button class="speedBtn" data-speed="1.25">1.25×</button><button class="speedBtn" data-speed="1.5">1.5×</button><button class="speedBtn" data-speed="2">2×</button><button class="repeatBtn" data-repeat="1">مرة</button><button class="repeatBtn" data-repeat="2">2×</button><button class="repeatBtn" data-repeat="3">3×</button><button class="repeatBtn" data-repeat="5">5×</button><button class="repeatBtn" data-repeat="0">∞</button><button class="downloadBtn" id="downloadBtn">⬇ تنزيل السورة</button></div></div>
+<div id="player"><div id="playerTop"><div class="playerInfo"><div class="playerName" id="playerName">نور القرآن</div><div class="playerStatus" id="playerStatus">جاهز</div></div><button class="playerBtn" id="stopBtn">■</button><button class="playerBtn" id="pauseBtn">Ⅱ</button></div><input id="progress" type="range" min="0" max="100" value="0" step="0.1"/></div>
 <audio id="audio" preload="auto"></audio>
 <script>
 (function(){
@@ -2967,61 +2964,21 @@ svg{width:100%;height:auto;display:block}
  const readerList=document.getElementById('readerList'), readerSearch=document.getElementById('readerSearch');
  const readerAyah=document.querySelector('#readerPanel #readerAyah'), choiceAyah=document.querySelector('#choicePanel #readerAyah');
  const player=document.getElementById('player'), playerName=document.getElementById('playerName'), playerStatus=document.getElementById('playerStatus'), progress=document.getElementById('progress');
- let readers=[], timings=[], selectedAyah=null, selectedReader=null, playMode='ayah', currentTiming=null, loadingPage=false, favoriteIds=new Set(), onlyFavorites=false, repeatCount=1, completedRepeats=0;
+ let readers=[], timings=[], selectedAyah=null, selectedReader=null, playMode='ayah', currentTiming=null, loadingPage=false;
  const api='https://mp3quran.net/api/v3';
  const qsvg='https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/';
- const DB_NAME='noor_quran_offline_v1', STORE='surahs';
  function esc(v){return String(v||'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));}
  function setSheet(el,on){el.style.display=on?'flex':'none';}
- function idbOpen(){
-   return new Promise((resolve,reject)=>{
-     const req=indexedDB.open(DB_NAME,1);
-     req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);};
-     req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
-   });
- }
- async function idbPut(key,value){
-   try{const db=await idbOpen();return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);});}catch(e){return false;}
- }
- async function idbGet(key){
-   try{const db=await idbOpen();return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}catch(e){return null;}
- }
- function loadLocalPrefs(){
-   try{
-     const fav=JSON.parse(localStorage.getItem('noor_favorite_reciters')||'[]');
-     favoriteIds=new Set(Array.isArray(fav)?fav.map(String):[]);
-     repeatCount=parseInt(localStorage.getItem('noor_repeat_count')||'1',10);
-     if(![0,1,2,3,5].includes(repeatCount)) repeatCount=1;
-     const savedSpeed=localStorage.getItem('noor_speed');
-     if(savedSpeed){
-       document.querySelectorAll('.speedBtn').forEach(b=>b.classList.toggle('active',b.dataset.speed===savedSpeed));
-     }
-   }catch(e){}
- }
- function saveLocalPrefs(){
-   try{localStorage.setItem('noor_favorite_reciters',JSON.stringify(Array.from(favoriteIds)));localStorage.setItem('noor_repeat_count',String(repeatCount));localStorage.setItem('noor_speed',document.querySelector('.speedBtn.active')?.dataset.speed||'1');}catch(e){}
- }
- function toggleFavorite(id){const k=String(id); if(favoriteIds.has(k)) favoriteIds.delete(k); else favoriteIds.add(k); saveLocalPrefs(); renderReaders();}
  async function loadReaders(){
    if(readers.length) return readers;
-   try{
-     const cached=await idbGet('readers');
-     if(Array.isArray(cached)&&cached.length){readers=cached;renderReaders();}
-     const r=await fetch(api+'/ayat_timing/reads');
-     if(r.ok){const fresh=await r.json();readers=fresh.filter(x=>x&&x.id&&x.folder_url);await idbPut('readers',readers);}
-     renderReaders(); return readers;
-   }catch(e){
-     const cached=await idbGet('readers');
-     if(Array.isArray(cached)&&cached.length){readers=cached;renderReaders();return readers;}
-     readerList.innerHTML='<div style="padding:20px;text-align:center;opacity:.7">لا توجد قائمة قراء محفوظة. افتح الإنترنت مرة واحدة لتحميلها.</div>'; return [];
-   }
+   try{const r=await fetch(api+'/ayat_timing/reads'); if(!r.ok) throw 0; readers=await r.json(); readers=readers.filter(x=>x&&x.id&&x.folder_url); renderReaders(); return readers;}
+   catch(e){readerList.innerHTML='<div style="padding:20px;text-align:center;opacity:.7">تعذر تحميل قائمة القراء. تحقق من الإنترنت.</div>'; return [];}
  }
  function renderReaders(){
    const q=(readerSearch.value||'').trim();
-   const list=readers.filter(r=>(!onlyFavorites||favoriteIds.has(String(r.id))) && (!q || (r.name||'').includes(q) || (r.rewaya||'').includes(q))).slice(0,80);
-   readerList.innerHTML=list.map(r=>{const fav=favoriteIds.has(String(r.id)); return `<div class="readerRow" data-id="\${r.id}"><div class="readerAvatar">\${esc((r.name||'ق').trim().charAt(0))}</div><div class="readerName">\${esc(r.name)}<div class="readerRewaya">\${esc(r.rewaya||'رواية غير محددة')}</div></div><button class="favBtn" data-fav="\${r.id}" title="\${fav?'إزالة من المفضلة':'إضافة للمفضلة'}">\${fav?'★':'☆'}</button><div>›</div></div>`;}).join('') || '<div style="padding:20px;text-align:center;opacity:.7">لا توجد نتائج</div>';
-   readerList.querySelectorAll('.readerRow').forEach(row=>row.onclick=()=>{const picked=readers.find(r=>String(r.id)===row.dataset.id); if(!picked) return; selectedReader=picked; try{localStorage.setItem('noor_last_reciter_id',String(picked.id));}catch(e){} setSheet(readerSheet,false);setSheet(choiceSheet,true);choiceAyah.textContent='الآية '+selectedAyah;});
-   readerList.querySelectorAll('.favBtn').forEach(btn=>btn.onclick=(ev)=>{ev.stopPropagation();toggleFavorite(btn.dataset.fav);});
+   const list=readers.filter(r=>!q || (r.name||'').includes(q) || (r.rewaya||'').includes(q)).slice(0,80);
+   readerList.innerHTML=list.map(r=>`<div class="readerRow" data-id="\${r.id}"><div class="readerAvatar">\${esc((r.name||'ق').trim().charAt(0))}</div><div class="readerName">\${esc(r.name)}<div class="readerRewaya">\${esc(r.rewaya||'رواية غير محددة')}</div></div><div>›</div></div>`).join('') || '<div style="padding:20px;text-align:center;opacity:.7">لا توجد نتائج</div>';
+   readerList.querySelectorAll('.readerRow').forEach(row=>row.onclick=()=>{selectedReader=readers.find(r=>String(r.id)===row.dataset.id);setSheet(readerSheet,false);setSheet(choiceSheet,true);choiceAyah.textContent='الآية '+selectedAyah;});
  }
  async function openAyah(ayah){
    selectedAyah=ayah;
@@ -3032,38 +2989,11 @@ svg{width:100%;height:auto;display:block}
  function clearHighlight(){document.querySelectorAll('.ayahPolygon').forEach(e=>e.classList.remove('noor-active'));}
  function highlight(surah,ayah){clearHighlight(); document.querySelectorAll('.ayahPolygon').forEach(e=>{if(e.getAttribute('surah')==String(surah)&&e.getAttribute('ayah')==String(ayah)) e.classList.add('noor-active');});}
  async function loadTimings(read){
-   const key='timings_'+SURAH+'_'+read.id;
-   const cached=await idbGet(key);
-   if(Array.isArray(cached)&&cached.length) timings=cached;
-   try{
-     const r=await fetch(api+'/ayat_timing?surah='+SURAH+'&read='+read.id);
-     if(!r.ok) throw 0;
-     timings=(await r.json()).filter(x=>x.ayah>=1&&x.end_time>x.start_time);
-     await idbPut(key,timings);
-   }catch(e){
-     if(!timings.length) throw e;
-   }
+   const r=await fetch(api+'/ayat_timing?surah='+SURAH+'&read='+read.id); if(!r.ok) throw 0;
+   timings=(await r.json()).filter(x=>x.ayah>=1&&x.end_time>x.start_time);
    return timings;
  }
  function audioUrl(read){return read.folder_url+String(SURAH).padStart(3,'0')+'.mp3';}
- async function getOfflineAudio(read){
-   const cached=await idbGet('audio_'+SURAH+'_'+read.id);
-   if(!cached) return null;
-   try{return URL.createObjectURL(new Blob([cached],{type:'audio/mpeg'}));}catch(e){return null;}
- }
- async function downloadOffline(read){
-   playerStatus.textContent='جاري تنزيل السورة...';
-   try{
-     const r=await fetch(audioUrl(read));
-     if(!r.ok) throw 0;
-     const buf=await r.arrayBuffer();
-     const saved=await idbPut('audio_'+SURAH+'_'+read.id,buf);
-     if(!saved) throw 0;
-     await loadTimings(read);
-     playerStatus.textContent='تم التنزيل — متاحة بدون إنترنت';
-     return true;
-   }catch(e){playerStatus.textContent='فشل التنزيل؛ تحقق من الإنترنت';return false;}
- }
  function pageFromTiming(t){const m=String(t.page||'').match(/(\d{3})\.svg/); return m?parseInt(m[1],10):null;}
  async function loadPage(p){
    if(loadingPage) return; loadingPage=true;
@@ -3076,21 +3006,16 @@ svg{width:100%;height:auto;display:block}
    try{
      if(!timings.length) await loadTimings(selectedReader);
      if(!timings.length) throw 0;
-     playMode=mode; completedRepeats=0; const verse=parseInt(selectedAyah.split(':')[1],10); currentTiming=timings.find(x=>x.ayah===verse)||timings[0];
-     const offline=await getOfflineAudio(selectedReader);
-     audio.src=offline||audioUrl(selectedReader); audio.playbackRate=Number(document.querySelector('.speedBtn.active')?.dataset.speed||1);
+     playMode=mode; const verse=parseInt(selectedAyah.split(':')[1],10); currentTiming=timings.find(x=>x.ayah===verse)||timings[0];
+     audio.src=audioUrl(selectedReader); audio.playbackRate=1; await audio.play();
      if(mode==='ayah') audio.currentTime=currentTiming.start_time/1000;
-     await audio.play();
-     playerName.textContent=selectedReader.name+' • '+(selectedReader.rewaya||''); playerStatus.textContent=(offline?'بدون إنترنت • ':'')+(mode==='ayah'?'تشغيل الآية':'تشغيل السورة كاملة'); player.style.display='block'; setSheet(choiceSheet,false); highlight(SURAH,currentTiming.ayah);
+     playerName.textContent=selectedReader.name+' • '+(selectedReader.rewaya||''); playerStatus.textContent=mode==='ayah'?'تشغيل الآية':'تشغيل السورة كاملة'; player.style.display='block'; setSheet(choiceSheet,false); highlight(SURAH,currentTiming.ayah);
    }catch(e){playerStatus.textContent='تعذر تشغيل الصوت؛ تحقق من الإنترنت';player.style.display='block';}
  }
  audio.ontimeupdate=async()=>{
    if(!currentTiming||!timings.length) return;
    const ms=audio.currentTime*1000;
-   if(playMode==='ayah' && ms>=currentTiming.end_time){
-     if(repeatCount===0 || completedRepeats+1<repeatCount){completedRepeats++;audio.currentTime=currentTiming.start_time/1000;highlight(SURAH,currentTiming.ayah);await audio.play();playerStatus.textContent='تكرار الآية '+(repeatCount===0?'∞':completedRepeats+'/'+repeatCount);return;}
-     audio.pause();playerStatus.textContent='انتهت الآية';return;
-   }
+   if(playMode==='ayah' && ms>=currentTiming.end_time){audio.pause();playerStatus.textContent='انتهت الآية';return;}
    if(playMode==='surah'){
      const t=timings.find(x=>ms>=x.start_time&&ms<x.end_time);
      if(t&&t.ayah!==currentTiming.ayah){currentTiming=t;highlight(SURAH,t.ayah);const pg=pageFromTiming(t);if(pg) await loadPage(pg);}
@@ -3104,20 +3029,9 @@ svg{width:100%;height:auto;display:block}
  document.getElementById('closeReader').onclick=()=>setSheet(readerSheet,false);
  document.getElementById('pauseBtn').onclick=()=>{if(audio.paused){audio.play();}else{audio.pause();}};
  document.getElementById('stopBtn').onclick=()=>{audio.pause();audio.currentTime=0;clearHighlight();player.style.display='none';};
- document.querySelectorAll('.speedBtn').forEach(btn=>btn.onclick=()=>{
-   document.querySelectorAll('.speedBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-   audio.playbackRate=Number(btn.dataset.speed||1);
-   try{localStorage.setItem('noor_speed',String(btn.dataset.speed||1));}catch(e){}
-   playerStatus.textContent='السرعة '+btn.dataset.speed+'×';
- });
- document.querySelectorAll('.repeatBtn').forEach(btn=>btn.onclick=()=>{repeatCount=Number(btn.dataset.repeat);completedRepeats=0;document.querySelectorAll('.repeatBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');try{localStorage.setItem('noor_repeat_count',String(repeatCount));}catch(e){} playerStatus.textContent=repeatCount===0?'تكرار الآية: مستمر':'تكرار الآية: '+repeatCount+' مرة';});
- document.getElementById('downloadBtn').onclick=async()=>{if(selectedReader!=null) await downloadOffline(selectedReader);};
  progress.oninput=()=>{if(audio.duration) audio.currentTime=(Number(progress.value)/100)*audio.duration;};
  readerSearch.oninput=renderReaders;
- document.getElementById('favFilter').onclick=()=>{onlyFavorites=!onlyFavorites;document.getElementById('favFilter').classList.toggle('active',onlyFavorites);renderReaders();};
  bindPolygons();
- loadLocalPrefs();
- document.querySelectorAll('.repeatBtn').forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.repeat)===repeatCount));
 })();
 </script></body></html>
 ''';
