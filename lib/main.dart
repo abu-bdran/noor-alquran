@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:adhkar/adhkar.dart';
 import 'package:flutter_compass/flutter_compass.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -36,6 +37,39 @@ Future<void> main() async {
   }
 
   runApp(const NoorAlQuranApp());
+
+  // رسالة ترحيبية صوتية عند أول تشغيل للتطبيق.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _playWelcomeVoiceOnce();
+  });
+}
+
+Future<void> _playWelcomeVoiceOnce() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyPlayed = prefs.getBool('noor_welcome_voice_played') ?? false;
+    if (alreadyPlayed) return;
+
+    // ننتظر قليلاً حتى تظهر الواجهة قبل بدء الصوت.
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+
+    final tts = FlutterTts();
+    await tts.setLanguage('ar-SA');
+    await tts.setSpeechRate(0.42);
+    await tts.setPitch(1.0);
+    await tts.setVolume(1.0);
+    await tts.awaitSpeakCompletion(true);
+
+    const welcomeMessage =
+        'السلام عليكم ورحمة الله وبركاته. أهلاً وسهلاً بكم في نور القرآن. '
+        'اجعل القرآن رفيق يومك، واقرأ ورتّل القرآن ترتيلاً. '
+        'نسأل الله أن يجعل هذا التطبيق نوراً في قلوبكم وحياتكم.';
+
+    await tts.speak(welcomeMessage);
+    await prefs.setBool('noor_welcome_voice_played', true);
+  } catch (_) {
+    // فشل خدمة النطق لا يمنع التطبيق من العمل.
+  }
 }
 
 class NoorAlQuranApp extends StatelessWidget {
@@ -1088,6 +1122,7 @@ List<TimingRead> timingReads = [];
   bool _isFullSurahPlayback = false;
   String? _lastHighlightedAyah;
   int? _lastHighlightedPage;
+  String? _lastReadAyah;
   StreamSubscription<ProcessingState>? _processingSubscription;
 
   // إضافات واجهة القارئ الاحترافية
@@ -1147,6 +1182,7 @@ List<TimingRead> timingReads = [];
         ..addJavaScriptChannel(
           'AyahChannel',
           onMessageReceived: (message) {
+            _rememberLastReadAyah(message.message);
             _showReciters(message.message);
           },
         )
@@ -1193,6 +1229,8 @@ List<TimingRead> timingReads = [];
             final page = int.tryParse(message.message);
             if (page != null && mounted) {
               setState(() => currentPage = page);
+              _lastReadPage = page;
+              _saveReaderPreferences();
             }
           },
         );
@@ -1440,7 +1478,12 @@ Future<void> _loadReciters() async {
   }
 
   void _highlightTiming(AyahTiming timing) {
-    _lastHighlightedAyah = '${widget.surahNumber}:${timing.ayah}';
+    final ayahKey = '${widget.surahNumber}:${timing.ayah}';
+    final changed = _lastHighlightedAyah != ayahKey;
+    _lastHighlightedAyah = ayahKey;
+    _lastReadAyah = ayahKey;
+    _lastHighlightedPage = currentPage;
+    if (changed) _rememberLastReadAyah(ayahKey);
     if (kIsWeb) return;
 
     final js = "if(window.setNoorAyahHighlight){window.setNoorAyahHighlight('${widget.surahNumber}','${timing.ayah}');}";
@@ -3547,6 +3590,8 @@ void dispose() {
       final prefs = await SharedPreferences.getInstance();
       final savedPage =
           prefs.getInt('noor_last_read_page_${widget.surahNumber}');
+      final savedAyah =
+          prefs.getString('noor_last_read_ayah_${widget.surahNumber}');
       final bookmark = prefs.getInt('noor_bookmark_page');
       final night = prefs.getBool('noor_night_mode') ?? false;
       final mushafScale =
@@ -3558,6 +3603,8 @@ void dispose() {
       if (!mounted) return;
       setState(() {
         _lastReadPage = savedPage;
+        _lastReadAyah = savedAyah;
+        _lastHighlightedAyah = savedAyah;
         _bookmarkPage = bookmark ?? currentPage;
         _isNightMode = night;
         _mushafTextScale = mushafScale.clamp(0.85, 1.40).toDouble();
@@ -3576,9 +3623,26 @@ void dispose() {
       } else if (kIsWeb && night) {
         await _loadMushafPage(currentPage);
       }
-    } catch (_) {
+
+    } catch (_){
       _prefsLoaded = true;
     }
+  }
+
+  Future<void> _rememberLastReadAyah(String ayahKey) async {
+    final parts = ayahKey.split(':');
+    if (parts.length != 2) return;
+    final surah = int.tryParse(parts[0]);
+    final ayah = int.tryParse(parts[1]);
+    if (surah == null || ayah == null || surah != widget.surahNumber) return;
+    _lastReadAyah = '$surah:$ayah';
+    _lastHighlightedAyah = _lastReadAyah;
+    _lastHighlightedPage = currentPage;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('noor_last_read_ayah_${widget.surahNumber}', _lastReadAyah!);
+      await prefs.setInt('noor_last_read_page_${widget.surahNumber}', currentPage);
+    } catch (_) {}
   }
 
   Future<void> _saveReaderPreferences() async {
@@ -3588,6 +3652,9 @@ void dispose() {
         'noor_last_read_page_${widget.surahNumber}',
         currentPage,
       );
+      if (_lastReadAyah != null && _lastReadAyah!.isNotEmpty) {
+        await prefs.setString('noor_last_read_ayah_${widget.surahNumber}', _lastReadAyah!);
+      }
       if (_bookmarkPage == null) {
         await prefs.remove('noor_bookmark_page');
       } else {
@@ -6000,14 +6067,54 @@ class TasbihPage extends StatefulWidget {
 }
 
 class _TasbihPageState extends State<TasbihPage> {
+  static const _countKey = 'noor_tasbeeh_count';
+  static const _targetKey = 'noor_tasbeeh_target';
   int count = 0;
   int target = 33;
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedTasbeeh();
+  }
+
+  Future<void> _loadSavedTasbeeh() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      count = prefs.getInt(_countKey) ?? 0;
+      target = prefs.getInt(_targetKey) ?? 33;
+      if (![33, 100, 1000].contains(target)) target = 33;
+      loading = false;
+    });
+  }
+
+  Future<void> _increment() async {
+    setState(() => count++);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_countKey, count);
+  }
+
+  Future<void> _reset() async {
+    setState(() => count = 0);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_countKey, 0);
+  }
+
+  Future<void> _setTarget(int value) async {
+    setState(() => target = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_targetKey, value);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('التسبيح'), centerTitle: true, actions: [IconButton(onPressed: () => setState(() => count = 0), icon: const Icon(Icons.refresh))]),
-      body: Center(
+      appBar: AppBar(title: const Text('التسبيح'), centerTitle: true, actions: [IconButton(onPressed: _reset, icon: const Icon(Icons.refresh))]),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -6017,7 +6124,7 @@ class _TasbihPageState extends State<TasbihPage> {
             Text('من $target', textDirection: TextDirection.rtl),
             const SizedBox(height: 30),
             GestureDetector(
-              onTap: () => setState(() => count = (count + 1) % (target + 1)),
+              onTap: _increment,
               child: Container(
                 width: 190,
                 height: 190,
@@ -6028,7 +6135,7 @@ class _TasbihPageState extends State<TasbihPage> {
             const SizedBox(height: 20),
             Wrap(
               spacing: 8,
-              children: [33, 100, 1000].map((v) => ChoiceChip(label: Text('$v'), selected: target == v, onSelected: (_) => setState(() { target = v; count = 0; }))).toList(),
+              children: [33, 100, 1000].map((v) => ChoiceChip(label: Text('$v'), selected: target == v, onSelected: (_) => _setTarget(v))).toList(),
             ),
           ],
         ),
