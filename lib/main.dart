@@ -974,6 +974,89 @@ class AyahTiming {
   }
 }
 
+
+class SurahInfo {
+  final String revelationPlace;
+  final int ayahCount;
+  final String context;
+  final String? sabab;
+
+  const SurahInfo({
+    required this.revelationPlace,
+    required this.ayahCount,
+    required this.context,
+    this.sabab,
+  });
+}
+
+// عدد الآيات وفق عدّ حفص المتداول في مصحف المدينة. التصنيف المكي/المدني
+// هو التصنيف المشهور، مع وجود خلاف في بعض السور عند أهل العلم.
+const List<int> _surahAyahCounts = [
+  7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6,
+];
+
+// التصنيف المشهور، مع الإشارة داخل الواجهة إلى أن بعض السور فيها خلاف.
+const List<String> _surahRevelationPlaces = [
+  'مكية','مدنية','مدنية','مدنية','مدنية','مكية','مكية','مدنية','مدنية','مكية',
+  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
+  'مكية','مدنية','مكية','مدنية','مكية','مكية','مكية','مكية','مكية','مكية',
+  'مكية','مكية','مدنية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
+  'مكية','مكية','مكية','مكية','مكية','مكية','مدنية','مدنية','مدنية','مكية',
+  'مكية','مكية','مكية','مكية','مكية','مكية','مدنية','مدنية','مدنية','مدنية',
+  'مدنية','مدنية','مدنية','مدنية','مدنية','مدنية','مكية','مكية','مكية','مكية',
+  'مكية','مكية','مكية','مكية','مكية','مدنية','مكية','مكية','مكية','مكية',
+  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
+  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
+  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مدنية','مكية',
+  'مكية','مكية','مكية','مكية',
+];
+
+final Map<int, String> _surahContext = {
+  1: 'فاتحة الكتاب، تجمع أصول الثناء على الله والعبادة والاستعانة وطلب الهداية.',
+  2: 'سورة طويلة مدنية تبني أصول العقيدة والعبادة والتشريع وتعرض نماذج من تاريخ بني إسرائيل وأهل الكتاب.',
+  3: 'تركز على التوحيد، والثبات، وقصة آل عمران، وأحداث غزوة أُحد والحوار مع أهل الكتاب.',
+  4: 'تتناول بناء المجتمع المسلم، والعدل، وحقوق الضعفاء والأسرة والنساء والأيتام.',
+  5: 'تتناول الوفاء بالعقود، والأحكام، والطعام، والعلاقات مع أهل الكتاب، وإكمال الدين.',
+  9: 'تتناول البراءة من المشركين، وأحوال المنافقين، والتوبة والجهاد والصدق.',
+  12: 'قصة يوسف عليه السلام في سياق متكامل، وفيها دروس الصبر والعفة والعفو وحسن العاقبة.',
+  18: 'تعرض قصص أصحاب الكهف وصاحب الجنتين وموسى والخضر وذي القرنين، وتبرز فتن الدين والمال والعلم والسلطان.',
+  24: 'تتناول العفة وآداب المجتمع، وحادثة الإفك، وغض البصر، والاستئذان، ونور الله.',
+  33: 'تتناول تنظيم المجتمع والأسرة، وأحكام النبي ﷺ وأزواجه، وغزوة الأحزاب.',
+  48: 'تتناول صلح الحديبية وفتحًا قريبًا، وما فيه من نصر وطمأنينة وبيعة الرضوان.',
+  49: 'سورة آداب المجتمع: التثبت من الأخبار، إصلاح ذات البين، خفض الصوت، ترك السخرية والغيبة، وتقوى الله.',
+  55: 'تعدد نعم الله وآلائه على الإنس والجن، وتدعو إلى الاعتراف بالنعم وشكر المنعم.',
+  58: 'تبدأ بحادثة المرأة التي جادلت النبي ﷺ في شأن زوجها، ثم تبين أحكام الظهار وآداب المجالس والولاء.',
+  59: 'تتناول إجلاء بني النضير، وأحكام الفيء، وصفات المهاجرين والأنصار، وخاتمتها أسماء الله الحسنى.',
+  60: 'تتناول البراءة من موالاة أعداء الدين، مع بيان ضوابط التعامل والبر والإقساط لمن لم يقاتل المسلمين.',
+  67: 'تدعو إلى التفكر في خلق السماوات والأرض، وإثبات قدرة الله وعلمه والبعث.',
+  93: 'تذكّر بنعم الله على النبي ﷺ، وتبعث على اليقين بأن العسر لا يدوم وأن العاقبة للخير.',
+  94: 'تتحدث عن شرح الصدر ورفع الذكر، وتؤكد اقتران العسر باليسر والدعوة إلى مواصلة العمل والعبادة.',
+  96: 'من أوائل ما نزل، وتبدأ بالأمر بالقراءة وبيان خلق الإنسان وعلم الله، وتختم بالأمر بالسجود والاقتراب.',
+  110: 'تعلن اقتراب إتمام الرسالة ودخول الناس في دين الله أفواجًا، وتوجّه إلى التسبيح والاستغفار.',
+  111: 'تتناول أبا لهب وزوجه بسبب عداوتهما للنبي ﷺ وإيذائهما للدعوة.',
+  112: 'تقرر توحيد الله وتنزهه عن الولد والكفء، وهي سورة خالصة في تقرير التوحيد.',
+  113: 'تعلم الاستعاذة بالله من الشرور الظاهرة، ومن شر ما خلق ومن الليل إذا أظلم ومن السحر والحسد.',
+  114: 'تعلم الاستعاذة بالله من الشر الباطن والوسوسة، وتؤكد أن الله رب الناس وملكهم وإلههم.',
+};
+
+final Map<int, String> _surahSabab = {
+  58: 'ورد سبب نزول أوائلها في قصة خولة بنت ثعلبة رضي الله عنها حين ظاهر منها زوجها، فاشتكت أمرها إلى النبي ﷺ، فنزل صدر السورة في بيان حكم الظهار.',
+  80: 'وردت روايات صحيحة في سبب نزول أوائلها في شأن عبد الله بن أم مكتوم رضي الله عنه عندما جاء يسأل النبي ﷺ وهو يخاطب بعض زعماء قريش؛ وتختلف الروايات في بعض التفاصيل.',
+  93: 'وردت روايات في سبب نزولها بعد انقطاع الوحي مدة، وفيها تثبيت للنبي ﷺ، مع اختلاف أهل التفسير في تفاصيل القصة.',
+  111: 'نزلت في ذم أبي لهب وزوجه بسبب شدة عداوتهما للنبي ﷺ ومقاومتهما لدعوته.',
+  110: 'ورد في سياقها أنها نزلت بعد فتح مكة، وفيها إشارة إلى تمام النصر وقرب انتهاء مهمة النبي ﷺ، وورد ذلك في أحاديث صحيحة.',
+};
+
+SurahInfo _surahInfoFor(int number) {
+  final i = (number - 1).clamp(0, surahNames.length - 1);
+  return SurahInfo(
+    revelationPlace: _surahRevelationPlaces[i],
+    ayahCount: _surahAyahCounts[i],
+    context: _surahContext[number] ?? 'تتضمن السورة موضوعات إيمانية وتشريعية وتربوية مترابطة، ويُستحسن الرجوع إلى تفسير موثوق لفهم سياق آياتها على وجه التفصيل.',
+    sabab: _surahSabab[number],
+  );
+}
+
 class QuranReaderPage extends StatefulWidget {
   final int surahNumber;
   final String surahName;
@@ -1571,6 +1654,22 @@ Future<void> _loadReciters() async {
                               ),
                             ),
                             IconButton(
+                              tooltip: 'معلومات السورة',
+                              onPressed: _showSurahInfo,
+                              icon: const Icon(
+                                Icons.info_outline_rounded,
+                                color: Color(0xFFF0CF7A),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'دليل التجويد',
+                              onPressed: _showTajweedGuide,
+                              icon: const Icon(
+                                Icons.palette_outlined,
+                                color: Color(0xFFF0CF7A),
+                              ),
+                            ),
+                            IconButton(
                               tooltip: isBookmarked ? 'إزالة العلامة' : 'حفظ الصفحة',
                               onPressed: () {
                                 setState(() => _bookmarkPage = isBookmarked ? null : currentPage);
@@ -1598,6 +1697,10 @@ Future<void> _loadReciters() async {
                                   _showMushafTextSizeDialog();
                                 } else if (value == 'saved') {
                                   _showSavedAyahs();
+                                } else if (value == 'surah_info') {
+                                  _showSurahInfo();
+                                } else if (value == 'tajweed') {
+                                  _showTajweedGuide();
                                 } else if (value == 'surahs') {
                                   _showReaderTools();
                                 }
@@ -1618,6 +1721,14 @@ Future<void> _loadReciters() async {
                                 const PopupMenuItem(
                                   value: 'saved',
                                   child: ListTile(leading: Icon(Icons.bookmarks_rounded), title: Text('الآيات المحفوظة')),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'surah_info',
+                                  child: ListTile(leading: Icon(Icons.info_outline_rounded), title: Text('معلومات السورة')),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'tajweed',
+                                  child: ListTile(leading: Icon(Icons.palette_outlined), title: Text('دليل التجويد')),
                                 ),
                                 const PopupMenuItem(
                                   value: 'surahs',
@@ -1705,48 +1816,6 @@ Future<void> _loadReciters() async {
                           ),
                         ),
                       ),
-                      if (!isLandscape)
-                        Positioned(
-                          top: 12,
-                          left: 14,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _isNightMode ? const Color(0xCC18302A) : const Color(0xE6FFF8E9),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: _isNightMode ? const Color(0x665A806F) : const Color(0x66B58A2A)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.touch_app_rounded, size: 14, color: _isNightMode ? const Color(0xFFE5C66F) : const Color(0xFF8E6C22)),
-                                const SizedBox(width: 5),
-                                Text('اسحب للتنقل • كبّر بإصبعين', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: muted)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (!isLandscape)
-                        Positioned(
-                          bottom: 13,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: _isNightMode ? const Color(0xE61B302B) : const Color(0xF2FFF9EC),
-                                borderRadius: BorderRadius.circular(22),
-                                border: Border.all(color: _isNightMode ? const Color(0x554E6B60) : const Color(0x668C6D2C)),
-                                boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 10, offset: Offset(0, 3))],
-                              ),
-                              child: Text(
-                                'ص ${currentPage}  •  ${progress >= 0.99 ? 'آخر المصحف' : '${(progress * 100).round()}%'}',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: ink),
-                              ),
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -1834,6 +1903,220 @@ Future<void> _loadReciters() async {
               Icon(icon, size: 17, color: enabled ? ink : const Color(0xFFAAA69C)),
               const SizedBox(height: 2),
               Text(label, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: enabled ? ink : const Color(0xFFAAA69C))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Future<void> _showSurahInfo() async {
+    final info = _surahInfoFor(widget.surahNumber);
+    final placeColor = info.revelationPlace == 'مكية'
+        ? const Color(0xFF9A6B28)
+        : const Color(0xFF1E6A5A);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: _isNightMode
+          ? const Color(0xFF16221F)
+          : const Color(0xFFFFFCF4),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: _isNightMode ? const Color(0xFF24463D) : const Color(0xFFE9F0E8),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Icon(Icons.auto_stories_rounded, color: placeColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'سورة ${widget.surahName}',
+                            style: TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.w900,
+                              color: _isNightMode ? Colors.white : const Color(0xFF173F38),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'معلومات تساعد القارئ على معرفة السورة وسياقها',
+                            style: TextStyle(fontSize: 11, color: _isNightMode ? const Color(0xFFB8C8C1) : const Color(0xFF756D61)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(child: _infoStat('التصنيف', info.revelationPlace, Icons.location_on_outlined, placeColor)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _infoStat('عدد الآيات', '${info.ayahCount}', Icons.format_list_numbered_rounded, const Color(0xFF8A6827))),
+                    const SizedBox(width: 8),
+                    Expanded(child: _infoStat('رقم السورة', '${widget.surahNumber}', Icons.tag_rounded, const Color(0xFF4A6D62))),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _infoSection(
+                  title: 'عن السورة',
+                  icon: Icons.menu_book_rounded,
+                  text: info.context,
+                ),
+                const SizedBox(height: 12),
+                _infoSection(
+                  title: 'سبب النزول',
+                  icon: Icons.history_edu_rounded,
+                  text: info.sabab ?? 'لا يثبت سبب نزول خاص بالسورة كلها في المصادر المشهورة. قد تكون لبعض آياتها أسباب نزول منفردة، ولذلك لا ننسب للسورة سببًا واحدًا من غير دليل.',
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: _isNightMode ? const Color(0xFF202E2A) : const Color(0xFFF6F0E2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _isNightMode ? const Color(0xFF34483F) : const Color(0xFFE3D7C0)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline_rounded, size: 18, color: placeColor),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          'ملاحظة: التصنيف المكي والمدني في بعض السور محل خلاف بين أهل العلم؛ لذلك نعرض هنا التصنيف المشهور، وعند وجود اختلاف لا نعرضه على أنه حقيقة قطعية.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            height: 1.55,
+                            color: _isNightMode ? const Color(0xFFC5D0CB) : const Color(0xFF665F55),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _infoStat(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: _isNightMode ? const Color(0xFF1D2B27) : const Color(0xFFF7F1E5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _isNightMode ? const Color(0xFF34483F) : const Color(0xFFE2D6BE)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 17, color: color),
+          const SizedBox(height: 5),
+          Text(title, style: TextStyle(fontSize: 9.5, color: _isNightMode ? const Color(0xFFB4C4BD) : const Color(0xFF7A7266))),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: _isNightMode ? Colors.white : const Color(0xFF173F38))),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoSection({required String title, required IconData icon, required String text}) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: _isNightMode ? const Color(0xFF1D2B27) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _isNightMode ? const Color(0xFF34483F) : const Color(0xFFE2D6BE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF9A762C)),
+              const SizedBox(width: 7),
+              Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _isNightMode ? Colors.white : const Color(0xFF173F38))),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Text(text, style: TextStyle(fontSize: 12.5, height: 1.7, color: _isNightMode ? const Color(0xFFD1DAD6) : const Color(0xFF595248))),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showTajweedGuide() async {
+    final rules = <Map<String, Object>>[
+      {'name': 'المد', 'desc': 'إطالة الصوت بحرف من حروف المد بحسب الحكم.', 'color': const Color(0xFFD24B45)},
+      {'name': 'الغنة', 'desc': 'صوت يخرج من الخيشوم ويظهر في أحكام محددة مثل النون والميم المشددتين.', 'color': const Color(0xFF2C8A66)},
+      {'name': 'القلقلة', 'desc': 'اضطراب المخرج عند النطق بحروف قطب جد إذا تحققت شروطها.', 'color': const Color(0xFF4267B2)},
+      {'name': 'الإخفاء', 'desc': 'النطق بالنون الساكنة أو التنوين بين الإظهار والإدغام مع بقاء الغنة.', 'color': const Color(0xFF8A4DA8)},
+      {'name': 'الإدغام', 'desc': 'إدخال حرف في حرف مع أحكامه المعروفة، ومنه الإدغام بغنة وبغير غنة.', 'color': const Color(0xFF3E8F43)},
+      {'name': 'الإقلاب', 'desc': 'قلب النون الساكنة أو التنوين ميمًا مخفاة عند الباء.', 'color': const Color(0xFFD77A27)},
+      {'name': 'اللام الشمسية', 'desc': 'إدغام لام التعريف في الحروف الشمسية.', 'color': const Color(0xFF7D7D7D)},
+    ];
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: _isNightMode ? const Color(0xFF16221F) : const Color(0xFFFFFCF4),
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 2, 20, 26),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('دليل التجويد', textAlign: TextAlign.center, style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: _isNightMode ? Colors.white : const Color(0xFF173F38))),
+              const SizedBox(height: 5),
+              Text('ألوان الدليل ستُستخدم لاحقًا لتلوين مواضع الأحكام داخل النص القرآني.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: _isNightMode ? const Color(0xFFB8C8C1) : const Color(0xFF756D61))),
+              const SizedBox(height: 15),
+              ...rules.map((rule) {
+                final color = rule['color'] as Color;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 9),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _isNightMode ? const Color(0xFF1D2B27) : Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: _isNightMode ? const Color(0xFF34483F) : const Color(0xFFE2D6BE)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: 12, height: 12, margin: const EdgeInsets.only(top: 3), decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      const SizedBox(width: 10),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(rule['name'] as String, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _isNightMode ? Colors.white : const Color(0xFF173F38))),
+                        const SizedBox(height: 3),
+                        Text(rule['desc'] as String, style: TextStyle(fontSize: 11.5, height: 1.55, color: _isNightMode ? const Color(0xFFC8D3CE) : const Color(0xFF5F584F))),
+                      ])),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 4),
+              Text('ملاحظة: تلوين التجويد في صفحة المصحف نفسها يحتاج إلى طبقة بيانات مرتبطة بنص حفص ومواضع الأحكام، لذلك لن نلوّن الحروف تخمينًا أو بطريقة قد تغيّر شكل المصحف.', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, height: 1.55, color: _isNightMode ? const Color(0xFF9FB0A8) : const Color(0xFF776F64))),
             ],
           ),
         ),
