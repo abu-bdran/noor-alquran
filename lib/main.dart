@@ -949,6 +949,10 @@ List<TimingRead> timingReads = [];
   // يمنع الانتقال السريع المتكرر بين الصفحات عند السحب المتتابع.
   bool _isPageSwipeBusy = false;
 
+  // نراقب اتجاه الجهاز حتى نعيد ضبط مساحة المصحف داخل WebView
+  // عند الانتقال بين العمودي والأفقي بدون كسر بقية خصائص القارئ.
+  bool? _lastLandscape;
+
   @override
   void initState() {
     super.initState();
@@ -1037,6 +1041,21 @@ List<TimingRead> timingReads = [];
 
     _loadMushafPage(currentPage);
   }
+
+  void _syncMushafOrientation(bool isLandscape) {
+    if (_lastLandscape == isLandscape) return;
+    _lastLandscape = isLandscape;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await controller.runJavaScript(
+          "if(window.setNoorOrientation){window.setNoorOrientation(${isLandscape ? 'true' : 'false'});}",
+        );
+      } catch (_) {}
+    });
+  }
+
 Future<void> _loadReciters() async {
     setState(() {
       loadingReciters = true;
@@ -1377,10 +1396,14 @@ Future<void> _loadReciters() async {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
+    _syncMushafOrientation(isLandscape);
+
     return Scaffold(
       backgroundColor: shellBackground,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(isLandscape ? 62 : 82),
+      appBar: isLandscape
+          ? null
+          : PreferredSize(
+        preferredSize: const Size.fromHeight(82),
         child: Container(
           decoration: const BoxDecoration(
             color: Color(0xFF174A43),
@@ -1568,58 +1591,61 @@ Future<void> _loadReciters() async {
       body: Container(
         color: shellBackground,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            isLandscape ? 4 : 8,
-            isLandscape ? 4 : 8,
-            isLandscape ? 4 : 8,
-            isLandscape ? 3 : 6,
-          ),
+          padding: EdgeInsets.zero,
           child: Container(
             decoration: BoxDecoration(
               color: cardBackground,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: borderColor,
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _isNightMode
-                      ? const Color(0x55000000)
-                      : const Color(0x1A000000),
-                  blurRadius: 22,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(isLandscape ? 0 : 24),
+              border: isLandscape
+                  ? null
+                  : Border.all(
+                      color: borderColor,
+                      width: 1.2,
+                    ),
+              boxShadow: isLandscape
+                  ? const []
+                  : [
+                      BoxShadow(
+                        color: _isNightMode
+                            ? const Color(0x55000000)
+                            : const Color(0x1A000000),
+                        blurRadius: 22,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
             ),
             child: Column(
               children: [
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 7),
+                    padding: EdgeInsets.zero,
                     child: Container(
                       decoration: BoxDecoration(
                         color: _isNightMode
                             ? const Color(0xFF151B19)
                             : const Color(0xFFFFFEFA),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: _isNightMode
-                              ? const Color(0xFF34453E)
-                              : const Color(0xFFE4DCCB),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _isNightMode
-                                ? const Color(0x33000000)
-                                : const Color(0x10000000),
-                            blurRadius: 12,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(isLandscape ? 0 : 18),
+                        border: isLandscape
+                            ? null
+                            : Border.all(
+                                color: _isNightMode
+                                    ? const Color(0xFF34453E)
+                                    : const Color(0xFFE4DCCB),
+                              ),
+                        boxShadow: isLandscape
+                            ? const []
+                            : [
+                                BoxShadow(
+                                  color: _isNightMode
+                                      ? const Color(0x33000000)
+                                      : const Color(0x10000000),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(17),
+                        borderRadius: BorderRadius.circular(isLandscape ? 0 : 17),
                         child: kIsWeb && _isNightMode
                             ? ColorFiltered(
                                 colorFilter: const ColorFilter.matrix([
@@ -1629,7 +1655,9 @@ Future<void> _loadReciters() async {
                                   0, 0, 0, 1, 0,
                                 ]),
                                 child: WebViewWidget(
-                                   key: ValueKey('mushaf-webview-\${isLandscape ? "landscape" : "portrait"}'),
+                                   key: ValueKey(
+                                     'mushaf-webview-${isLandscape ? "landscape" : "portrait"}',
+                                   ),
                                    controller: controller,
                                  ),
                               )
@@ -1643,7 +1671,9 @@ Future<void> _loadReciters() async {
           ),
         ),
       ),
-      bottomNavigationBar: SafeArea(
+      bottomNavigationBar: isLandscape
+          ? null
+          : SafeArea(
         top: false,
         child: Container(
           padding: EdgeInsets.fromLTRB(
@@ -3223,10 +3253,10 @@ Future<void> _loadMushafPage(int page) async {
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <style>
-html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
-#page{width:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
+html,body{margin:0;padding:0;width:100%;height:100%;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
+#page{width:100%;height:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
 svg{
 width:100%;
 height:auto;
@@ -3405,6 +3435,20 @@ max-width:none
  var pinchStartDistance=null,pinchStartZoom=1,zoom=1,textScale=1;
  var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
  function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom*textScale)+')';}
+ window.setNoorOrientation=function(landscape){
+   panX=0; panY=0; zoom=1;
+   pageEl.style.width='100%';
+   pageEl.style.height='100%';
+   pageEl.style.transformOrigin=landscape?'center center':'center top';
+   var svg=pageEl.querySelector('svg');
+   if(svg){
+     svg.style.width='100%';
+     svg.style.height='auto';
+     svg.style.display='block';
+     svg.style.maxWidth='none';
+   }
+   applyZoom();
+ };
  function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
  document.addEventListener('touchstart',function(e){
   if(!e.touches||!e.touches.length)return;swiped=false;
@@ -3439,10 +3483,23 @@ max-width:none
 
       final webHtml = html
           .replaceFirst('%SURAH%', '${widget.surahNumber}')
-          .replaceFirst('%PAGE%', '$page');
+          .replaceFirst('%PAGE%', '$page')
+          .replaceFirst(
+            '%IS_LANDSCAPE%',
+            (mounted &&
+                    MediaQuery.of(context).orientation == Orientation.landscape)
+                ? 'true'
+                : 'false',
+          );
 
       await controller.loadHtmlString(webHtml);
       _loadedPage = page;
+      _lastLandscape = null;
+      if (mounted) {
+        _syncMushafOrientation(
+          MediaQuery.of(context).orientation == Orientation.landscape,
+        );
+      }
     } catch (e) {
       if (mounted) {
         _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
@@ -3505,6 +3562,22 @@ max-width:none
           var pageEl=document.querySelector('#page')||document.body;
           pageEl.style.touchAction='none';pageEl.style.transformOrigin='center top';
           function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom*textScale)+')';}
+          window.setNoorOrientation = function(landscape) {
+            panX = 0;
+            panY = 0;
+            zoom = 1;
+            pageEl.style.width = '100%';
+            pageEl.style.height = '100%';
+            pageEl.style.transformOrigin = landscape ? 'center center' : 'center top';
+            var svg = pageEl.querySelector('svg');
+            if (svg) {
+              svg.style.width = '100%';
+              svg.style.height = 'auto';
+              svg.style.display = 'block';
+              svg.style.maxWidth = 'none';
+            }
+            applyZoom();
+          };
           function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
           document.addEventListener('touchstart',function(e){
             if(!e.touches||!e.touches.length)return;didSwipe=false;
@@ -3527,6 +3600,9 @@ max-width:none
           document.addEventListener('click',function(e){if(didSwipe){e.preventDefault();e.stopPropagation();didSwipe=false;}},true);
           if (window.setNoorTextScale) {
             window.setNoorTextScale(%TEXT_SCALE%);
+          }
+          if (window.setNoorOrientation) {
+            window.setNoorOrientation(%IS_LANDSCAPE%);
           }
           PageChannel.postMessage(String(%PAGE%));
         })();
