@@ -192,11 +192,13 @@ const List<int> surahStartPages = [
   322, 332, 342, 350, 359, 367, 377, 385, 396, 404,
   411, 415, 418, 428, 434, 440, 446, 453, 458, 467,
   477, 483, 489, 496, 499, 502, 507, 511, 515, 518,
-  520, 523, 526, 528, 531, 534, 537, 539, 542, 544,
-  546, 549, 551, 553, 554, 556, 558, 560, 562, 564,
-  566, 568, 570, 572, 574, 575, 577, 578, 580, 582,
-  583, 585, 586, 587, 589, 590, 591, 593, 594, 595,
-  596, 597, 598, 599, 600, 601, 602, 603
+  520, 523, 526, 528, 531, 534, 537, 542, 545, 549,
+  551, 553, 554, 556, 558, 560, 562, 564, 566, 568,
+  570, 572, 574, 575, 577, 578, 580, 582, 583, 585,
+  586, 587, 587, 589, 590, 591, 591, 592, 593, 594,
+  595, 595, 596, 596, 597, 597, 598, 598, 599, 599,
+  600, 600, 601, 601, 601, 602, 602, 602, 603, 603,
+  603, 604, 604, 604
 ];
 
 class HomePage extends StatefulWidget {
@@ -3629,24 +3631,131 @@ max-width:none
 
 class AdhkarPage extends StatefulWidget {
   const AdhkarPage({super.key});
-  @override State<AdhkarPage> createState() => _AdhkarPageState();
+
+  @override
+  State<AdhkarPage> createState() => _AdhkarPageState();
 }
+
 class _AdhkarPageState extends State<AdhkarPage> {
   int category = 0;
-  static const categories = <String>['الصباح','المساء','بعد الصلاة','النوم','الاستيقاظ','المنزل','السفر'];
-  static const data = <List<AdhkarItem>>[
-    [AdhkarItem('سيد الاستغفار','اللهم أنت ربي لا إله إلا أنت، خلقتني وأنا عبدك، وأنا على عهدك ووعدك ما استطعت، أعوذ بك من شر ما صنعت، أبوء لك بنعمتك علي، وأبوء بذنبي، فاغفر لي فإنه لا يغفر الذنوب إلا أنت.',1),AdhkarItem('التسبيح','سبحان الله وبحمده.',100),AdhkarItem('التهليل','لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.',10),AdhkarItem('الاستغفار','أستغفر الله وأتوب إليه.',100)],
-    [AdhkarItem('ذكر المساء','أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.',1),AdhkarItem('التسبيح','سبحان الله وبحمده.',100),AdhkarItem('الاستغفار','أستغفر الله وأتوب إليه.',100),AdhkarItem('التهليل','لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.',10)],
-    [AdhkarItem('الاستغفار','أستغفر الله.',3),AdhkarItem('التسبيح','سبحان الله.',33),AdhkarItem('الحمد','الحمد لله.',33),AdhkarItem('التكبير','الله أكبر.',34)],
-    [AdhkarItem('دعاء النوم','باسمك اللهم أموت وأحيا.',1),AdhkarItem('التسبيح','سبحان الله.',33),AdhkarItem('الحمد','الحمد لله.',33),AdhkarItem('التكبير','الله أكبر.',34)],
-    [AdhkarItem('دعاء الاستيقاظ','الحمد لله الذي أحيانا بعدما أماتنا وإليه النشور.',1)],
-    [AdhkarItem('عند دخول المنزل','بسم الله ولجنا، وبسم الله خرجنا، وعلى ربنا توكلنا.',1),AdhkarItem('عند الخروج من المنزل','بسم الله، توكلت على الله، ولا حول ولا قوة إلا بالله.',1)],
-    [AdhkarItem('دعاء السفر','سبحان الذي سخر لنا هذا وما كنا له مقرنين وإنا إلى ربنا لمنقلبون.',1),AdhkarItem('التكبير في السفر','الله أكبر، الله أكبر، الله أكبر.',3)],
+  final categories = const ['الصباح', 'المساء', 'بعد الصلاة', 'النوم'];
+
+  final List<List<AdhkarItem>> data = const [
+    [
+      AdhkarItem('ذكر', 'أصبحنا وأصبح الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
+      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
+      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+      AdhkarItem('الصلاة على النبي', 'اللهم صل وسلم وبارك على نبينا محمد.', 10),
+    ],
+    [
+      AdhkarItem('ذكر', 'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
+      AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
+      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+    ],
+    [
+      AdhkarItem('الاستغفار', 'أستغفر الله.', 3),
+      AdhkarItem('التسبيح', 'سبحان الله.', 33),
+      AdhkarItem('الحمد', 'الحمد لله.', 33),
+      AdhkarItem('التكبير', 'الله أكبر.', 34),
+    ],
+    [
+      AdhkarItem('دعاء النوم', 'باسمك اللهم أموت وأحيا.', 1),
+      AdhkarItem('التسبيح', 'سبحان الله.', 33),
+      AdhkarItem('الحمد', 'الحمد لله.', 33),
+      AdhkarItem('التكبير', 'الله أكبر.', 34),
+    ],
   ];
-  @override Widget build(BuildContext context) { final items=data[category]; return Scaffold(backgroundColor:const Color(0xFFF7F4EC),appBar:AppBar(title:const Text('الأذكار',style:TextStyle(fontWeight:FontWeight.w800)),centerTitle:true),body:Column(children:[SizedBox(height:58,child:ListView.separated(reverse:true,scrollDirection:Axis.horizontal,padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),itemCount:categories.length,separatorBuilder:(_,__)=>const SizedBox(width:7),itemBuilder:(_,i)=>ChoiceChip(label:Text(categories[i]),selected:category==i,onSelected:(_)=>setState(()=>category=i)))),Expanded(child:ListView.builder(padding:const EdgeInsets.fromLTRB(12,8,12,24),itemCount:items.length,itemBuilder:(_,i)=>_DhikrCard(key:ValueKey('${category}_$i'),item:items[i]))) ])); }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = data[category];
+    return Scaffold(
+      appBar: AppBar(title: const Text('الأذكار'), centerTitle: true),
+      body: Column(
+        children: [
+          SizedBox(
+            height: 58,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              itemCount: categories.length,
+              itemBuilder: (_, index) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(categories[index]),
+                  selected: category == index,
+                  onSelected: (_) => setState(() => category = index),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: items.length,
+              itemBuilder: (_, index) => _DhikrCard(item: items[index]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
-class _DhikrCard extends StatefulWidget { final AdhkarItem item; const _DhikrCard({super.key,required this.item}); @override State<_DhikrCard> createState()=>_DhikrCardState(); }
-class _DhikrCardState extends State<_DhikrCard> { late int remaining; @override void initState(){super.initState();remaining=widget.item.count;} @override Widget build(BuildContext context){final done=remaining==0;final progress=widget.item.count==0?1.0:(widget.item.count-remaining)/widget.item.count;return Card(elevation:1.5,margin:const EdgeInsets.only(bottom:12),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(20)),child:InkWell(borderRadius:BorderRadius.circular(20),onTap:done?null:()=>setState(()=>remaining--),child:Padding(padding:const EdgeInsets.fromLTRB(18,16,18,14),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Row(textDirection:TextDirection.rtl,children:[Expanded(child:Text(widget.item.title,textDirection:TextDirection.rtl,style:const TextStyle(color:Color(0xFF174A43),fontSize:15,fontWeight:FontWeight.w900))),Text('× ${widget.item.count}',style:const TextStyle(color:Color(0xFF174A43),fontWeight:FontWeight.w800))]),const SizedBox(height:14),Text(widget.item.text,textDirection:TextDirection.rtl,textAlign:TextAlign.center,style:const TextStyle(fontSize:18,height:1.9)),const SizedBox(height:14),ClipRRect(borderRadius:BorderRadius.circular(10),child:LinearProgressIndicator(value:progress,minHeight:6)),const SizedBox(height:10),Row(textDirection:TextDirection.rtl,children:[Expanded(child:Text(done?'تم الذكر ✓':'المتبقي: $remaining',textDirection:TextDirection.rtl,style:const TextStyle(fontWeight:FontWeight.w800))),TextButton.icon(onPressed:()=>setState(()=>remaining=widget.item.count),icon:const Icon(Icons.refresh_rounded,size:19),label:const Text('إعادة'))])]))));}}
+
+class _DhikrCard extends StatefulWidget {
+  final AdhkarItem item;
+  const _DhikrCard({required this.item});
+
+  @override
+  State<_DhikrCard> createState() => _DhikrCardState();
+}
+
+class _DhikrCardState extends State<_DhikrCard> {
+  late int remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    remaining = widget.item.count;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final done = remaining == 0;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: done ? null : () => setState(() => remaining--),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(widget.item.title, textDirection: TextDirection.rtl, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(widget.item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.8)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(done ? 'تم ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextButton.icon(
+                    onPressed: () => setState(() => remaining = widget.item.count),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('إعادة'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class DuasPage extends StatelessWidget {
   const DuasPage({super.key});
 
@@ -4154,8 +4263,42 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
   }
 }
 
-class QiblaPage extends StatefulWidget { const QiblaPage({super.key}); @override State<QiblaPage> createState()=>_QiblaPageState(); }
-class _QiblaPageState extends State<QiblaPage> { static const cityBearing=<String,double>{'سامراء':196.0,'بغداد':196.5,'الموصل':179.0,'كركوك':191.0,'أربيل':192.0,'السليمانية':202.0,'دهوك':169.0,'النجف':207.0,'كربلاء':203.0,'البصرة':225.0}; String city='سامراء'; @override Widget build(BuildContext context){final bearing=cityBearing[city]!;return Scaffold(backgroundColor:const Color(0xFFF7F4EC),appBar:AppBar(title:const Text('القبلة',style:TextStyle(fontWeight:FontWeight.w800)),centerTitle:true),body:ListView(padding:const EdgeInsets.all(18),children:[Container(padding:const EdgeInsets.all(22),decoration:BoxDecoration(color:const Color(0xFF174A43),borderRadius:BorderRadius.circular(28)),child:Column(children:[const Text('اتجاه القبلة',textDirection:TextDirection.rtl,style:TextStyle(color:Colors.white70,fontSize:15,fontWeight:FontWeight.w700)),const SizedBox(height:8),Text('${bearing.toStringAsFixed(1)}°',style:const TextStyle(color:Colors.white,fontSize:42,fontWeight:FontWeight.w900)),const Text('من الشمال مع عقارب الساعة',textDirection:TextDirection.rtl,style:TextStyle(color:Colors.white70,fontSize:12)),const SizedBox(height:20),Container(width:190,height:190,decoration:BoxDecoration(shape:BoxShape.circle,color:const Color(0xFFE8D7A8),border:Border.all(color:Colors.white24,width:8)),child:Stack(alignment:Alignment.center,children:[const Positioned(top:12,child:Text('N',style:TextStyle(fontWeight:FontWeight.w900))),const Positioned(bottom:12,child:Text('S',style:TextStyle(fontWeight:FontWeight.w900))),const Positioned(left:14,child:Text('W',style:TextStyle(fontWeight:FontWeight.w900))),const Positioned(right:14,child:Text('E',style:TextStyle(fontWeight:FontWeight.w900))),Transform.rotate(angle:bearing*3.1415926535/180,child:const Icon(Icons.navigation_rounded,size:72,color:Color(0xFF8E4B38))),Container(width:16,height:16,decoration:const BoxDecoration(shape:BoxShape.circle,color:Color(0xFF174A43)))]) )])),const SizedBox(height:14),Card(child:Padding(padding:const EdgeInsets.all(16),child:Row(textDirection:TextDirection.rtl,children:[const Icon(Icons.location_city_rounded,color:Color(0xFF174A43)),const SizedBox(width:10),const Expanded(child:Text('المدينة',textDirection:TextDirection.rtl,style:TextStyle(fontWeight:FontWeight.w800))),DropdownButtonHideUnderline(child:DropdownButton<String>(value:city,items:cityBearing.keys.map((n)=>DropdownMenuItem(value:n,child:Text(n,textDirection:TextDirection.rtl))).toList(),onChanged:(v)=>v==null?null:setState(()=>city=v))) ]))),const SizedBox(height:10),const Text('هذه المرحلة تستخدم اتجاه القبلة المحسوب للمدينة المختارة. البوصلة الحية بحساس الجهاز نضيفها في المرحلة التالية.',textDirection:TextDirection.rtl,textAlign:TextAlign.center,style:TextStyle(color:Color(0xFF6F746F),fontSize:12,height:1.6))]));}}
+class QiblaPage extends StatelessWidget {
+  const QiblaPage({super.key});
+
+  static const cityBearing = <String, double>{
+    'سامراء': 196.0,
+    'بغداد': 196.5,
+    'الموصل': 179.0,
+    'كركوك': 191.0,
+    'أربيل': 192.0,
+    'السليمانية': 202.0,
+    'دهوك': 169.0,
+    'النجف': 207.0,
+    'كربلاء': 203.0,
+    'البصرة': 225.0,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('القبلة'), centerTitle: true),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Icon(Icons.explore, size: 110),
+          const SizedBox(height: 20),
+          const Text('اتجاه القبلة التقريبي حسب المدينة', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 18),
+          ...cityBearing.entries.map((e) => Card(child: ListTile(title: Text(e.key, textDirection: TextDirection.rtl), trailing: Text('${e.value.toStringAsFixed(1)}°')))),
+          const SizedBox(height: 12),
+          const Text('هذه نسخة بدون حساس البوصلة. لاحقًا يمكن إضافة بوصلة حية عند إضافة حزمة المستشعرات.', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
 class TasbihPage extends StatefulWidget {
   const TasbihPage({super.key});
 
