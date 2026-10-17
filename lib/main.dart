@@ -414,13 +414,24 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
   }
 
   Future<void> _openLastReading() async {
-    if (_surah == null || _surah! < 1 || _surah! > 114) return;
+    if (_surah == null || _surah! < 1 || _surah! > 114) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const QuranPage()),
+      );
+      await _loadPosition();
+      return;
+    }
+
+    final targetPage = (_page != null && _page! >= 1 && _page! <= 604)
+        ? _page!
+        : surahStartPages[_surah! - 1];
+
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => QuranReaderPage(
           surahNumber: _surah!,
           surahName: surahNames[_surah! - 1],
-          initialPage: _page,
+          initialPage: targetPage,
           initialAyah: _ayah,
         ),
       ),
@@ -999,19 +1010,45 @@ class QuranPage extends StatefulWidget {
 class _QuranPageState extends State<QuranPage> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  int _tab = 1;
+  int? _resumeSurah;
+  int? _resumePage;
+  String? _resumeAyah;
 
   List<int> get _filteredIndices {
     final query = _query.trim().toLowerCase();
-    if (query.isEmpty) {
-      return List<int>.generate(surahNames.length, (index) => index);
-    }
-
-    return List<int>.generate(surahNames.length, (index) => index)
-        .where((index) {
+    final all = List<int>.generate(surahNames.length, (index) => index);
+    if (query.isEmpty) return all;
+    return all.where((index) {
       final number = (index + 1).toString();
       final name = surahNames[index].toLowerCase();
       return name.contains(query) || number == query;
     }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadResumePosition();
+  }
+
+  Future<void> _loadResumePosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final surah = prefs.getInt('noor_last_read_surah');
+      final page = prefs.getInt('noor_last_read_page_global');
+      final ayah = prefs.getString('noor_last_read_ayah_global');
+      if (!mounted) return;
+      if (surah != null && surah >= 1 && surah <= 114) {
+        setState(() {
+          _resumeSurah = surah;
+          _resumePage = (page != null && page >= 1 && page <= 604)
+              ? page
+              : surahStartPages[surah - 1];
+          _resumeAyah = ayah;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -1020,8 +1057,8 @@ class _QuranPageState extends State<QuranPage> {
     super.dispose();
   }
 
-  void _openSurah(int index) {
-    Navigator.push(
+  Future<void> _openSurah(int index) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => QuranReaderPage(
@@ -1030,327 +1067,243 @@ class _QuranPageState extends State<QuranPage> {
         ),
       ),
     );
+    await _loadResumePosition();
+  }
+
+  Future<void> _continueReading() async {
+    if (_resumeSurah == null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const QuranReaderPage(
+          surahNumber: 1,
+          surahName: 'الفاتحة',
+        )),
+      );
+      await _loadResumePosition();
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuranReaderPage(
+          surahNumber: _resumeSurah!,
+          surahName: surahNames[_resumeSurah! - 1],
+          initialPage: _resumePage,
+          initialAyah: _resumeAyah,
+        ),
+      ),
+    );
+    await _loadResumePosition();
   }
 
   @override
   Widget build(BuildContext context) {
     final results = _filteredIndices;
+    const green = Color(0xFF5B1687);
+    const deepGreen = Color(0xFF174A43);
+    const paper = Color(0xFFF8F5EA);
+    const gold = Color(0xFFD4B36A);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F1E8),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFF174A43),
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        title: const Text(
-          'القرآن الكريم',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-      ),
+      backgroundColor: paper,
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              color: const Color(0xFF174A43),
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-              child: TextField(
-                controller: _searchController,
-                textDirection: TextDirection.rtl,
-                onChanged: (value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  hintText: 'ابحث باسم السورة أو رقمها',
-                  hintTextDirection: TextDirection.rtl,
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: _query.isNotEmpty
-                      ? IconButton(
-                          tooltip: 'مسح البحث',
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _query = '');
-                          },
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: [Color(0xFF5A177D), Color(0xFF7D2AA1)],
+                  ),
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.menu_book_rounded, color: Colors.white, size: 31),
+                        const SizedBox(width: 9),
+                        const Expanded(
+                          child: Text(
+                            'آخر المتصفحات',
+                            style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.maybePop(context),
+                          color: Colors.white,
                           icon: const Icon(Icons.close_rounded),
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFFFFFCF5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: BorderSide.none,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('سورة القارعة', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w700)),
+                              Text(
+                                _resumePage != null ? 'صفحة: $_resumePage' : 'ابدئي رحلتك مع القرآن',
+                                style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900),
+                              ),
+                            ],
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: _continueReading,
+                          icon: const Icon(Icons.arrow_back_rounded, size: 19),
+                          label: const Text('متابعة القراءة'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFF9DE),
+                            foregroundColor: deepGreen,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                color: paper,
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                child: Row(
+                  children: [
+                    _QuranTab(title: 'الأجزاء', selected: _tab == 0, onTap: () => setState(() => _tab = 0)),
+                    _QuranTab(title: 'السور', selected: _tab == 1, onTap: () => setState(() => _tab = 1)),
+                    _QuranTab(title: 'المربعات', selected: _tab == 2, onTap: () => setState(() => _tab = 2)),
+                    _QuranTab(title: 'الختمات', selected: _tab == 3, onTap: () => setState(() => _tab = 3)),
+                    _QuranTab(title: 'الملاحظات', selected: _tab == 4, onTap: () => setState(() => _tab = 4)),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+                child: TextField(
+                  controller: _searchController,
+                  textDirection: TextDirection.rtl,
+                  onChanged: (value) => setState(() => _query = value),
+                  decoration: InputDecoration(
+                    hintText: 'بحث باسم السورة',
+                    hintTextDirection: TextDirection.rtl,
+                    prefixIcon: const Icon(Icons.search_rounded, size: 30),
+                    suffixIcon: _query.isNotEmpty ? IconButton(onPressed: () { _searchController.clear(); setState(() => _query = ''); }, icon: const Icon(Icons.close_rounded)) : null,
+                    filled: true,
+                    fillColor: const Color(0xFFFFFCF5),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xFFE5DDCE))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xFFE5DDCE))),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
-              child: Row(
-                textDirection: TextDirection.rtl,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'السور',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: Color(0xFF24332D),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${results.length} سورة',
-                    style: const TextStyle(
-                      color: Color(0xFF7B817C),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: results.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'لم أجد سورة بهذا الاسم أو الرقم',
-                        textDirection: TextDirection.rtl,
-                        style: TextStyle(
-                          color: Color(0xFF6F756F),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
-                      itemCount: results.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 8),
-                      itemBuilder: (context, position) {
-                        final index = results[position];
-                        final number = index + 1;
-
-                        return Material(
-                          color: const Color(0xFFFFFCF5),
-                          borderRadius: BorderRadius.circular(18),
-                          child: InkWell(
+              Expanded(
+                child: _tab == 1
+                    ? ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 28),
+                        itemCount: results.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 9),
+                        itemBuilder: (context, position) {
+                          final index = results[position];
+                          final number = index + 1;
+                          final isLast = _resumeSurah == number;
+                          return Material(
+                            color: const Color(0xFFFFFCF5),
                             borderRadius: BorderRadius.circular(18),
-                            onTap: () => _openSurah(index),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: const Color(0xFFE2D9C8),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () => _openSurah(index),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(color: isLast ? gold : const Color(0xFFE2D9C8), width: isLast ? 1.4 : 1),
                                 ),
-                              ),
-                              child: Row(
-                                textDirection: TextDirection.rtl,
-                                children: [
-                                  Container(
-                                    width: 46,
-                                    height: 46,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFE8F0EB),
-                                      borderRadius: BorderRadius.circular(15),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 52,
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF0E4F8),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(color: const Color(0xFF6B1A91), width: 1.6),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text('$number', style: const TextStyle(color: const Color(0xFF5B1687), fontSize: 18, fontWeight: FontWeight.w900)),
                                     ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      '$number',
-                                      style: const TextStyle(
-                                        color: Color(0xFF174A43),
-                                        fontWeight: FontWeight.w900,
+                                    const SizedBox(width: 13),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text('سورة ${surahNames[index]}', style: const TextStyle(color: Color(0xFF282A27), fontSize: 17, fontWeight: FontWeight.w900)),
+                                          const SizedBox(height: 4),
+                                          Text('${index == 0 ? 'مكية' : (index == 8 || index == 16 || index == 26 || index == 39 || index == 47 || index == 55 || index == 64 || index == 73 || index == 76 || index == 88 || index == 98 || index == 107 ? 'مدنية' : 'مكية')}  •  ${_surahAyahCounts[index]} آية', style: const TextStyle(color: Color(0xFF74766F), fontSize: 12, fontWeight: FontWeight.w600)),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'سورة ${surahNames[index]}',
-                                          textDirection: TextDirection.rtl,
-                                          style: const TextStyle(
-                                            color: Color(0xFF24332D),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'تبدأ من الصفحة ${surahStartPages[index]}',
-                                          textDirection: TextDirection.rtl,
-                                          style: const TextStyle(
-                                            color: Color(0xFF7B817C),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    size: 16,
-                                    color: Color(0xFF8A918B),
-                                  ),
-                                ],
+                                    const SizedBox(width: 10),
+                                    Icon(isLast ? Icons.bookmark_rounded : Icons.auto_awesome_rounded, color: isLast ? gold : const Color(0xFF5B1687), size: 30),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(30),
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(_tab == 0 ? Icons.grid_view_rounded : _tab == 2 ? Icons.dashboard_customize_rounded : _tab == 3 ? Icons.flag_rounded : Icons.sticky_note_2_rounded, size: 54, color: const Color(0xFF5B1687)),
+                            const SizedBox(height: 12),
+                            Text(_tab == 0 ? 'الأجزاء' : _tab == 2 ? 'المربعات' : _tab == 3 ? 'الختمات' : 'الملاحظات', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: Color(0xFF33352F))),
+                            const SizedBox(height: 7),
+                            const Text('هذه الواجهة جاهزة للتطوير في المرحلة التالية دون التأثير على قراءة المصحف.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF777A73), height: 1.6)),
+                          ]),
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class TimingRead {
-  final int id;
-  final String name;
-  final String rewaya;
-  final String folderUrl;
-  final int soarCount;
+class _QuranTab extends StatelessWidget {
+  final String title;
+  final bool selected;
+  final VoidCallback onTap;
 
-  const TimingRead({
-    required this.id,
-    required this.name,
-    required this.rewaya,
-    required this.folderUrl,
-    required this.soarCount,
-  });
+  const _QuranTab({required this.title, required this.selected, required this.onTap});
 
-  factory TimingRead.fromJson(Map<String, dynamic> json) {
-    return TimingRead(
-      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: json['name']?.toString().trim() ?? '',
-      rewaya: json['rewaya']?.toString().trim() ?? '',
-      folderUrl: json['folder_url']?.toString() ?? '',
-      soarCount: int.tryParse(json['soar_count']?.toString() ?? '') ?? 0,
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          child: Column(
+            children: [
+              Text(title, style: TextStyle(color: selected ? const Color(0xFF2B2D29) : const Color(0xFF73766F), fontSize: 13, fontWeight: selected ? FontWeight.w900 : FontWeight.w600)),
+              const SizedBox(height: 7),
+              AnimatedContainer(duration: const Duration(milliseconds: 180), width: selected ? 42 : 0, height: 3, decoration: BoxDecoration(color: const Color(0xFFD98B32), borderRadius: BorderRadius.circular(4))),
+            ],
+          ),
+        ),
+      ),
     );
   }
-}
-
-class AyahTiming {
-  final int ayah;
-  final int startTime;
-  final int endTime;
-  final String? polygon;
-  final int? page;
-
-  const AyahTiming({
-    required this.ayah,
-    required this.startTime,
-    required this.endTime,
-    this.polygon,
-    this.page,
-  });
-
-  factory AyahTiming.fromJson(Map<String, dynamic> json) {
-    final pageUrl = json['page']?.toString();
-    final pageMatch = pageUrl == null
-        ? null
-        : RegExp(r'/([0-9]{3})\.svg').firstMatch(pageUrl);
-    return AyahTiming(
-      ayah: int.tryParse(json['ayah']?.toString() ?? '') ?? -1,
-      startTime: int.tryParse(json['start_time']?.toString() ?? '') ?? 0,
-      endTime: int.tryParse(json['end_time']?.toString() ?? '') ?? 0,
-      polygon: json['polygon']?.toString(),
-      page: int.tryParse(pageMatch?.group(1) ?? ''),
-    );
-  }
-}
-
-
-class SurahInfo {
-  final String revelationPlace;
-  final int ayahCount;
-  final String context;
-  final String? sabab;
-
-  const SurahInfo({
-    required this.revelationPlace,
-    required this.ayahCount,
-    required this.context,
-    this.sabab,
-  });
-}
-
-// عدد الآيات وفق عدّ حفص المتداول في مصحف المدينة. التصنيف المكي/المدني
-// هو التصنيف المشهور، مع وجود خلاف في بعض السور عند أهل العلم.
-const List<int> _surahAyahCounts = [
-  7,286,200,176,120,165,206,75,129,109,123,111,43,52,99,128,111,110,98,135,112,78,118,64,77,227,93,88,69,60,34,30,73,54,45,83,182,88,75,85,54,53,89,59,37,35,38,29,18,45,60,49,62,55,78,96,29,22,24,13,14,11,11,18,12,12,30,52,52,44,28,28,20,56,40,31,50,40,46,42,29,19,36,25,22,17,19,26,30,20,15,21,11,8,8,19,5,8,8,11,11,8,3,9,5,4,7,3,6,3,5,4,5,6,
-];
-
-// التصنيف المشهور، مع الإشارة داخل الواجهة إلى أن بعض السور فيها خلاف.
-const List<String> _surahRevelationPlaces = [
-  'مكية','مدنية','مدنية','مدنية','مدنية','مكية','مكية','مدنية','مدنية','مكية',
-  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
-  'مكية','مدنية','مكية','مدنية','مكية','مكية','مكية','مكية','مكية','مكية',
-  'مكية','مكية','مدنية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
-  'مكية','مكية','مكية','مكية','مكية','مكية','مدنية','مدنية','مدنية','مكية',
-  'مكية','مكية','مكية','مكية','مكية','مكية','مدنية','مدنية','مدنية','مدنية',
-  'مدنية','مدنية','مدنية','مدنية','مدنية','مدنية','مكية','مكية','مكية','مكية',
-  'مكية','مكية','مكية','مكية','مكية','مدنية','مكية','مكية','مكية','مكية',
-  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
-  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية',
-  'مكية','مكية','مكية','مكية','مكية','مكية','مكية','مكية','مدنية','مكية',
-  'مكية','مكية','مكية','مكية',
-];
-
-final Map<int, String> _surahContext = {
-  1: 'فاتحة الكتاب، تجمع أصول الثناء على الله والعبادة والاستعانة وطلب الهداية.',
-  2: 'سورة طويلة مدنية تبني أصول العقيدة والعبادة والتشريع وتعرض نماذج من تاريخ بني إسرائيل وأهل الكتاب.',
-  3: 'تركز على التوحيد، والثبات، وقصة آل عمران، وأحداث غزوة أُحد والحوار مع أهل الكتاب.',
-  4: 'تتناول بناء المجتمع المسلم، والعدل، وحقوق الضعفاء والأسرة والنساء والأيتام.',
-  5: 'تتناول الوفاء بالعقود، والأحكام، والطعام، والعلاقات مع أهل الكتاب، وإكمال الدين.',
-  9: 'تتناول البراءة من المشركين، وأحوال المنافقين، والتوبة والجهاد والصدق.',
-  12: 'قصة يوسف عليه السلام في سياق متكامل، وفيها دروس الصبر والعفة والعفو وحسن العاقبة.',
-  18: 'تعرض قصص أصحاب الكهف وصاحب الجنتين وموسى والخضر وذي القرنين، وتبرز فتن الدين والمال والعلم والسلطان.',
-  24: 'تتناول العفة وآداب المجتمع، وحادثة الإفك، وغض البصر، والاستئذان، ونور الله.',
-  33: 'تتناول تنظيم المجتمع والأسرة، وأحكام النبي ﷺ وأزواجه، وغزوة الأحزاب.',
-  48: 'تتناول صلح الحديبية وفتحًا قريبًا، وما فيه من نصر وطمأنينة وبيعة الرضوان.',
-  49: 'سورة آداب المجتمع: التثبت من الأخبار، إصلاح ذات البين، خفض الصوت، ترك السخرية والغيبة، وتقوى الله.',
-  55: 'تعدد نعم الله وآلائه على الإنس والجن، وتدعو إلى الاعتراف بالنعم وشكر المنعم.',
-  58: 'تبدأ بحادثة المرأة التي جادلت النبي ﷺ في شأن زوجها، ثم تبين أحكام الظهار وآداب المجالس والولاء.',
-  59: 'تتناول إجلاء بني النضير، وأحكام الفيء، وصفات المهاجرين والأنصار، وخاتمتها أسماء الله الحسنى.',
-  60: 'تتناول البراءة من موالاة أعداء الدين، مع بيان ضوابط التعامل والبر والإقساط لمن لم يقاتل المسلمين.',
-  67: 'تدعو إلى التفكر في خلق السماوات والأرض، وإثبات قدرة الله وعلمه والبعث.',
-  93: 'تذكّر بنعم الله على النبي ﷺ، وتبعث على اليقين بأن العسر لا يدوم وأن العاقبة للخير.',
-  94: 'تتحدث عن شرح الصدر ورفع الذكر، وتؤكد اقتران العسر باليسر والدعوة إلى مواصلة العمل والعبادة.',
-  96: 'من أوائل ما نزل، وتبدأ بالأمر بالقراءة وبيان خلق الإنسان وعلم الله، وتختم بالأمر بالسجود والاقتراب.',
-  110: 'تعلن اقتراب إتمام الرسالة ودخول الناس في دين الله أفواجًا، وتوجّه إلى التسبيح والاستغفار.',
-  111: 'تتناول أبا لهب وزوجه بسبب عداوتهما للنبي ﷺ وإيذائهما للدعوة.',
-  112: 'تقرر توحيد الله وتنزهه عن الولد والكفء، وهي سورة خالصة في تقرير التوحيد.',
-  113: 'تعلم الاستعاذة بالله من الشرور الظاهرة، ومن شر ما خلق ومن الليل إذا أظلم ومن السحر والحسد.',
-  114: 'تعلم الاستعاذة بالله من الشر الباطن والوسوسة، وتؤكد أن الله رب الناس وملكهم وإلههم.',
-};
-
-final Map<int, String> _surahSabab = {
-  58: 'ورد سبب نزول أوائلها في قصة خولة بنت ثعلبة رضي الله عنها حين ظاهر منها زوجها، فاشتكت أمرها إلى النبي ﷺ، فنزل صدر السورة في بيان حكم الظهار.',
-  80: 'وردت روايات صحيحة في سبب نزول أوائلها في شأن عبد الله بن أم مكتوم رضي الله عنه عندما جاء يسأل النبي ﷺ وهو يخاطب بعض زعماء قريش؛ وتختلف الروايات في بعض التفاصيل.',
-  93: 'وردت روايات في سبب نزولها بعد انقطاع الوحي مدة، وفيها تثبيت للنبي ﷺ، مع اختلاف أهل التفسير في تفاصيل القصة.',
-  111: 'نزلت في ذم أبي لهب وزوجه بسبب شدة عداوتهما للنبي ﷺ ومقاومتهما لدعوته.',
-  110: 'ورد في سياقها أنها نزلت بعد فتح مكة، وفيها إشارة إلى تمام النصر وقرب انتهاء مهمة النبي ﷺ، وورد ذلك في أحاديث صحيحة.',
-};
-
-SurahInfo _surahInfoFor(int number) {
-  final i = (number - 1).clamp(0, surahNames.length - 1);
-  return SurahInfo(
-    revelationPlace: _surahRevelationPlaces[i],
-    ayahCount: _surahAyahCounts[i],
-    context: _surahContext[number] ?? 'تتضمن السورة موضوعات إيمانية وتشريعية وتربوية مترابطة، ويُستحسن الرجوع إلى تفسير موثوق لفهم سياق آياتها على وجه التفصيل.',
-    sabab: _surahSabab[number],
-  );
 }
 
 class QuranReaderPage extends StatefulWidget {
@@ -5584,6 +5537,379 @@ class DuasPage extends StatelessWidget {
   }
 }
 
+
+const Map<String, List<double>> _iraqGovernorateCoordinates = {
+  'بغداد': [33.3152, 44.3661],
+  'البصرة': [30.5085, 47.7804],
+  'نينوى': [36.3400, 43.1300],
+  'أربيل': [36.1911, 44.0092],
+  'السليمانية': [35.5550, 45.4354],
+  'دهوك': [36.8669, 42.9959],
+  'حلبجة': [35.1778, 45.9861],
+  'كركوك': [35.4681, 44.3922],
+  'ديالى': [33.7481, 44.6297],
+  'صلاح الدين': [34.5970, 43.6780],
+  'الأنبار': [33.4256, 43.2992],
+  'بابل': [32.4765, 44.4347],
+  'كربلاء': [32.6160, 44.0249],
+  'النجف': [32.0000, 44.3300],
+  'واسط': [32.5128, 45.8182],
+  'ميسان': [31.8356, 47.1448],
+  'ذي قار': [31.0439, 46.2573],
+  'المثنى': [31.3189, 45.2803],
+  'القادسية': [31.9929, 44.9255],
+};
+
+const String _iraqGeoDataUrl =
+    'https://raw.githubusercontent.com/m7amad-t/iraq_geo_data/main/data/output.json';
+
+class _IraqPlaceSelection {
+  final String governorate;
+  final String? district;
+  final String? subdistrict;
+  final String? village;
+
+  const _IraqPlaceSelection({
+    required this.governorate,
+    this.district,
+    this.subdistrict,
+    this.village,
+  });
+
+  String get label {
+    final parts = <String>[governorate];
+    if (district != null && district!.trim().isNotEmpty) parts.add(district!);
+    if (subdistrict != null && subdistrict!.trim().isNotEmpty) parts.add(subdistrict!);
+    if (village != null && village!.trim().isNotEmpty) parts.add(village!);
+    return parts.join(' • ');
+  }
+}
+
+
+String _iraqGeoName(Map<String, dynamic> item) {
+  final value = item['arbName'];
+  return value?.toString().trim() ?? '';
+}
+
+List<Map<String, dynamic>> _iraqGeoChildren(
+  Map<String, dynamic> item,
+  String key,
+) {
+  final raw = item[key];
+  if (raw is! List) return <Map<String, dynamic>>[];
+  return raw
+      .whereType<Map>()
+      .map((e) => Map<String, dynamic>.from(e))
+      .where((e) => _iraqGeoName(e).isNotEmpty)
+      .toList();
+}
+
+class _IraqLocationPickerSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> provinces;
+
+  const _IraqLocationPickerSheet({required this.provinces});
+
+  @override
+  State<_IraqLocationPickerSheet> createState() => _IraqLocationPickerSheetState();
+}
+
+class _IraqLocationPickerSheetState extends State<_IraqLocationPickerSheet> {
+  int level = 0;
+  Map<String, dynamic>? governorate;
+  Map<String, dynamic>? district;
+  Map<String, dynamic>? subdistrict;
+  String search = '';
+
+  List<Map<String, dynamic>> get currentItems {
+    if (level == 0) return widget.provinces;
+    if (level == 1) {
+      return _iraqGeoChildren(governorate ?? <String, dynamic>{}, 'districts');
+    }
+    if (level == 2) {
+      return _iraqGeoChildren(district ?? <String, dynamic>{}, 'subdistricts');
+    }
+    return _iraqGeoChildren(subdistrict ?? <String, dynamic>{}, 'villages');
+  }
+
+  List<Map<String, dynamic>> get filteredItems {
+    final q = search.trim().toLowerCase();
+    if (q.isEmpty) return currentItems;
+    return currentItems.where((item) {
+      final ar = _iraqGeoName(item).toLowerCase();
+      final en = item['engName']?.toString().toLowerCase() ?? '';
+      final ku = item['krdName']?.toString().toLowerCase() ?? '';
+      return ar.contains(q) || en.contains(q) || ku.contains(q);
+    }).toList();
+  }
+
+  String get levelTitle {
+    switch (level) {
+      case 0:
+        return 'اختيار المحافظة';
+      case 1:
+        return 'اختيار القضاء';
+      case 2:
+        return 'اختيار الناحية';
+      default:
+        return 'اختيار القرية / المنطقة';
+    }
+  }
+
+  String get breadcrumb {
+    final parts = <String>[];
+    if (governorate != null) parts.add(_iraqGeoName(governorate!));
+    if (district != null) parts.add(_iraqGeoName(district!));
+    if (subdistrict != null) parts.add(_iraqGeoName(subdistrict!));
+    return parts.join('  ›  ');
+  }
+
+  void _resetFrom(int targetLevel) {
+    setState(() {
+      if (targetLevel <= 0) {
+        governorate = null;
+        district = null;
+        subdistrict = null;
+      } else if (targetLevel == 1) {
+        district = null;
+        subdistrict = null;
+      } else if (targetLevel == 2) {
+        subdistrict = null;
+      }
+      level = targetLevel;
+      search = '';
+    });
+  }
+
+  void _selectItem(Map<String, dynamic> item) {
+    final name = _iraqGeoName(item);
+    if (name.isEmpty) return;
+
+    if (level == 0) {
+      setState(() {
+        governorate = item;
+        district = null;
+        subdistrict = null;
+        level = 1;
+        search = '';
+      });
+      return;
+    }
+
+    if (level == 1) {
+      final subs = _iraqGeoChildren(item, 'subdistricts');
+      setState(() {
+        district = item;
+        subdistrict = null;
+        level = subs.isEmpty ? 2 : 2;
+        search = '';
+      });
+      return;
+    }
+
+    if (level == 2) {
+      final villages = _iraqGeoChildren(item, 'villages');
+      setState(() {
+        subdistrict = item;
+        level = villages.isEmpty ? 3 : 3;
+        search = '';
+      });
+      return;
+    }
+
+    Navigator.pop(
+      context,
+      _IraqPlaceSelection(
+        governorate: _iraqGeoName(governorate!),
+        district: district == null ? null : _iraqGeoName(district!),
+        subdistrict: subdistrict == null ? null : _iraqGeoName(subdistrict!),
+        village: name,
+      ),
+    );
+  }
+
+  void _useCurrentLevel() {
+    if (governorate == null) return;
+    Navigator.pop(
+      context,
+      _IraqPlaceSelection(
+        governorate: _iraqGeoName(governorate!),
+        district: district == null ? null : _iraqGeoName(district!),
+        subdistrict: subdistrict == null ? null : _iraqGeoName(subdistrict!),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canUse = governorate != null;
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * .86,
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 46,
+              height: 5,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD8D2C5),
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'تحديد موقع مواقيت الصلاة',
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF173F35),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18),
+              child: Text(
+                'GPS هو الخيار الأدق. استخدمي الاختيار اليدوي إذا تعذر تحديد الموقع.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF777A73)),
+              ),
+            ),
+            if (breadcrumb.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0E9DA),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    breadcrumb,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF5B1687)),
+                  ),
+                ),
+              ),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: TextField(
+                onChanged: (v) => setState(() => search = v),
+                decoration: InputDecoration(
+                  hintText: 'بحث في القائمة',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFFE5DFD2)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFFE5DFD2)),
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                _crumbButton('المحافظة', 0),
+                if (governorate != null) _crumbButton('القضاء', 1),
+                if (district != null) _crumbButton('الناحية', 2),
+                if (subdistrict != null) _crumbButton('القرية', 3),
+              ],
+            ),
+            Expanded(
+              child: filteredItems.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'لا توجد عناصر في هذا المستوى ضمن البيانات المتاحة.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Color(0xFF777A73)),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      itemCount: filteredItems.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 7),
+                      itemBuilder: (_, i) {
+                        final item = filteredItems[i];
+                        final name = _iraqGeoName(item);
+                        final childCount = level == 0
+                            ? _iraqGeoChildren(item, 'districts').length
+                            : level == 1
+                                ? _iraqGeoChildren(item, 'subdistricts').length
+                                : level == 2
+                                    ? _iraqGeoChildren(item, 'villages').length
+                                    : 0;
+                        return ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: Color(0xFFE5DFD2)),
+                          ),
+                          tileColor: Colors.white,
+                          leading: Icon(
+                            level == 0
+                                ? Icons.location_city_rounded
+                                : level == 1
+                                    ? Icons.account_balance_rounded
+                                    : level == 2
+                                        ? Icons.place_rounded
+                                        : Icons.home_work_rounded,
+                            color: const Color(0xFF5B1687),
+                          ),
+                          title: Text(
+                            name,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: childCount > 0
+                              ? Text('$childCount ${level == 0 ? 'أقضية' : level == 1 ? 'نواحٍ' : 'قرى/مناطق'}')
+                              : null,
+                          trailing: const Icon(Icons.chevron_left_rounded),
+                          onTap: () => _selectItem(item),
+                        );
+                      },
+                    ),
+            ),
+            if (canUse)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _useCurrentLevel,
+                    icon: const Icon(Icons.check_circle_outline_rounded),
+                    label: Text(
+                      'استخدام ${subdistrict != null ? 'الناحية' : district != null ? 'القضاء' : 'المحافظة'} الحالية',
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _crumbButton(String text, int target) {
+    final active = level == target;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: TextButton(
+          onPressed: () => _resetFrom(target),
+          style: TextButton.styleFrom(
+            foregroundColor: active ? const Color(0xFF5B1687) : const Color(0xFF777A73),
+          ),
+          child: Text(text, style: TextStyle(fontWeight: active ? FontWeight.w900 : FontWeight.w600)),
+        ),
+      ),
+    );
+  }
+}
+
 class PrayerTimesPage extends StatefulWidget {
   const PrayerTimesPage({super.key});
 
@@ -5662,6 +5988,24 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
         return;
       }
 
+      // إذا كانت صفحة القبلة قد حصلت على GPS بنجاح، استخدم نفس الإحداثيات فوراً.
+      // هذا يمنع إعادة انتظار GPS مرة ثانية ويجعل المواقيت والقبلة متسقتين.
+      final shared = await SharedPreferences.getInstance();
+      final qiblaLat = shared.getDouble('noor_qibla_latitude');
+      final qiblaLon = shared.getDouble('noor_qibla_longitude');
+      if (qiblaLat != null && qiblaLon != null) {
+        latitude = qiblaLat;
+        longitude = qiblaLon;
+        locationText = 'الموقع الحالي • ${qiblaLat.toStringAsFixed(4)}°، ${qiblaLon.toStringAsFixed(4)}°';
+        locationReady = true;
+        await shared.setDouble('noor_prayer_latitude', qiblaLat);
+        await shared.setDouble('noor_prayer_longitude', qiblaLon);
+        await shared.setString('noor_prayer_location', locationText);
+        if (mounted) setState(() {});
+        await _loadPrayerTimes();
+        return;
+      }
+
       var permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
@@ -5703,6 +6047,21 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
       }
 
       if (position == null) {
+        final prefsFallback = await SharedPreferences.getInstance();
+        final savedQiblaLat = prefsFallback.getDouble('noor_qibla_latitude');
+        final savedQiblaLon = prefsFallback.getDouble('noor_qibla_longitude');
+        if (savedQiblaLat != null && savedQiblaLon != null) {
+          latitude = savedQiblaLat;
+          longitude = savedQiblaLon;
+          locationText = 'آخر موقع GPS محفوظ • ${savedQiblaLat.toStringAsFixed(4)}°، ${savedQiblaLon.toStringAsFixed(4)}°';
+          locationReady = true;
+          await prefsFallback.setDouble('noor_prayer_latitude', savedQiblaLat);
+          await prefsFallback.setDouble('noor_prayer_longitude', savedQiblaLon);
+          await prefsFallback.setString('noor_prayer_location', locationText);
+          if (mounted) setState(() {});
+          await _loadPrayerTimes();
+          return;
+        }
         throw Exception('NO_LOCATION_FIX');
       }
 
@@ -5792,6 +6151,144 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
         error = 'تعذر تحميل مواقيت الصلاة. تحققي من اتصال الإنترنت وحاولي مرة أخرى.';
       });
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadIraqGeoHierarchy() async {
+    final response = await http.get(Uri.parse(_iraqGeoDataUrl)).timeout(
+      const Duration(seconds: 12),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final provinces = decoded['provinces'];
+    if (provinces is! List) throw Exception('Invalid Iraq geography data');
+    return provinces
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  String _placeArabicName(Map<String, dynamic> item) {
+    final value = item['arbName'];
+    return value?.toString().trim() ?? '';
+  }
+
+  List<Map<String, dynamic>> _childrenOf(
+    Map<String, dynamic> item,
+    String key,
+  ) {
+    final raw = item[key];
+    if (raw is! List) return <Map<String, dynamic>>[];
+    return raw
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .where((e) => _placeArabicName(e).isNotEmpty)
+        .toList();
+  }
+
+  Future<List<double>?> _geocodeIraqPlace(_IraqPlaceSelection selection) async {
+    final query = <String>[
+      if (selection.village != null) selection.village!,
+      if (selection.subdistrict != null) selection.subdistrict!,
+      if (selection.district != null) selection.district!,
+      selection.governorate,
+      'Iraq',
+    ].join(', ');
+
+    try {
+      final uri = Uri.https(
+        'nominatim.openstreetmap.org',
+        '/search',
+        <String, String>{
+          'q': query,
+          'format': 'jsonv2',
+          'limit': '1',
+          'countrycodes': 'iq',
+          'accept-language': 'ar',
+        },
+      );
+      final response = await http.get(uri, headers: const {
+        'User-Agent': 'NoorAlQuran/1.0 (prayer-location)',
+      }).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List && data.isNotEmpty && data.first is Map) {
+          final first = Map<String, dynamic>.from(data.first as Map);
+          final lat = double.tryParse(first['lat']?.toString() ?? '');
+          final lon = double.tryParse(first['lon']?.toString() ?? '');
+          if (lat != null && lon != null) return [lat, lon];
+        }
+      }
+    } catch (_) {}
+
+    return _iraqGovernorateCoordinates[selection.governorate];
+  }
+
+  Future<void> _chooseIraqCity() async {
+    List<Map<String, dynamic>> provinces;
+    try {
+      provinces = await _loadIraqGeoHierarchy();
+    } catch (_) {
+      // إذا تعذر تنزيل قاعدة البيانات، نبقي الاختيار متاحًا على مستوى المحافظة.
+      provinces = _iraqGovernorateCoordinates.keys
+          .map((name) => <String, dynamic>{
+                'arbName': name,
+                'districts': <dynamic>[],
+              })
+          .toList();
+    }
+
+    if (!mounted) return;
+
+    final selection = await showModalBottomSheet<_IraqPlaceSelection>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFFFFCF5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: _IraqLocationPickerSheet(provinces: provinces),
+      ),
+    );
+
+    if (selection == null || !mounted) return;
+
+    setState(() {
+      loading = true;
+      error = null;
+      locationText = 'جاري تحديد الإحداثيات…';
+    });
+
+    final coords = await _geocodeIraqPlace(selection);
+    if (coords == null) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        error = 'تعذر تحديد إحداثيات الموقع المختار. اختاري موقعًا أقرب أو استخدمي GPS.';
+      });
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    latitude = coords[0];
+    longitude = coords[1];
+    locationText = 'موقع يدوي • ${selection.label}';
+    locationReady = true;
+
+    await prefs.setDouble('noor_prayer_latitude', coords[0]);
+    await prefs.setDouble('noor_prayer_longitude', coords[1]);
+    await prefs.setString('noor_prayer_location', locationText);
+    await prefs.setString('noor_prayer_governorate', selection.governorate);
+    await prefs.setString('noor_prayer_district', selection.district ?? '');
+    await prefs.setString('noor_prayer_subdistrict', selection.subdistrict ?? '');
+    await prefs.setString('noor_prayer_village', selection.village ?? '');
+
+    if (mounted) setState(() {});
+    await _loadPrayerTimes();
   }
 
   Future<void> _refreshLocationAndTimes() async {
@@ -5979,6 +6476,11 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
                           onPressed: () => Geolocator.openAppSettings(),
                           icon: const Icon(Icons.settings_rounded),
                           label: const Text('إعدادات التطبيق'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _chooseIraqCity,
+                          icon: const Icon(Icons.location_city_rounded),
+                          label: const Text('اختيار الموقع يدويًا'),
                         ),
                       ],
                     ),
