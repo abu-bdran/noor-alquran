@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:adhkar/adhkar.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/material.dart';
@@ -371,13 +370,41 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
   Future<void> _loadPosition() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final surah = prefs.getInt('noor_last_read_surah');
-      final page = prefs.getInt('noor_last_read_page_global');
-      final ayah = prefs.getString('noor_last_read_ayah_global');
+      int? surah = prefs.getInt('noor_last_read_surah');
+      int? page = prefs.getInt('noor_last_read_page_global');
+      String? ayah = prefs.getString('noor_last_read_ayah_global');
+
+      // توافق مع النسخ الأقدم: إذا لم تكن المفاتيح العامة موجودة،
+      // نبحث عن آخر موضع محفوظ لكل سورة بدل فتح قائمة السور.
+      if (surah == null || surah < 1 || surah > 114) {
+        int? bestSurah;
+        int bestTimestamp = -1;
+        for (var i = 1; i <= 114; i++) {
+          final ts = prefs.getInt('noor_last_read_updated_at_$i') ?? -1;
+          if (ts > bestTimestamp) {
+            final p = prefs.getInt('noor_last_read_page_$i');
+            if (p != null && p >= 1 && p <= 604) {
+              bestTimestamp = ts;
+              bestSurah = i;
+            }
+          }
+        }
+        if (bestSurah != null) surah = bestSurah;
+      }
+
+      if (surah != null && surah >= 1 && surah <= 114) {
+        page ??= prefs.getInt('noor_last_read_page_$surah');
+        ayah ??= prefs.getString('noor_last_read_ayah_$surah');
+      }
+
+      if (page == null && surah != null && surah >= 1 && surah <= 114) {
+        page = surahStartPages[surah - 1];
+      }
+
       if (!mounted) return;
       setState(() {
-        _surah = surah;
-        _page = page;
+        _surah = (surah != null && surah >= 1 && surah <= 114) ? surah : null;
+        _page = (page != null && page >= 1 && page <= 604) ? page : null;
         _ayah = ayah;
         _loading = false;
       });
@@ -411,10 +438,7 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
         ? _ayah!.split(':').last
         : null;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: hasPosition ? _openLastReading : null,
-      child: Container(
+    return Container(
       margin: const EdgeInsets.fromLTRB(18, 18, 18, 0),
       padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
@@ -474,7 +498,6 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
                 ],
               ),
             ),
-      ),
     );
   }
 }
@@ -765,8 +788,6 @@ class HomeContent extends StatelessWidget {
 
 class DailyAyahCard extends StatelessWidget {
   const DailyAyahCard({super.key});
-  static const _deepGreen = Color(0xFF0B2D25);
-  static const _ink = Color(0xFF25352F);
   static const _ayahs = <Map<String, String>>[
     {'text': 'إِنَّ مَعَ الْعُسْرِ يُسْرًا', 'ref': 'سورة الشرح • 6'},
     {'text': 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ', 'ref': 'سورة البقرة • 152'},
@@ -3912,6 +3933,7 @@ Future<void> _loadReciters() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('noor_last_read_ayah_$surah', _lastReadAyah!);
       await prefs.setInt('noor_last_read_page_$surah', currentPage);
+      await prefs.setInt('noor_last_read_updated_at_$surah', DateTime.now().millisecondsSinceEpoch);
       await prefs.setInt('noor_last_read_surah', surah);
       await prefs.setInt('noor_last_read_page_global', currentPage);
       await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
@@ -3927,6 +3949,7 @@ Future<void> _loadReciters() async {
       await prefs.setInt('noor_last_read_page_global', currentPage);
       await prefs.setInt('noor_reading_position_version', 2);
       await prefs.setInt('noor_last_read_page_$actualSurah', currentPage);
+      await prefs.setInt('noor_last_read_updated_at_$actualSurah', DateTime.now().millisecondsSinceEpoch);
       if (_lastReadAyah != null && _lastReadAyah!.isNotEmpty) {
         final parts = _lastReadAyah!.split(':');
         if (parts.length == 2 && int.tryParse(parts[0]) == actualSurah) {
@@ -3945,303 +3968,304 @@ Future<void> _loadReciters() async {
     } catch (_) {}
   }
 
-  Future<void> _loadMushafPage(int page) async {
-      final p = page.toString().padLeft(3, '0');
-      final url = Uri.parse(
-        'https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/$p.svg',
+Future<void> _loadMushafPage(int page) async {
+    final p = page.toString().padLeft(3, '0');
+    final url = Uri.parse(
+      'https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/$p.svg',
+    );
+
+    try {
+      final response = await http.get(url).timeout(
+        const Duration(seconds: 20),
       );
-
-      try {
-        final response = await http.get(url).timeout(
-          const Duration(seconds: 20),
-        );
-        if (response.statusCode != 200) {
-          throw Exception('HTTP ${response.statusCode}');
-        }
-
-        var svg = response.body
-            .replaceFirst(RegExp(r'<\?xml[^>]*>'), '')
-            .replaceFirst(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '');
-
-        final html = '''
-  <!DOCTYPE html>
-  <html lang="ar" dir="rtl">
-  <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <style>
-  html,body{margin:0;padding:0;width:100%;height:100%;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
-  #page{width:100%;height:auto;min-height:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
-  svg{
-  width:100%;
-  height:auto;
-  display:block;
-  margin:0 auto;
-  max-width:none
-  }
-  .ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
-  .noor-active{fill:#7652d6!important;fill-opacity:.38!important}
-  #readerSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:20}
-  #readerPanel{position:relative;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;max-height:78%;border-radius:22px 22px 0 0;padding:18px 16px 22px;box-sizing:border-box;box-shadow:0 -10px 30px rgba(0,0,0,.18)}
-  #readerTitle{font-size:18px;font-weight:700;text-align:center;margin-bottom:8px}
-  #readerAyah{font-size:13px;opacity:.7;text-align:center;margin-bottom:12px}
-  #readerSearch{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:12px;padding:11px 13px;font-size:15px;background:transparent;color:inherit;outline:none;margin-bottom:10px}
-  #readerList{max-height:38vh;overflow:auto}
-  .readerRow{display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid rgba(127,127,127,.16);cursor:pointer}
-  .readerRow:hover{background:rgba(118,82,214,.08)}
-  .readerAvatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(118,82,214,.12);font-weight:700;color:#7652d6;flex:0 0 auto}
-  .readerName{font-weight:700;font-size:14px;flex:1}.readerRewaya{font-size:11px;opacity:.62;margin-top:2px}
-  #choiceSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:30}
-  #choicePanel{background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;border-radius:22px 22px 0 0;padding:20px;box-sizing:border-box}
-  .choiceBtn{width:100%;border:0;border-radius:14px;padding:14px;margin-top:9px;font-size:15px;font-weight:700;cursor:pointer;background:rgba(118,82,214,.12);color:inherit}
-  .choiceBtn.primary{background:#7652d6;color:white}
-  #player{position:fixed;left:10px;right:10px;bottom:10px;display:none;z-index:15;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#fff' : '#222'};border-radius:18px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:rtl}
-  #playerTop{display:flex;align-items:center;gap:10px}.playerInfo{flex:1}.playerName{font-weight:700;font-size:13px}.playerStatus{font-size:11px;opacity:.65;margin-top:2px}
-  .playerBtn{border:0;background:rgba(118,82,214,.12);border-radius:12px;width:42px;height:42px;cursor:pointer;font-size:18px}
-  #progress{width:100%;margin-top:8px;accent-color:#7652d6}
-  #closeReader{position:absolute;left:12px;top:10px;border:0;background:transparent;color:inherit;font-size:24px;cursor:pointer}
-  </style></head>
-  <body>
-  <div id="page">$svg</div>
-  <div id="readerSheet"><div id="readerPanel"><button id="closeReader">×</button><div id="readerTitle">اختر القارئ</div><div id="readerAyah"></div><input id="readerSearch" placeholder="ابحث عن اسم القارئ..."/><div id="readerList"></div></div></div>
-  <div id="choiceSheet"><div id="choicePanel"><div id="readerTitle">ماذا تريد أن تسمع؟</div><div id="readerAyah"></div><button class="choiceBtn primary" id="playAyah">▶ الاستماع إلى الآية</button><button class="choiceBtn" id="playSurah">▶ الاستماع إلى السورة كاملة</button><button class="choiceBtn" id="cancelChoice">إلغاء</button></div></div>
-  <div id="player"><div id="playerTop"><div class="playerInfo"><div class="playerName" id="playerName">نور القرآن</div><div class="playerStatus" id="playerStatus">جاهز</div></div><button class="playerBtn" id="stopBtn">■</button><button class="playerBtn" id="pauseBtn">Ⅱ</button></div><input id="progress" type="range" min="0" max="100" value="0" step="0.1"/></div>
-  <audio id="audio" preload="auto"></audio>
-  <script>
-  (function(){
-   const SURAH=%SURAH%;
-   const INITIAL_PAGE=%PAGE%;
-   const pageEl=document.getElementById('page'), audio=document.getElementById('audio');
-   const readerSheet=document.getElementById('readerSheet'), choiceSheet=document.getElementById('choiceSheet');
-   const readerList=document.getElementById('readerList'), readerSearch=document.getElementById('readerSearch');
-   const readerAyah=document.querySelector('#readerPanel #readerAyah'), choiceAyah=document.querySelector('#choicePanel #readerAyah');
-   const player=document.getElementById('player'), playerName=document.getElementById('playerName'), playerStatus=document.getElementById('playerStatus'), progress=document.getElementById('progress');
-   let readers=[], timings=[], selectedAyah=null, selectedReader=null, playMode='ayah', currentTiming=null, loadingPage=false;
-   const api='https://mp3quran.net/api/v3';
-   const qsvg='https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/';
-   function esc(v){return String(v||'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));}
-   function setSheet(el,on){el.style.display=on?'flex':'none';}
-   async function loadReaders(){
-     if(readers.length) return readers;
-     try{const r=await fetch(api+'/ayat_timing/reads'); if(!r.ok) throw 0; readers=await r.json(); readers=readers.filter(x=>x&&x.id&&x.folder_url); renderReaders(); return readers;}
-     catch(e){readerList.innerHTML='<div style="padding:20px;text-align:center;opacity:.7">تعذر تحميل قائمة القراء. تحقق من الإنترنت.</div>'; return [];}
-   }
-   function renderReaders(){
-     const q=(readerSearch.value||'').trim();
-     const list=readers.filter(r=>!q || (r.name||'').includes(q) || (r.rewaya||'').includes(q)).slice(0,80);
-     readerList.innerHTML=list.map(r=>`<div class="readerRow" data-id="\${r.id}"><div class="readerAvatar">\${esc((r.name||'ق').trim().charAt(0))}</div><div class="readerName">\${esc(r.name)}<div class="readerRewaya">\${esc(r.rewaya||'رواية غير محددة')}</div></div><div>›</div></div>`).join('') || '<div style="padding:20px;text-align:center;opacity:.7">لا توجد نتائج</div>';
-     readerList.querySelectorAll('.readerRow').forEach(row=>row.onclick=()=>{selectedReader=readers.find(r=>String(r.id)===row.dataset.id);setSheet(readerSheet,false);setSheet(choiceSheet,true);choiceAyah.textContent='الآية '+selectedAyah;});
-   }
-   async function openAyah(ayah){
-     selectedAyah=ayah;
-     readerAyah.textContent='الآية '+ayah;
-     setSheet(readerSheet,true); readerSearch.value='';
-     await loadReaders(); renderReaders();
-   }
-   function clearHighlight(){
-     document.querySelectorAll('.ayahPolygon').forEach(e=>e.classList.remove('noor-active'));
-   }
-   function highlight(surah,ayah){
-     window.noorPendingHighlight=String(surah)+':'+String(ayah);
-     clearHighlight();
-     document.querySelectorAll('.ayahPolygon').forEach(e=>{
-       if(e.getAttribute('surah')==String(surah)&&e.getAttribute('ayah')==String(ayah)) e.classList.add('noor-active');
-     });
-   }
-   window.setNoorAyahHighlight=function(surah,ayah){
-     highlight(surah,ayah);
-   };
-   window.clearNoorAyahHighlight=function(){
-     window.noorPendingHighlight=null;
-     clearHighlight();
-   };
-   async function loadTimings(read){
-     const r=await fetch(api+'/ayat_timing?surah='+SURAH+'&read='+read.id); if(!r.ok) throw 0;
-     timings=(await r.json()).filter(x=>x.ayah>=1&&x.end_time>x.start_time);
-     return timings;
-   }
-   function audioUrl(read){return read.folder_url+String(SURAH).padStart(3,'0')+'.mp3';}
-   function pageFromTiming(t){const m=String(t.page||'').match(/(\d{3})\.svg/); return m?parseInt(m[1],10):null;}
-   async function loadPage(p){
-     if(loadingPage) return; loadingPage=true;
-     try{const u=qsvg+String(p).padStart(3,'0')+'.svg'; const r=await fetch(u); if(!r.ok) throw 0; const txt=await r.text(); pageEl.style.opacity='.2'; pageEl.innerHTML=txt.replace(/<\?xml[^>]*>/,'').replace(/<!DOCTYPE[^>]*>/i,''); pageEl.style.opacity='1'; bindPolygons();}
-     finally{loadingPage=false;}
-   }
-   function bindPolygons(){
-    document.querySelectorAll('.ayahPolygon').forEach(el=>{
-     el.style.cursor='default';
-     var pressTimer=null;
-     var longPressed=false;
-     var startX=0;
-     var startY=0;
-
-     var sendAyah=function(){
-      const s=el.getAttribute('surah'),a=el.getAttribute('ayah');
-      if(!s||!a)return;
-      longPressed=true;
-      if(window.AyahChannel){AyahChannel.postMessage(s+':'+a);}
-      else{openAyah(s+':'+a);}
-     };
-
-     var cancelPress=function(){
-      if(pressTimer!==null){
-        clearTimeout(pressTimer);
-        pressTimer=null;
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
       }
-     };
 
-     el.onclick=function(e){
-      // A normal tap only selects the page; it does not open the reciter list.
-      if(longPressed){
-        e.preventDefault();
-        e.stopPropagation();
-        longPressed=false;
-      }
-     };
+      var svg = response.body
+          .replaceFirst(RegExp(r'<\?xml[^>]*>'), '')
+          .replaceFirst(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '');
 
-     el.addEventListener('touchstart',function(e){
-      if(!e.touches||!e.touches.length)return;
-      startX=e.touches[0].clientX;
-      startY=e.touches[0].clientY;
+      final html = '''
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
+#page{width:100%;height:auto;min-height:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
+svg{
+width:100%;
+height:auto;
+display:block;
+margin:0 auto;
+max-width:none
+}
+.ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
+.noor-active{fill:#7652d6!important;fill-opacity:.38!important}
+#readerSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:20}
+#readerPanel{position:relative;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;max-height:78%;border-radius:22px 22px 0 0;padding:18px 16px 22px;box-sizing:border-box;box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+#readerTitle{font-size:18px;font-weight:700;text-align:center;margin-bottom:8px}
+#readerAyah{font-size:13px;opacity:.7;text-align:center;margin-bottom:12px}
+#readerSearch{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:12px;padding:11px 13px;font-size:15px;background:transparent;color:inherit;outline:none;margin-bottom:10px}
+#readerList{max-height:38vh;overflow:auto}
+.readerRow{display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid rgba(127,127,127,.16);cursor:pointer}
+.readerRow:hover{background:rgba(118,82,214,.08)}
+.readerAvatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(118,82,214,.12);font-weight:700;color:#7652d6;flex:0 0 auto}
+.readerName{font-weight:700;font-size:14px;flex:1}.readerRewaya{font-size:11px;opacity:.62;margin-top:2px}
+#choiceSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:30}
+#choicePanel{background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;border-radius:22px 22px 0 0;padding:20px;box-sizing:border-box}
+.choiceBtn{width:100%;border:0;border-radius:14px;padding:14px;margin-top:9px;font-size:15px;font-weight:700;cursor:pointer;background:rgba(118,82,214,.12);color:inherit}
+.choiceBtn.primary{background:#7652d6;color:white}
+#player{position:fixed;left:10px;right:10px;bottom:10px;display:none;z-index:15;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#fff' : '#222'};border-radius:18px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:rtl}
+#playerTop{display:flex;align-items:center;gap:10px}.playerInfo{flex:1}.playerName{font-weight:700;font-size:13px}.playerStatus{font-size:11px;opacity:.65;margin-top:2px}
+.playerBtn{border:0;background:rgba(118,82,214,.12);border-radius:12px;width:42px;height:42px;cursor:pointer;font-size:18px}
+#progress{width:100%;margin-top:8px;accent-color:#7652d6}
+#closeReader{position:absolute;left:12px;top:10px;border:0;background:transparent;color:inherit;font-size:24px;cursor:pointer}
+</style></head>
+<body>
+<div id="page">$svg</div>
+<div id="readerSheet"><div id="readerPanel"><button id="closeReader">×</button><div id="readerTitle">اختر القارئ</div><div id="readerAyah"></div><input id="readerSearch" placeholder="ابحث عن اسم القارئ..."/><div id="readerList"></div></div></div>
+<div id="choiceSheet"><div id="choicePanel"><div id="readerTitle">ماذا تريد أن تسمع؟</div><div id="readerAyah"></div><button class="choiceBtn primary" id="playAyah">▶ الاستماع إلى الآية</button><button class="choiceBtn" id="playSurah">▶ الاستماع إلى السورة كاملة</button><button class="choiceBtn" id="cancelChoice">إلغاء</button></div></div>
+<div id="player"><div id="playerTop"><div class="playerInfo"><div class="playerName" id="playerName">نور القرآن</div><div class="playerStatus" id="playerStatus">جاهز</div></div><button class="playerBtn" id="stopBtn">■</button><button class="playerBtn" id="pauseBtn">Ⅱ</button></div><input id="progress" type="range" min="0" max="100" value="0" step="0.1"/></div>
+<audio id="audio" preload="auto"></audio>
+<script>
+(function(){
+ const SURAH=%SURAH%;
+ const INITIAL_PAGE=%PAGE%;
+ const pageEl=document.getElementById('page'), audio=document.getElementById('audio');
+ const readerSheet=document.getElementById('readerSheet'), choiceSheet=document.getElementById('choiceSheet');
+ const readerList=document.getElementById('readerList'), readerSearch=document.getElementById('readerSearch');
+ const readerAyah=document.querySelector('#readerPanel #readerAyah'), choiceAyah=document.querySelector('#choicePanel #readerAyah');
+ const player=document.getElementById('player'), playerName=document.getElementById('playerName'), playerStatus=document.getElementById('playerStatus'), progress=document.getElementById('progress');
+ let readers=[], timings=[], selectedAyah=null, selectedReader=null, playMode='ayah', currentTiming=null, loadingPage=false;
+ const api='https://mp3quran.net/api/v3';
+ const qsvg='https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/';
+ function esc(v){return String(v||'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));}
+ function setSheet(el,on){el.style.display=on?'flex':'none';}
+ async function loadReaders(){
+   if(readers.length) return readers;
+   try{const r=await fetch(api+'/ayat_timing/reads'); if(!r.ok) throw 0; readers=await r.json(); readers=readers.filter(x=>x&&x.id&&x.folder_url); renderReaders(); return readers;}
+   catch(e){readerList.innerHTML='<div style="padding:20px;text-align:center;opacity:.7">تعذر تحميل قائمة القراء. تحقق من الإنترنت.</div>'; return [];}
+ }
+ function renderReaders(){
+   const q=(readerSearch.value||'').trim();
+   const list=readers.filter(r=>!q || (r.name||'').includes(q) || (r.rewaya||'').includes(q)).slice(0,80);
+   readerList.innerHTML=list.map(r=>`<div class="readerRow" data-id="\${r.id}"><div class="readerAvatar">\${esc((r.name||'ق').trim().charAt(0))}</div><div class="readerName">\${esc(r.name)}<div class="readerRewaya">\${esc(r.rewaya||'رواية غير محددة')}</div></div><div>›</div></div>`).join('') || '<div style="padding:20px;text-align:center;opacity:.7">لا توجد نتائج</div>';
+   readerList.querySelectorAll('.readerRow').forEach(row=>row.onclick=()=>{selectedReader=readers.find(r=>String(r.id)===row.dataset.id);setSheet(readerSheet,false);setSheet(choiceSheet,true);choiceAyah.textContent='الآية '+selectedAyah;});
+ }
+ async function openAyah(ayah){
+   selectedAyah=ayah;
+   readerAyah.textContent='الآية '+ayah;
+   setSheet(readerSheet,true); readerSearch.value='';
+   await loadReaders(); renderReaders();
+ }
+ function clearHighlight(){
+   document.querySelectorAll('.ayahPolygon').forEach(e=>e.classList.remove('noor-active'));
+ }
+ function highlight(surah,ayah){
+   window.noorPendingHighlight=String(surah)+':'+String(ayah);
+   clearHighlight();
+   document.querySelectorAll('.ayahPolygon').forEach(e=>{
+     if(e.getAttribute('surah')==String(surah)&&e.getAttribute('ayah')==String(ayah)) e.classList.add('noor-active');
+   });
+ }
+ window.setNoorAyahHighlight=function(surah,ayah){
+   highlight(surah,ayah);
+ };
+ window.clearNoorAyahHighlight=function(){
+   window.noorPendingHighlight=null;
+   clearHighlight();
+ };
+ async function loadTimings(read){
+   const r=await fetch(api+'/ayat_timing?surah='+SURAH+'&read='+read.id); if(!r.ok) throw 0;
+   timings=(await r.json()).filter(x=>x.ayah>=1&&x.end_time>x.start_time);
+   return timings;
+ }
+ function audioUrl(read){return read.folder_url+String(SURAH).padStart(3,'0')+'.mp3';}
+ function pageFromTiming(t){const m=String(t.page||'').match(/(\d{3})\.svg/); return m?parseInt(m[1],10):null;}
+ async function loadPage(p){
+   if(loadingPage) return; loadingPage=true;
+   try{const u=qsvg+String(p).padStart(3,'0')+'.svg'; const r=await fetch(u); if(!r.ok) throw 0; const txt=await r.text(); pageEl.style.opacity='.2'; pageEl.innerHTML=txt.replace(/<\?xml[^>]*>/,'').replace(/<!DOCTYPE[^>]*>/i,''); pageEl.style.opacity='1'; bindPolygons();}
+   finally{loadingPage=false;}
+ }
+ function bindPolygons(){
+  document.querySelectorAll('.ayahPolygon').forEach(el=>{
+   el.style.cursor='default';
+   var pressTimer=null;
+   var longPressed=false;
+   var startX=0;
+   var startY=0;
+
+   var sendAyah=function(){
+    const s=el.getAttribute('surah'),a=el.getAttribute('ayah');
+    if(!s||!a)return;
+    longPressed=true;
+    if(window.AyahChannel){AyahChannel.postMessage(s+':'+a);}
+    else{openAyah(s+':'+a);}
+   };
+
+   var cancelPress=function(){
+    if(pressTimer!==null){
+      clearTimeout(pressTimer);
+      pressTimer=null;
+    }
+   };
+
+   el.onclick=function(e){
+    // A normal tap only selects the page; it does not open the reciter list.
+    if(longPressed){
+      e.preventDefault();
+      e.stopPropagation();
       longPressed=false;
-      cancelPress();
-      pressTimer=setTimeout(function(){
-        pressTimer=null;
-        sendAyah();
-      },650);
-     },{passive:true});
-
-     el.addEventListener('touchmove',function(e){
-      if(!e.touches||!e.touches.length)return;
-      var dx=e.touches[0].clientX-startX;
-      var dy=e.touches[0].clientY-startY;
-      if(Math.abs(dx)>12||Math.abs(dy)>12) cancelPress();
-     },{passive:true});
-
-     el.addEventListener('touchend',function(e){
-      cancelPress();
-      if(longPressed){
-        e.preventDefault();
-        e.stopPropagation();
-        setTimeout(function(){longPressed=false;},0);
-      }
-     },{passive:false});
-
-     el.addEventListener('touchcancel',cancelPress,{passive:true});
-    });
-    if(currentTiming)highlight(SURAH,currentTiming.ayah);
-   }
-   async function play(mode){
-     if(!selectedReader||!selectedAyah) return;
-     try{
-       if(!timings.length) await loadTimings(selectedReader);
-       if(!timings.length) throw 0;
-       playMode=mode; const verse=parseInt(selectedAyah.split(':')[1],10); currentTiming=timings.find(x=>x.ayah===verse)||timings[0];
-       audio.src=audioUrl(selectedReader); audio.playbackRate=1; await audio.play();
-       if(mode==='ayah') audio.currentTime=currentTiming.start_time/1000;
-       playerName.textContent=selectedReader.name+' • '+(selectedReader.rewaya||''); playerStatus.textContent=mode==='ayah'?'تشغيل الآية':'تشغيل السورة كاملة'; player.style.display='block'; setSheet(choiceSheet,false); highlight(SURAH,currentTiming.ayah);
-     }catch(e){playerStatus.textContent='تعذر تشغيل الصوت؛ تحقق من الإنترنت';player.style.display='block';}
-   }
-   audio.ontimeupdate=async()=>{
-     if(!currentTiming||!timings.length) return;
-     const ms=audio.currentTime*1000;
-     if(playMode==='ayah' && ms>=currentTiming.end_time){audio.pause();playerStatus.textContent='انتهت الآية';return;}
-     if(playMode==='surah'){
-       const t=timings.find(x=>ms>=x.start_time&&ms<x.end_time);
-       if(t&&t.ayah!==currentTiming.ayah){currentTiming=t;highlight(SURAH,t.ayah);const pg=pageFromTiming(t);if(pg) await loadPage(pg);}
-     }
-     if(audio.duration) progress.value=(audio.currentTime/audio.duration)*100;
+    }
    };
-   audio.onended=()=>{clearHighlight();playerStatus.textContent=playMode==='ayah'?'انتهت الآية':'انتهت السورة';};
-   document.getElementById('playAyah').onclick=()=>play('ayah');
-   document.getElementById('playSurah').onclick=()=>play('surah');
-   document.getElementById('cancelChoice').onclick=()=>setSheet(choiceSheet,false);
-   document.getElementById('closeReader').onclick=()=>setSheet(readerSheet,false);
-   document.getElementById('pauseBtn').onclick=()=>{if(audio.paused){audio.play();}else{audio.pause();}};
-   document.getElementById('stopBtn').onclick=()=>{audio.pause();audio.currentTime=0;clearHighlight();player.style.display='none';};
-   progress.oninput=()=>{if(audio.duration) audio.currentTime=(Number(progress.value)/100)*audio.duration;};
-   readerSearch.oninput=renderReaders;
-   var swipeStartX=null,swipeStartY=null,swiped=false;
-   var pinchStartDistance=null,pinchStartZoom=1,zoom=1,textScale=1;
-   var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
-   function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom*textScale)+')';}
-   window.setNoorOrientation=function(landscape){
-     panX=0; panY=0; zoom=1;
-     document.documentElement.style.overflowY=landscape?'auto':'hidden';
-     document.body.style.overflowY=landscape?'auto':'hidden';
-     document.documentElement.style.touchAction=landscape?'pan-y':'none';
-     document.body.style.touchAction=landscape?'pan-y':'none';
-     pageEl.style.width='100%';
-     pageEl.style.height='auto';
-     pageEl.style.minHeight=landscape?'0':'100%';
-     pageEl.style.touchAction=landscape?'pan-y':'none';
-     pageEl.style.transformOrigin='center top';
-     var svg=pageEl.querySelector('svg');
-     if(svg){
-       svg.style.width='100%';
-       svg.style.height='auto';
-       svg.style.display='block';
-       svg.style.maxWidth='none';
-     }
-     applyZoom();
-     window.scrollTo(0,0);
-   };
-   function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
-   document.addEventListener('touchstart',function(e){
-    if(!e.touches||!e.touches.length)return;swiped=false;
-    if(e.touches.length>=2){pinchStartDistance=dist(e.touches[0],e.touches[1]);pinchStartZoom=zoom;swipeStartX=null;return;}
-    swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;panStartX=swipeStartX;panStartY=swipeStartY;panStartPanX=panX;panStartPanY=panY;
-   },{passive:true});
-   document.addEventListener('touchmove',function(e){
+
+   el.addEventListener('touchstart',function(e){
     if(!e.touches||!e.touches.length)return;
-    if(e.touches.length>=2){
-     var d=dist(e.touches[0],e.touches[1]);
-     if(pinchStartDistance===null){pinchStartDistance=d;pinchStartZoom=zoom;}
-     zoom=Math.max(1,Math.min(3,pinchStartZoom*(d/pinchStartDistance)));swiped=zoom>1;applyZoom();return;
+    startX=e.touches[0].clientX;
+    startY=e.touches[0].clientY;
+    longPressed=false;
+    cancelPress();
+    pressTimer=setTimeout(function(){
+      pressTimer=null;
+      sendAyah();
+    },650);
+   },{passive:true});
+
+   el.addEventListener('touchmove',function(e){
+    if(!e.touches||!e.touches.length)return;
+    var dx=e.touches[0].clientX-startX;
+    var dy=e.touches[0].clientY-startY;
+    if(Math.abs(dx)>12||Math.abs(dy)>12) cancelPress();
+   },{passive:true});
+
+   el.addEventListener('touchend',function(e){
+    cancelPress();
+    if(longPressed){
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(function(){longPressed=false;},0);
     }
-    if(swipeStartX===null)return;
-    var dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
-    if(zoom>1.01){panX=panStartPanX+(e.touches[0].clientX-panStartX);panY=panStartPanY+(e.touches[0].clientY-panStartY);applyZoom();swiped=true;return;}
-    if(Math.abs(dx)>35&&Math.abs(dx)>Math.abs(dy)*1.15)swiped=true;
-   },{passive:true});
-   document.addEventListener('touchend',function(e){
-    if(e.touches&&e.touches.length>=2)return;
-    if(pinchStartDistance!==null){pinchStartDistance=null;if(zoom<1.05){zoom=1;panX=0;panY=0;applyZoom();}swipeStartX=null;return;}
-    if(swipeStartX===null)return;
-    var dx=e.changedTouches[0].clientX-swipeStartX,dy=e.changedTouches[0].clientY-swipeStartY;swipeStartX=null;swipeStartY=null;
-    if(zoom<=1.01&&Math.abs(dx)>105&&Math.abs(dx)>Math.abs(dy)*1.15){swiped=true;if(window.NavigationChannel)NavigationChannel.postMessage(dx>0?'next':'prev');setTimeout(function(){swiped=false;},100);}
-   },{passive:true});
-   document.addEventListener('dblclick',function(){zoom=1;panX=0;panY=0;applyZoom();});
-   document.addEventListener('click',function(e){if(swiped){e.preventDefault();e.stopPropagation();swiped=false;}},true);
-   bindPolygons();
-  })();
-  </script></body></html>
-  ''';
+   },{passive:false});
 
-        final webHtml = html
-            .replaceFirst('%SURAH%', '${widget.surahNumber}')
-            .replaceFirst('%PAGE%', '$page')
-            .replaceFirst(
-              '%IS_LANDSCAPE%',
-              (mounted &&
-                      MediaQuery.of(context).orientation == Orientation.landscape)
-                  ? 'true'
-                  : 'false',
-            );
+   el.addEventListener('touchcancel',cancelPress,{passive:true});
+  });
+  if(currentTiming)highlight(SURAH,currentTiming.ayah);
+ }
+ async function play(mode){
+   if(!selectedReader||!selectedAyah) return;
+   try{
+     if(!timings.length) await loadTimings(selectedReader);
+     if(!timings.length) throw 0;
+     playMode=mode; const verse=parseInt(selectedAyah.split(':')[1],10); currentTiming=timings.find(x=>x.ayah===verse)||timings[0];
+     audio.src=audioUrl(selectedReader); audio.playbackRate=1; await audio.play();
+     if(mode==='ayah') audio.currentTime=currentTiming.start_time/1000;
+     playerName.textContent=selectedReader.name+' • '+(selectedReader.rewaya||''); playerStatus.textContent=mode==='ayah'?'تشغيل الآية':'تشغيل السورة كاملة'; player.style.display='block'; setSheet(choiceSheet,false); highlight(SURAH,currentTiming.ayah);
+   }catch(e){playerStatus.textContent='تعذر تشغيل الصوت؛ تحقق من الإنترنت';player.style.display='block';}
+ }
+ audio.ontimeupdate=async()=>{
+   if(!currentTiming||!timings.length) return;
+   const ms=audio.currentTime*1000;
+   if(playMode==='ayah' && ms>=currentTiming.end_time){audio.pause();playerStatus.textContent='انتهت الآية';return;}
+   if(playMode==='surah'){
+     const t=timings.find(x=>ms>=x.start_time&&ms<x.end_time);
+     if(t&&t.ayah!==currentTiming.ayah){currentTiming=t;highlight(SURAH,t.ayah);const pg=pageFromTiming(t);if(pg) await loadPage(pg);}
+   }
+   if(audio.duration) progress.value=(audio.currentTime/audio.duration)*100;
+ };
+ audio.onended=()=>{clearHighlight();playerStatus.textContent=playMode==='ayah'?'انتهت الآية':'انتهت السورة';};
+ document.getElementById('playAyah').onclick=()=>play('ayah');
+ document.getElementById('playSurah').onclick=()=>play('surah');
+ document.getElementById('cancelChoice').onclick=()=>setSheet(choiceSheet,false);
+ document.getElementById('closeReader').onclick=()=>setSheet(readerSheet,false);
+ document.getElementById('pauseBtn').onclick=()=>{if(audio.paused){audio.play();}else{audio.pause();}};
+ document.getElementById('stopBtn').onclick=()=>{audio.pause();audio.currentTime=0;clearHighlight();player.style.display='none';};
+ progress.oninput=()=>{if(audio.duration) audio.currentTime=(Number(progress.value)/100)*audio.duration;};
+ readerSearch.oninput=renderReaders;
+ var swipeStartX=null,swipeStartY=null,swiped=false;
+ var pinchStartDistance=null,pinchStartZoom=1,zoom=1,textScale=1;
+ var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
+ function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom*textScale)+')';}
+ window.setNoorOrientation=function(landscape){
+   panX=0; panY=0; zoom=1;
+   document.documentElement.style.overflowY=landscape?'auto':'hidden';
+   document.body.style.overflowY=landscape?'auto':'hidden';
+   document.documentElement.style.touchAction=landscape?'pan-y':'none';
+   document.body.style.touchAction=landscape?'pan-y':'none';
+   pageEl.style.width='100%';
+   pageEl.style.height='auto';
+   pageEl.style.minHeight=landscape?'0':'100%';
+   pageEl.style.touchAction=landscape?'pan-y':'none';
+   pageEl.style.transformOrigin='center top';
+   var svg=pageEl.querySelector('svg');
+   if(svg){
+     svg.style.width='100%';
+     svg.style.height='auto';
+     svg.style.display='block';
+     svg.style.maxWidth='none';
+   }
+   applyZoom();
+   window.scrollTo(0,0);
+ };
+ function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
+ document.addEventListener('touchstart',function(e){
+  if(!e.touches||!e.touches.length)return;swiped=false;
+  if(e.touches.length>=2){pinchStartDistance=dist(e.touches[0],e.touches[1]);pinchStartZoom=zoom;swipeStartX=null;return;}
+  swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;panStartX=swipeStartX;panStartY=swipeStartY;panStartPanX=panX;panStartPanY=panY;
+ },{passive:true});
+ document.addEventListener('touchmove',function(e){
+  if(!e.touches||!e.touches.length)return;
+  if(e.touches.length>=2){
+   var d=dist(e.touches[0],e.touches[1]);
+   if(pinchStartDistance===null){pinchStartDistance=d;pinchStartZoom=zoom;}
+   zoom=Math.max(1,Math.min(3,pinchStartZoom*(d/pinchStartDistance)));swiped=zoom>1;applyZoom();return;
+  }
+  if(swipeStartX===null)return;
+  var dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
+  if(zoom>1.01){panX=panStartPanX+(e.touches[0].clientX-panStartX);panY=panStartPanY+(e.touches[0].clientY-panStartY);applyZoom();swiped=true;return;}
+  if(Math.abs(dx)>35&&Math.abs(dx)>Math.abs(dy)*1.15)swiped=true;
+ },{passive:true});
+ document.addEventListener('touchend',function(e){
+  if(e.touches&&e.touches.length>=2)return;
+  if(pinchStartDistance!==null){pinchStartDistance=null;if(zoom<1.05){zoom=1;panX=0;panY=0;applyZoom();}swipeStartX=null;return;}
+  if(swipeStartX===null)return;
+  var dx=e.changedTouches[0].clientX-swipeStartX,dy=e.changedTouches[0].clientY-swipeStartY;swipeStartX=null;swipeStartY=null;
+  if(zoom<=1.01&&Math.abs(dx)>105&&Math.abs(dx)>Math.abs(dy)*1.15){swiped=true;if(window.NavigationChannel)NavigationChannel.postMessage(dx>0?'next':'prev');setTimeout(function(){swiped=false;},100);}
+ },{passive:true});
+ document.addEventListener('dblclick',function(){zoom=1;panX=0;panY=0;applyZoom();});
+ document.addEventListener('click',function(e){if(swiped){e.preventDefault();e.stopPropagation();swiped=false;}},true);
+ bindPolygons();
+})();
+</script></body></html>
+''';
 
-        await controller.loadHtmlString(webHtml);
-        _loadedPage = page;
-        _lastLandscape = null;
-        if (mounted) {
-          _syncMushafOrientation(
-            MediaQuery.of(context).orientation == Orientation.landscape,
+      final webHtml = html
+          .replaceFirst('%SURAH%', '${widget.surahNumber}')
+          .replaceFirst('%PAGE%', '$page')
+          .replaceFirst(
+            '%IS_LANDSCAPE%',
+            (mounted &&
+                    MediaQuery.of(context).orientation == Orientation.landscape)
+                ? 'true'
+                : 'false',
           );
-        }
-      } catch (e) {
-        if (mounted) {
-          _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
-        }
+
+      await controller.loadHtmlString(webHtml);
+      _loadedPage = page;
+      _lastLandscape = null;
+      if (mounted) {
+        _syncMushafOrientation(
+          MediaQuery.of(context).orientation == Orientation.landscape,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
       }
     }
+  }
+
 
   Future<void> _installMushafInteractions() async {
     try {
@@ -4732,9 +4756,10 @@ class TasbeehCounterPage extends StatefulWidget {
   State<TasbeehCounterPage> createState() => _TasbeehCounterPageState();
 }
 
-class _TasbeehCounterPageState extends State<TasbeehCounterPage> {
+class _TasbeehCounterPageState extends State<TasbeehCounterPage> with WidgetsBindingObserver {
   static const _countKey = 'noor_tasbeeh_count_v3';
   static const _phraseKey = 'noor_tasbeeh_phrase_v3';
+  static const _stateKey = 'noor_tasbeeh_state_v4';
   int count = 0;
   String phrase = 'سبحان الله';
   bool loading = true;
@@ -4744,35 +4769,66 @@ class _TasbeehCounterPageState extends State<TasbeehCounterPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _persistNow();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _persistNow() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_countKey, count);
+      await prefs.setString(_phraseKey, phrase);
+      await prefs.setString(_stateKey, jsonEncode({'count': count, 'phrase': phrase}));
+    } catch (_) {}
   }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    var savedCount = prefs.getInt(_countKey) ?? 0;
+    var savedPhrase = prefs.getString(_phraseKey) ?? phrases.first;
+    final rawState = prefs.getString(_stateKey);
+    if (rawState != null) {
+      try {
+        final state = jsonDecode(rawState) as Map<String, dynamic>;
+        savedCount = (state['count'] as num?)?.toInt() ?? savedCount;
+        savedPhrase = state['phrase']?.toString() ?? savedPhrase;
+      } catch (_) {}
+    }
+    if (!phrases.contains(savedPhrase)) savedPhrase = phrases.first;
     if (!mounted) return;
     setState(() {
-      count = prefs.getInt(_countKey) ?? 0;
-      phrase = prefs.getString(_phraseKey) ?? phrases.first;
+      count = savedCount < 0 ? 0 : savedCount;
+      phrase = savedPhrase;
       loading = false;
     });
   }
 
   Future<void> _increment() async {
     setState(() => count++);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_countKey, count);
+    await _persistNow();
   }
 
   Future<void> _reset() async {
     setState(() => count = 0);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_countKey, 0);
+    await _persistNow();
   }
 
   Future<void> _setPhrase(String value) async {
     setState(() => phrase = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_phraseKey, value);
+    await _persistNow();
   }
 
   @override
@@ -4976,31 +5032,25 @@ class _AdhkarLibraryPageState extends State<AdhkarLibraryPage> {
     }
 
     try {
-      // المكتبة أصبحت محلية بالكامل داخل حزمة adhkar؛ لا تعتمد على GitHub
-      // أو الإنترنت عند فتحها لأول مرة، لذلك لا تظهر شاشة فشل التحميل.
-      final source = AdhkarFactory.getAdhkar();
+      // المكتبة تعتمد الآن على بيانات الأذكار الموجودة داخل التطبيق نفسه.
+      // لا تعتمد على حزمة خارجية أو GitHub أو الإنترنت، لذلك تعمل أوفلاين أيضاً.
       final entries = <LibraryDhikrEntry>[];
-      var nextId = 1;
 
-      for (final category in source) {
-        final texts = category.adhkars
-            .map((item) => item.arabicText.trim())
+      for (var i = 0; i < AdhkarPage.data.length; i++) {
+        final items = AdhkarPage.data[i];
+        final texts = items
+            .map((item) => item.text.trim())
             .where((text) => text.isNotEmpty)
             .toList();
-        final references = category.adhkars
-            .map((item) => item.urlReference.trim())
-            .where((ref) => ref.isNotEmpty)
-            .toSet()
-            .toList();
 
-        if (category.title.trim().isEmpty || texts.isEmpty) continue;
+        if (texts.isEmpty) continue;
 
         entries.add(
           LibraryDhikrEntry(
-            id: nextId++,
-            title: category.title.trim(),
+            id: i + 1,
+            title: AdhkarPage.categories[i],
             texts: texts,
-            footnotes: references,
+            footnotes: const <String>[],
           ),
         );
       }
@@ -5441,7 +5491,7 @@ class PrayerTimesPage extends StatefulWidget {
   State<PrayerTimesPage> createState() => _PrayerTimesPageState();
 }
 
-class _PrayerTimesPageState extends State<PrayerTimesPage> {
+class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingObserver {
   bool loading = false;
   bool locationReady = false;
   String? error;
@@ -5458,7 +5508,22 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSavedLocation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      // إذا رجع المستخدم من إعدادات الموقع، أعد المحاولة تلقائياً.
+      _getCurrentLocation();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadSavedLocation() async {
@@ -5521,11 +5586,25 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      Position? position;
+
+      // مواقيت الصلاة لا تحتاج دقة مترية؛ الدقة المتوسطة أسرع وأكثر
+      // استقراراً على الأجهزة التي تتأخر في الحصول على GPS.
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            distanceFilter: 0,
+          ),
+        ).timeout(const Duration(seconds: 12));
+      } catch (_) {
+        // إذا لم يصل GPS بسرعة، استخدم آخر موقع معروف للجهاز مؤقتاً.
+        position = await Geolocator.getLastKnownPosition();
+      }
+
+      if (position == null) {
+        throw Exception('NO_LOCATION_FIX');
+      }
 
       latitude = position.latitude;
       longitude = position.longitude;
@@ -5547,7 +5626,7 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        error = 'تعذر تحديد الموقع. تأكدي من تشغيل GPS والإنترنت ثم حاولي مرة أخرى.';
+        error = 'لم نحصل على إحداثيات GPS بعد. فعّلي الموقع واسمحي للتطبيق بالموقع الدقيق، ثم اضغطي تحديث موقعي مرة أخرى.';
       });
     }
   }
@@ -5781,10 +5860,27 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: loading ? null : _refreshLocationAndTimes,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('حاول مرة أخرى'),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: loading ? null : _refreshLocationAndTimes,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('حاول مرة أخرى'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => Geolocator.openLocationSettings(),
+                          icon: const Icon(Icons.gps_fixed_rounded),
+                          label: const Text('فتح إعدادات GPS'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => Geolocator.openAppSettings(),
+                          icon: const Icon(Icons.settings_rounded),
+                          label: const Text('إعدادات التطبيق'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -5922,8 +6018,16 @@ class _QiblaPageState extends State<QiblaPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _startCompass();
     _loadCurrentLocation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadCurrentLocation();
+    }
   }
 
   void _startCompass() {
@@ -5995,12 +6099,21 @@ class _QiblaPageState extends State<QiblaPage> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.best,
-          distanceFilter: 0,
-        ),
-      );
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            distanceFilter: 0,
+          ),
+        ).timeout(const Duration(seconds: 12));
+      } catch (_) {
+        position = await Geolocator.getLastKnownPosition();
+      }
+
+      if (position == null) {
+        throw Exception('NO_LOCATION_FIX');
+      }
 
       final bearing = _calculateQiblaBearing(
         position.latitude,
@@ -6059,6 +6172,7 @@ class _QiblaPageState extends State<QiblaPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _compassSubscription?.cancel();
     super.dispose();
   }
@@ -6339,9 +6453,10 @@ class TasbihPage extends StatefulWidget {
   State<TasbihPage> createState() => _TasbihPageState();
 }
 
-class _TasbihPageState extends State<TasbihPage> {
+class _TasbihPageState extends State<TasbihPage> with WidgetsBindingObserver {
   static const _countKey = 'noor_tasbeeh_count_v3';
   static const _targetKey = 'noor_tasbeeh_target_v3';
+  static const _stateKey = 'noor_tasbeeh_state_v4';
   static const _oldCountKey = 'noor_tasbeeh_count_v2';
   static const _oldTargetKey = 'noor_tasbeeh_target_v2';
   int count = 0;
@@ -6351,14 +6466,47 @@ class _TasbihPageState extends State<TasbihPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSavedTasbeeh();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _persistTasbeeh();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _persistTasbeeh() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_countKey, count);
+      await prefs.setInt(_targetKey, target);
+      await prefs.setString(_stateKey, jsonEncode({'count': count, 'target': target}));
+    } catch (_) {}
   }
 
   Future<void> _loadSavedTasbeeh() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedCount = prefs.getInt(_countKey) ?? prefs.getInt(_oldCountKey) ?? prefs.getInt('noor_tasbeeh_count') ?? 0;
-      final savedTarget = prefs.getInt(_targetKey) ?? prefs.getInt(_oldTargetKey) ?? prefs.getInt('noor_tasbeeh_target') ?? 33;
+      var savedCount = prefs.getInt(_countKey) ?? prefs.getInt(_oldCountKey) ?? prefs.getInt('noor_tasbeeh_count') ?? 0;
+      var savedTarget = prefs.getInt(_targetKey) ?? prefs.getInt(_oldTargetKey) ?? prefs.getInt('noor_tasbeeh_target') ?? 33;
+      final rawState = prefs.getString(_stateKey);
+      if (rawState != null) {
+        try {
+          final state = jsonDecode(rawState) as Map<String, dynamic>;
+          savedCount = (state['count'] as num?)?.toInt() ?? savedCount;
+          savedTarget = (state['target'] as num?)?.toInt() ?? savedTarget;
+        } catch (_) {}
+      }
+      if (!prefs.containsKey(_countKey) && savedCount > 0) await prefs.setInt(_countKey, savedCount);
+      if (!prefs.containsKey(_targetKey)) await prefs.setInt(_targetKey, [33,100,1000].contains(savedTarget) ? savedTarget : 33);
       if (!mounted) return;
       setState(() {
         count = savedCount < 0 ? 0 : savedCount;
@@ -6374,28 +6522,19 @@ class _TasbihPageState extends State<TasbihPage> {
     if (loading) return;
     final next = count + 1;
     if (mounted) setState(() => count = next);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_countKey, next);
-    } catch (_) {}
+    await _persistTasbeeh();
   }
 
   Future<void> _reset() async {
     if (loading) return;
     if (mounted) setState(() => count = 0);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_countKey, 0);
-    } catch (_) {}
+    await _persistTasbeeh();
   }
 
   Future<void> _setTarget(int value) async {
     if (loading) return;
     if (mounted) setState(() => target = value);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_targetKey, value);
-    } catch (_) {}
+    await _persistTasbeeh();
   }
 
   @override
