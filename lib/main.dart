@@ -492,6 +492,14 @@ class HomeContent extends StatelessWidget {
                             onTap: () => _open(context, const QiblaPage()),
                           ),
                           _ModernFeatureCard(
+                            icon: Icons.mosque_rounded,
+                            title: 'مناسك الحج',
+                            subtitle: 'دليل تفاعلي مصوّر',
+                            color: const Color(0xFFEDE7D7),
+                            iconColor: const Color(0xFF7A5A2D),
+                            onTap: () => _open(context, const HajjGuidePage()),
+                          ),
+                          _ModernFeatureCard(
                             icon: Icons.touch_app_rounded,
                             title: 'التسبيح',
                             subtitle: 'عداد التسبيح',
@@ -3769,15 +3777,12 @@ class _AdhkarPageState extends State<AdhkarPage> {
     'الاستيقاظ',
     'المنزل',
     'السفر',
+    'الحج والعمرة',
   ];
 
   static const data = <List<AdhkarItem>>[
     [
-      AdhkarItem(
-        'سيد الاستغفار',
-        'اللهم أنت ربي لا إله إلا أنت، خلقتني وأنا عبدك، وأنا على عهدك ووعدك ما استطعت، أعوذ بك من شر ما صنعت، أبوء لك بنعمتك علي، وأبوء بذنبي، فاغفر لي فإنه لا يغفر الذنوب إلا أنت.',
-        1,
-      ),
+      AdhkarItem('سيد الاستغفار', 'اللهم أنت ربي لا إله إلا أنت، خلقتني وأنا عبدك، وأنا على عهدك ووعدك ما استطعت، أعوذ بك من شر ما صنعت، أبوء لك بنعمتك علي، وأبوء بذنبي، فاغفر لي فإنه لا يغفر الذنوب إلا أنت.', 1),
       AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
       AdhkarItem('التهليل', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
       AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
@@ -3815,11 +3820,18 @@ class _AdhkarPageState extends State<AdhkarPage> {
       AdhkarItem('دعاء السفر', 'سبحان الذي سخر لنا هذا وما كنا له مقرنين وإنا إلى ربنا لمنقلبون.', 1),
       AdhkarItem('التكبير في السفر', 'الله أكبر، الله أكبر، الله أكبر.', 3),
     ],
+    [
+      AdhkarItem('التلبية', 'لبيك اللهم لبيك، لبيك لا شريك لك لبيك، إن الحمد والنعمة لك والملك، لا شريك لك.', 1),
+      AdhkarItem('الدعاء عند رؤية الكعبة', 'اللهم زد هذا البيت تشريفًا وتعظيمًا ومهابةً وأمنًا، وزد من حجه أو اعتمره تشريفًا وتعظيمًا.', 1),
+      AdhkarItem('الدعاء أثناء الطواف', 'ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار.', 1),
+      AdhkarItem('الدعاء عند الصفا والمروة', 'إن الصفا والمروة من شعائر الله، أبدأ بما بدأ الله به.', 1),
+    ],
   ];
 
   @override
   Widget build(BuildContext context) {
     final items = data[category];
+    final totalItems = data.fold<int>(0, (sum, list) => sum + list.length);
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EC),
       appBar: AppBar(
@@ -3829,11 +3841,7 @@ class _AdhkarPageState extends State<AdhkarPage> {
           IconButton(
             tooltip: 'مكتبة الأذكار',
             icon: const Icon(Icons.library_books_rounded),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AdhkarLibraryPage()),
-              );
-            },
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdhkarLibraryPage())),
           ),
         ],
       ),
@@ -3841,12 +3849,29 @@ class _AdhkarPageState extends State<AdhkarPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AdhkarLibraryPage()),
+            child: Card(
+              elevation: 0,
+              color: const Color(0xFFE8EFE8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                child: Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    const Icon(Icons.auto_awesome_rounded, color: Color(0xFF47734A)),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('محتوى الأذكار: $totalItems أذكار مختارة + مكتبة موسعة محلية', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.w800))),
+                  ],
+                ),
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdhkarLibraryPage())),
               icon: const Icon(Icons.library_books_rounded),
-              label: const Text('فتح مكتبة الأذكار — مئات الأذكار والأدعية'),
+              label: const Text('فتح مكتبة الأذكار الموسعة'),
             ),
           ),
           SizedBox(
@@ -3857,21 +3882,14 @@ class _AdhkarPageState extends State<AdhkarPage> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               itemCount: categories.length,
               separatorBuilder: (_, __) => const SizedBox(width: 7),
-              itemBuilder: (_, i) => ChoiceChip(
-                label: Text(categories[i]),
-                selected: category == i,
-                onSelected: (_) => setState(() => category = i),
-              ),
+              itemBuilder: (_, i) => ChoiceChip(label: Text(categories[i]), selected: category == i, onSelected: (_) => setState(() => category = i)),
             ),
           ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
               itemCount: items.length,
-              itemBuilder: (_, i) => _DhikrCard(
-                key: ValueKey('${category}_$i'),
-                item: items[i],
-              ),
+              itemBuilder: (_, i) => _DhikrCard(key: ValueKey('${category}_$i'), item: items[i]),
             ),
           ),
         ],
@@ -3900,10 +3918,7 @@ class _DhikrCardState extends State<_DhikrCard> {
   @override
   Widget build(BuildContext context) {
     final done = remaining == 0;
-    final progress = widget.item.count == 0
-        ? 1.0
-        : (widget.item.count - remaining) / widget.item.count;
-
+    final progress = widget.item.count == 0 ? 1.0 : (widget.item.count - remaining) / widget.item.count;
     return Card(
       elevation: 1.5,
       margin: const EdgeInsets.only(bottom: 12),
@@ -3916,59 +3931,19 @@ class _DhikrCardState extends State<_DhikrCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                textDirection: TextDirection.rtl,
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.item.title,
-                      textDirection: TextDirection.rtl,
-                      style: const TextStyle(
-                        color: Color(0xFF174A43),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '× ${widget.item.count}',
-                    style: const TextStyle(
-                      color: Color(0xFF174A43),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
+              Row(textDirection: TextDirection.rtl, children: [
+                Expanded(child: Text(widget.item.title, textDirection: TextDirection.rtl, style: const TextStyle(color: Color(0xFF174A43), fontSize: 15, fontWeight: FontWeight.w900))),
+                Text('× ${widget.item.count}', style: const TextStyle(color: Color(0xFF174A43), fontWeight: FontWeight.w800)),
+              ]),
               const SizedBox(height: 14),
-              Text(
-                widget.item.text,
-                textDirection: TextDirection.rtl,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18, height: 1.9),
-              ),
+              Text(widget.item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
               const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(value: progress, minHeight: 6),
-              ),
+              ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, minHeight: 7)),
               const SizedBox(height: 10),
-              Row(
-                textDirection: TextDirection.rtl,
-                children: [
-                  Expanded(
-                    child: Text(
-                      done ? 'تم الذكر ✓' : 'المتبقي: $remaining',
-                      textDirection: TextDirection.rtl,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => setState(() => remaining = widget.item.count),
-                    icon: const Icon(Icons.refresh_rounded, size: 19),
-                    label: const Text('إعادة'),
-                  ),
-                ],
-              ),
+              Row(textDirection: TextDirection.rtl, children: [
+                Expanded(child: Text(done ? 'تم الذكر ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.w800))),
+                TextButton.icon(onPressed: () => setState(() => remaining = widget.item.count), icon: const Icon(Icons.refresh_rounded, size: 19), label: const Text('إعادة')),
+              ]),
             ],
           ),
         ),
@@ -3976,7 +3951,6 @@ class _DhikrCardState extends State<_DhikrCard> {
     );
   }
 }
-
 
 class LibraryDhikrEntry {
   final int id;
@@ -5474,9 +5448,212 @@ class LibraryPage extends StatelessWidget {
           Card(child: ListTile(leading: const Icon(Icons.auto_awesome, size: 35), title: const Text('الأدعية', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('أدعية مختارة', textDirection: TextDirection.rtl), onTap: () => _open(context, const DuasPage()))),
           Card(child: ListTile(leading: const Icon(Icons.access_time_filled, size: 35), title: const Text('مواقيت الصلاة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('اختر مدينتك', textDirection: TextDirection.rtl), onTap: () => _open(context, const PrayerTimesPage()))),
           Card(child: ListTile(leading: const Icon(Icons.explore, size: 35), title: const Text('القبلة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const QiblaPage()))),
+          Card(child: ListTile(leading: const Icon(Icons.mosque_rounded, size: 35), title: const Text('مناسك الحج', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('دليل تفاعلي مصوّر', textDirection: TextDirection.rtl), onTap: () => _open(context, const HajjGuidePage()))),
           Card(child: ListTile(leading: const Icon(Icons.touch_app, size: 35), title: const Text('التسبيح الإلكتروني', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const TasbihPage()))),
         ],
       ),
     );
   }
+}
+
+
+class HajjGuidePage extends StatefulWidget {
+  const HajjGuidePage({super.key});
+
+  @override
+  State<HajjGuidePage> createState() => _HajjGuidePageState();
+}
+
+class _HajjGuidePageState extends State<HajjGuidePage> {
+  int step = 0;
+  int counter = 0;
+
+  static const steps = <_HajjStep>[ 
+    _HajjStep('الإحرام', 'الاستعداد والإحرام والنية والتلبية حسب النسك.', Icons.checkroom_rounded, 'الإحرام'),
+    _HajjStep('الطواف', 'الطواف حول الكعبة سبعة أشواط، مع استحضار الخشوع والدعاء بما تيسر.', Icons.sync_rounded, 'الطواف'),
+    _HajjStep('السعي', 'السعي بين الصفا والمروة سبعة أشواط، يبدأ بالصفا وينتهي بالمروة.', Icons.swap_horiz_rounded, 'السعي'),
+    _HajjStep('عرفة', 'الوقوف بعرفة في وقته المشروع، وهو أعظم أركان الحج.', Icons.landscape_rounded, 'عرفة'),
+    _HajjStep('مزدلفة', 'بعد الإفاضة من عرفة يبيت الحاج بمزدلفة ويذكر الله ويستعد للرمي.', Icons.nightlight_round, 'مزدلفة'),
+    _HajjStep('رمي الجمرات', 'رمي الجمرات وفق النسك والوقت المشروع، مع الالتزام بالتنظيم والسلامة.', Icons.adjust_rounded, 'الجمرات'),
+    _HajjStep('الحلق أو التقصير', 'بعد إتمام ما يلزم من أعمال النسك يحلق الرجل أو يقصر، والمرأة تقصر من شعرها.', Icons.content_cut_rounded, 'الحلق والتقصير'),
+    _HajjStep('طواف الإفاضة', 'طواف الإفاضة من أعمال الحج، ويؤدى في الوقت المشروع وفق أحكام النسك.', Icons.circle_outlined, 'الإفاضة'),
+    _HajjStep('طواف الوداع', 'طواف الوداع يكون عند مغادرة مكة لمن يلزمه، مع مراعاة أحكام النسك.', Icons.logout_rounded, 'الوداع'),
+  ];
+
+  void _next() {
+    if (step < steps.length - 1) setState(() { step++; counter = 0; });
+  }
+
+  void _previous() {
+    if (step > 0) setState(() { step--; counter = 0; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = steps[step];
+    final isTawaf = current.visual == 'الطواف';
+    final isSai = current.visual == 'السعي';
+    final isJamarat = current.visual == 'الجمرات';
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(title: const Text('مناسك الحج والعمرة', style: TextStyle(fontWeight: FontWeight.w800))),
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
+          children: [
+            Card(
+              elevation: 0,
+              color: const Color(0xFFEDE7D7),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Row(children: [
+                  const Icon(Icons.mosque_rounded, size: 40, color: Color(0xFF7A5A2D)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('دليل بصري تفاعلي', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 4),
+                    Text('المرحلة ${step + 1} من ${steps.length}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ])),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 78,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: steps.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => GestureDetector(
+                  onTap: () => setState(() { step = i; counter = 0; }),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 105,
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: i == step ? const Color(0xFF173F35) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: i == step ? const Color(0xFF173F35) : const Color(0xFFE3DDCF)),
+                    ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(steps[i].icon, size: 22, color: i == step ? Colors.white : const Color(0xFF7A5A2D)),
+                      const SizedBox(height: 5),
+                      Text(steps[i].title, textAlign: TextAlign.center, maxLines: 2, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: i == step ? Colors.white : const Color(0xFF173F35))),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Column(children: [
+                Container(
+                  height: 250,
+                  width: double.infinity,
+                  color: const Color(0xFFF1ECE0),
+                  child: CustomPaint(painter: _HajjVisualPainter(type: current.visual, progress: counter)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Text(current.title, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: Color(0xFF173F35))),
+                    const SizedBox(height: 8),
+                    Text(current.description, style: const TextStyle(fontSize: 16, height: 1.8)),
+                    if (isTawaf || isSai || isJamarat) ...[
+                      const SizedBox(height: 16),
+                      Row(children: [
+                        Expanded(child: Text(isTawaf ? 'الأشواط: $counter / 7' : isSai ? 'الأشواط: $counter / 7' : 'الرميات المسجلة: $counter', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))),
+                        FilledButton.icon(onPressed: () => setState(() => counter++), icon: const Icon(Icons.add), label: Text(isJamarat ? 'تسجيل رمية' : 'تسجيل شوط')),
+                      ]),
+                      if ((isTawaf || isSai) && counter >= 7) const Padding(padding: EdgeInsets.only(top: 10), child: Text('اكتمل العداد التفاعلي ✓', style: TextStyle(color: Color(0xFF47734A), fontWeight: FontWeight.w900))),
+                    ],
+                  ]),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 14),
+            Card(
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  const Text('تنبيه مهم', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                  const SizedBox(height: 7),
+                  const Text('هذا القسم تعليمي لتوضيح ترتيب المناسك، ولا يغني عن الرجوع إلى أحكام النسك الموثوقة عند أداء الحج أو العمرة.', style: TextStyle(height: 1.6)),
+                ]),
+              ),
+            ),
+            Row(children: [
+              Expanded(child: OutlinedButton.icon(onPressed: step == 0 ? null : _previous, icon: const Icon(Icons.arrow_back), label: const Text('السابق'))),
+              const SizedBox(width: 10),
+              Expanded(child: FilledButton.icon(onPressed: step == steps.length - 1 ? null : _next, icon: const Icon(Icons.arrow_forward), label: const Text('التالي'))),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HajjStep {
+  final String title;
+  final String description;
+  final IconData icon;
+  final String visual;
+  const _HajjStep(this.title, this.description, this.icon, this.visual);
+}
+
+class _HajjVisualPainter extends CustomPainter {
+  final String type;
+  final int progress;
+  const _HajjVisualPainter({required this.type, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()..style = PaintingStyle.fill;
+    paint.color = const Color(0xFF173F35);
+    canvas.drawCircle(center, 74, paint);
+    paint.color = const Color(0xFFF7F4EC);
+    canvas.drawRect(Rect.fromCenter(center: center, width: 78, height: 78), paint);
+    paint.color = const Color(0xFF222222);
+    canvas.drawRect(Rect.fromCenter(center: center, width: 48, height: 48), paint);
+    paint.color = const Color(0xFFD4B25F);
+    canvas.drawRect(Rect.fromCenter(center: Offset(center.dx, center.dy - 5), width: 48, height: 8), paint);
+
+    if (type == 'الطواف' || type == 'الإفاضة' || type == 'الوداع') {
+      final ring = Paint()..style = PaintingStyle.stroke..strokeWidth = 9..color = const Color(0xFF7A5A2D);
+      canvas.drawCircle(center, 102, ring);
+      final dotPaint = Paint()..style = PaintingStyle.fill..color = const Color(0xFF47734A);
+      final n = progress.clamp(0, 7);
+      for (var i = 0; i < n; i++) {
+        final a = -math.pi / 2 + i * (2 * math.pi / 7);
+        canvas.drawCircle(Offset(center.dx + 102 * math.cos(a), center.dy + 102 * math.sin(a)), 7, dotPaint);
+      }
+    } else if (type == 'السعي') {
+      final line = Paint()..style = PaintingStyle.stroke..strokeWidth = 14..strokeCap = StrokeCap.round..color = const Color(0xFF7A5A2D);
+      final path = Path()..moveTo(65, center.dy + 30)..quadraticBezierTo(size.width / 2, center.dy - 75, size.width - 65, center.dy + 30);
+      canvas.drawPath(path, line);
+      final p = Paint()..color = const Color(0xFF47734A);
+      canvas.drawCircle(Offset(65, center.dy + 30), 20, p);
+      canvas.drawCircle(Offset(size.width - 65, center.dy + 30), 20, p);
+      final textPainter = TextPainter(text: const TextSpan(text: 'الصفا                 المروة', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF173F35))), textDirection: TextDirection.rtl)..layout(maxWidth: size.width);
+      textPainter.paint(canvas, Offset((size.width - textPainter.width) / 2, center.dy + 65));
+    } else {
+      paint.color = const Color(0xFF47734A);
+      canvas.drawCircle(Offset(size.width * .22, size.height * .66), 28, paint);
+      canvas.drawCircle(Offset(size.width * .50, size.height * .36), 38, paint);
+      canvas.drawCircle(Offset(size.width * .78, size.height * .66), 28, paint);
+      final pathPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 8..color = const Color(0xFF7A5A2D);
+      canvas.drawLine(Offset(size.width * .22, size.height * .66), Offset(size.width * .50, size.height * .36), pathPaint);
+      canvas.drawLine(Offset(size.width * .50, size.height * .36), Offset(size.width * .78, size.height * .66), pathPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HajjVisualPainter oldDelegate) => oldDelegate.type != type || oldDelegate.progress != progress;
 }
