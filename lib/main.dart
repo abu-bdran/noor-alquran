@@ -981,7 +981,8 @@ List<TimingRead> timingReads = [];
           NavigationDelegate(
             onPageFinished: (_) {
               _installMushafInteractions();
-              Future<void>.delayed(const Duration(milliseconds: 250), _installMushafInteractions);
+              Future<void>.delayed(const Duration(milliseconds: 150), _installMushafInteractions);
+              Future<void>.delayed(const Duration(milliseconds: 500), _installMushafInteractions);
             },
           ),
         )
@@ -1283,9 +1284,19 @@ Future<void> _loadReciters() async {
   void _highlightTiming(AyahTiming timing) {
     _lastHighlightedAyah = '${widget.surahNumber}:${timing.ayah}';
     if (kIsWeb) return;
-    controller.runJavaScript(
-      "setNoorAyahHighlight('${widget.surahNumber}', '${timing.ayah}');",
-    );
+
+    final js = "if(window.setNoorAyahHighlight){window.setNoorAyahHighlight('${widget.surahNumber}','${timing.ayah}');}";
+    // إعادة المحاولة بعد تحميل/إعادة رسم صفحة المصحف؛ هذا يمنع ضياع
+    // التضليل عند انتقال القارئ بين الصفحات أو إعادة تحميل الـWebView.
+    controller.runJavaScript(js);
+    Future<void>.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      controller.runJavaScript(js);
+    });
+    Future<void>.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      controller.runJavaScript(js);
+    });
   }
 
   void _clearAyahHighlight() {
@@ -3323,8 +3334,23 @@ max-width:none
    setSheet(readerSheet,true); readerSearch.value='';
    await loadReaders(); renderReaders();
  }
- function clearHighlight(){document.querySelectorAll('.ayahPolygon').forEach(e=>e.classList.remove('noor-active'));}
- function highlight(surah,ayah){clearHighlight(); document.querySelectorAll('.ayahPolygon').forEach(e=>{if(e.getAttribute('surah')==String(surah)&&e.getAttribute('ayah')==String(ayah)) e.classList.add('noor-active');});}
+ function clearHighlight(){
+   document.querySelectorAll('.ayahPolygon').forEach(e=>e.classList.remove('noor-active'));
+ }
+ function highlight(surah,ayah){
+   window.noorPendingHighlight=String(surah)+':'+String(ayah);
+   clearHighlight();
+   document.querySelectorAll('.ayahPolygon').forEach(e=>{
+     if(e.getAttribute('surah')==String(surah)&&e.getAttribute('ayah')==String(ayah)) e.classList.add('noor-active');
+   });
+ }
+ window.setNoorAyahHighlight=function(surah,ayah){
+   highlight(surah,ayah);
+ };
+ window.clearNoorAyahHighlight=function(){
+   window.noorPendingHighlight=null;
+   clearHighlight();
+ };
  async function loadTimings(read){
    const r=await fetch(api+'/ayat_timing?surah='+SURAH+'&read='+read.id); if(!r.ok) throw 0;
    timings=(await r.json()).filter(x=>x.ayah>=1&&x.end_time>x.start_time);
@@ -3541,13 +3567,16 @@ max-width:none
           };
 
           window.setNoorAyahHighlight = function(surah, ayah) {
+            window.noorPendingHighlight = String(surah) + ':' + String(ayah);
             document.querySelectorAll('.ayahPolygon').forEach(function(el) {
               var match = el.getAttribute('surah') === String(surah) &&
                           el.getAttribute('ayah') === String(ayah);
               if (match) {
+                el.classList.add('noor-active');
                 el.style.setProperty('fill', '#7652d6', 'important');
                 el.style.setProperty('fill-opacity', '0.35', 'important');
               } else {
+                el.classList.remove('noor-active');
                 el.style.removeProperty('fill');
                 el.style.removeProperty('fill-opacity');
               }
@@ -3712,7 +3741,7 @@ max-width:none
     );
   }
 }
-  class AdhkarItem {
+class AdhkarItem {
   final String title;
   final String text;
   final int count;
@@ -3728,27 +3757,42 @@ class AdhkarPage extends StatefulWidget {
 
 class _AdhkarPageState extends State<AdhkarPage> {
   int category = 0;
-  final categories = const ['الصباح', 'المساء', 'بعد الصلاة', 'النوم'];
 
-  final List<List<AdhkarItem>> data = const [
+  static const categories = <String>[
+    'الصباح',
+    'المساء',
+    'بعد الصلاة',
+    'النوم',
+    'الاستيقاظ',
+    'المنزل',
+    'السفر',
+  ];
+
+  static const data = <List<AdhkarItem>>[
     [
-      AdhkarItem('ذكر', 'أصبحنا وأصبح الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 1),
+      AdhkarItem(
+        'سيد الاستغفار',
+        'اللهم أنت ربي لا إله إلا أنت، خلقتني وأنا عبدك، وأنا على عهدك ووعدك ما استطعت، أعوذ بك من شر ما صنعت، أبوء لك بنعمتك علي، وأبوء بذنبي، فاغفر لي فإنه لا يغفر الذنوب إلا أنت.',
+        1,
+      ),
       AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
+      AdhkarItem('التهليل', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
       AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
-      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
-      AdhkarItem('الصلاة على النبي', 'اللهم صل وسلم وبارك على نبينا محمد.', 10),
+      AdhkarItem('الصلاة على النبي', 'اللهم صل وسلم على نبينا محمد.', 10),
     ],
     [
-      AdhkarItem('ذكر', 'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له.', 1),
+      AdhkarItem('ذكر المساء', 'أمسينا وأمسى الملك لله والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 1),
       AdhkarItem('التسبيح', 'سبحان الله وبحمده.', 100),
       AdhkarItem('الاستغفار', 'أستغفر الله وأتوب إليه.', 100),
-      AdhkarItem('التوحيد', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+      AdhkarItem('التهليل', 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 10),
+      AdhkarItem('الصلاة على النبي', 'اللهم صل وسلم على نبينا محمد.', 10),
     ],
     [
       AdhkarItem('الاستغفار', 'أستغفر الله.', 3),
       AdhkarItem('التسبيح', 'سبحان الله.', 33),
       AdhkarItem('الحمد', 'الحمد لله.', 33),
       AdhkarItem('التكبير', 'الله أكبر.', 34),
+      AdhkarItem('آية الكرسي', 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ...', 1),
     ],
     [
       AdhkarItem('دعاء النوم', 'باسمك اللهم أموت وأحيا.', 1),
@@ -3756,36 +3800,75 @@ class _AdhkarPageState extends State<AdhkarPage> {
       AdhkarItem('الحمد', 'الحمد لله.', 33),
       AdhkarItem('التكبير', 'الله أكبر.', 34),
     ],
+    [
+      AdhkarItem('دعاء الاستيقاظ', 'الحمد لله الذي أحيانا بعدما أماتنا وإليه النشور.', 1),
+      AdhkarItem('الشكر', 'الحمد لله رب العالمين.', 1),
+    ],
+    [
+      AdhkarItem('عند دخول المنزل', 'بسم الله ولجنا، وبسم الله خرجنا، وعلى ربنا توكلنا.', 1),
+      AdhkarItem('عند الخروج من المنزل', 'بسم الله، توكلت على الله، ولا حول ولا قوة إلا بالله.', 1),
+    ],
+    [
+      AdhkarItem('دعاء السفر', 'سبحان الذي سخر لنا هذا وما كنا له مقرنين وإنا إلى ربنا لمنقلبون.', 1),
+      AdhkarItem('التكبير في السفر', 'الله أكبر، الله أكبر، الله أكبر.', 3),
+    ],
   ];
 
   @override
   Widget build(BuildContext context) {
     final items = data[category];
     return Scaffold(
-      appBar: AppBar(title: const Text('الأذكار'), centerTitle: true),
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(
+        title: const Text('الأذكار', style: TextStyle(fontWeight: FontWeight.w800)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'مكتبة الأذكار',
+            icon: const Icon(Icons.library_books_rounded),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AdhkarLibraryPage()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AdhkarLibraryPage()),
+              ),
+              icon: const Icon(Icons.library_books_rounded),
+              label: const Text('فتح مكتبة الأذكار — مئات الأذكار والأدعية'),
+            ),
+          ),
           SizedBox(
             height: 58,
-            child: ListView.builder(
+            child: ListView.separated(
+              reverse: true,
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               itemCount: categories.length,
-              itemBuilder: (_, index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: ChoiceChip(
-                  label: Text(categories[index]),
-                  selected: category == index,
-                  onSelected: (_) => setState(() => category = index),
-                ),
+              separatorBuilder: (_, __) => const SizedBox(width: 7),
+              itemBuilder: (_, i) => ChoiceChip(
+                label: Text(categories[i]),
+                selected: category == i,
+                onSelected: (_) => setState(() => category = i),
               ),
             ),
           ),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
               itemCount: items.length,
-              itemBuilder: (_, index) => _DhikrCard(item: items[index]),
+              itemBuilder: (_, i) => _DhikrCard(
+                key: ValueKey('${category}_$i'),
+                item: items[i],
+              ),
             ),
           ),
         ],
@@ -3796,7 +3879,7 @@ class _AdhkarPageState extends State<AdhkarPage> {
 
 class _DhikrCard extends StatefulWidget {
   final AdhkarItem item;
-  const _DhikrCard({required this.item});
+  const _DhikrCard({super.key, required this.item});
 
   @override
   State<_DhikrCard> createState() => _DhikrCardState();
@@ -3814,32 +3897,554 @@ class _DhikrCardState extends State<_DhikrCard> {
   @override
   Widget build(BuildContext context) {
     final done = remaining == 0;
+    final progress = widget.item.count == 0
+        ? 1.0
+        : (widget.item.count - remaining) / widget.item.count;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 1.5,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
+        borderRadius: BorderRadius.circular(20),
         onTap: done ? null : () => setState(() => remaining--),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(widget.item.title, textDirection: TextDirection.rtl, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Text(widget.item.text, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.8)),
-              const SizedBox(height: 12),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                textDirection: TextDirection.rtl,
                 children: [
-                  Text(done ? 'تم ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      widget.item.title,
+                      textDirection: TextDirection.rtl,
+                      style: const TextStyle(
+                        color: Color(0xFF174A43),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '× ${widget.item.count}',
+                    style: const TextStyle(
+                      color: Color(0xFF174A43),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                widget.item.text,
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18, height: 1.9),
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(value: progress, minHeight: 6),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  Expanded(
+                    child: Text(
+                      done ? 'تم الذكر ✓' : 'المتبقي: $remaining',
+                      textDirection: TextDirection.rtl,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
                   TextButton.icon(
                     onPressed: () => setState(() => remaining = widget.item.count),
-                    icon: const Icon(Icons.refresh),
+                    icon: const Icon(Icons.refresh_rounded, size: 19),
                     label: const Text('إعادة'),
                   ),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class LibraryDhikrEntry {
+  final int id;
+  final String title;
+  final List<String> texts;
+  final List<String> footnotes;
+
+  const LibraryDhikrEntry({
+    required this.id,
+    required this.title,
+    required this.texts,
+    required this.footnotes,
+  });
+
+  factory LibraryDhikrEntry.fromJson(Map<String, dynamic> json) {
+    final rawText = json['text'];
+    final rawFootnote = json['footnote'];
+    final texts = rawText is List
+        ? rawText.map((e) => '$e'.trim()).where((e) => e.isNotEmpty).toList()
+        : (rawText == null ? <String>[] : ['$rawText']);
+    final footnotes = rawFootnote is List
+        ? rawFootnote.map((e) => '$e'.trim()).where((e) => e.isNotEmpty).toList()
+        : (rawFootnote == null ? <String>[] : ['$rawFootnote']);
+
+    return LibraryDhikrEntry(
+      id: int.tryParse('${json['id']}') ?? 0,
+      title: '${json['title'] ?? 'ذكر'}'.trim(),
+      texts: List<String>.from(texts),
+      footnotes: List<String>.from(footnotes),
+    );
+  }
+}
+
+class AdhkarLibraryPage extends StatefulWidget {
+  const AdhkarLibraryPage({super.key});
+
+  @override
+  State<AdhkarLibraryPage> createState() => _AdhkarLibraryPageState();
+}
+
+class _AdhkarLibraryPageState extends State<AdhkarLibraryPage> {
+  static const _sourceUrl =
+      'https://raw.githubusercontent.com/asellam/HisnElMuslim/main/hisn.json';
+  static const _cacheKey = 'noor_quran_adhkar_library_v1';
+
+  final TextEditingController _searchController = TextEditingController();
+  List<LibraryDhikrEntry> _entries = [];
+  Set<int> _favorites = <int>{};
+  String _filter = 'الكل';
+  bool _loading = true;
+  bool _refreshing = false;
+  String? _error;
+
+  static const _filters = <String>[
+    'الكل',
+    'الصباح والمساء',
+    'الصلاة',
+    'النوم والاستيقاظ',
+    'المنزل',
+    'السفر',
+    'المرض والرقية',
+    'الطعام والشراب',
+    'الأسرة والمناسبات',
+    'أخرى',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+    _loadLibrary();
+    _searchController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final values = prefs.getStringList('noor_quran_adhkar_library_favorites') ?? [];
+    if (!mounted) return;
+    setState(() => _favorites = values.map(int.parse).toSet());
+  }
+
+  Future<void> _saveFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      'noor_quran_adhkar_library_favorites',
+      _favorites.map((e) => '$e').toList(),
+    );
+  }
+
+  Future<void> _loadLibrary({bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      setState(() {
+        _refreshing = true;
+        _error = null;
+      });
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? raw = forceRefresh ? null : prefs.getString(_cacheKey);
+
+      if (raw == null || raw.isEmpty) {
+        final response = await http
+            .get(Uri.parse(_sourceUrl))
+            .timeout(const Duration(seconds: 25));
+        if (response.statusCode != 200) {
+          throw Exception('HTTP ${response.statusCode}');
+        }
+        raw = response.body;
+        await prefs.setString(_cacheKey, raw);
+      }
+
+      final decoded = jsonDecode(raw);
+      final list = decoded is List ? decoded : <dynamic>[];
+      final entries = list
+          .whereType<Map>()
+          .map((item) => LibraryDhikrEntry.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .where((item) => item.texts.isNotEmpty && item.title.isNotEmpty)
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _entries = entries;
+        _loading = false;
+        _refreshing = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _refreshing = false;
+        _error = 'تعذر تحميل مكتبة الأذكار. إذا كانت هذه أول مرة، تأكدي من الإنترنت.';
+      });
+    }
+  }
+
+  String _bucket(LibraryDhikrEntry item) {
+    final t = '${item.title} ${item.texts.join(' ')}';
+    if (RegExp(r'الصباح|المساء|أمسينا|أصبحنا').hasMatch(t)) return 'الصباح والمساء';
+    if (RegExp(r'الصلاة|الوضوء|الأذان|الركوع|السجود|التشهد|الوتر|الاستخارة|المسجد').hasMatch(t)) return 'الصلاة';
+    if (RegExp(r'النوم|الاستيقاظ|الرؤيا|الحلم|الفزع').hasMatch(t)) return 'النوم والاستيقاظ';
+    if (RegExp(r'المنزل|البيت|الخروج من المنزل|دخول المنزل').hasMatch(t)) return 'المنزل';
+    if (RegExp(r'السفر|الركوب|المسافر|الطريق|البلدة').hasMatch(t)) return 'السفر';
+    if (RegExp(r'مريض|المرض|يشفي|الشفاء|الرقية|العين|الحسد').hasMatch(t)) return 'المرض والرقية';
+    if (RegExp(r'الطعام|الشراب|الأكل|المائدة').hasMatch(t)) return 'الطعام والشراب';
+    if (RegExp(r'المولود|الزواج|التهنئة|العزاء|الميت|الجنازة|القبور').hasMatch(t)) return 'الأسرة والمناسبات';
+    return 'أخرى';
+  }
+
+  List<LibraryDhikrEntry> get _filtered {
+    final q = _searchController.text.trim().toLowerCase();
+    return _entries.where((item) {
+      final categoryOk = _filter == 'الكل' || _bucket(item) == _filter;
+      if (!categoryOk) return false;
+      if (q.isEmpty) return true;
+      final haystack = '${item.title} ${item.texts.join(' ')} ${item.footnotes.join(' ')}'.toLowerCase();
+      return haystack.contains(q);
+    }).toList();
+  }
+
+  int get _textCount => _entries.fold(0, (sum, item) => sum + item.texts.length);
+
+  Future<void> _copyEntry(LibraryDhikrEntry item) async {
+    final text = '${item.title}\n\n${item.texts.join('\n\n')}'
+        '${item.footnotes.isEmpty ? '' : '\n\nالمصادر:\n${item.footnotes.join('\n')}'}';
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نسخ الذكر')),
+    );
+  }
+
+  Future<void> _shareEntry(LibraryDhikrEntry item) async {
+    final text = '${item.title}\n\n${item.texts.join('\n\n')}';
+    await Share.share(text);
+  }
+
+  Future<void> _toggleFavorite(LibraryDhikrEntry item) async {
+    setState(() {
+      if (_favorites.contains(item.id)) {
+        _favorites.remove(item.id);
+      } else {
+        _favorites.add(item.id);
+      }
+    });
+    await _saveFavorites();
+  }
+
+  Future<void> _randomEntry() async {
+    if (_entries.isEmpty) return;
+    final item = (_entries..shuffle()).first;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _LibraryEntrySheet(
+        item: item,
+        favorite: _favorites.contains(item.id),
+        onFavorite: () => _toggleFavorite(item),
+        onCopy: () => _copyEntry(item),
+        onShare: () => _shareEntry(item),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _filtered;
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(
+        title: const Text('مكتبة الأذكار', style: TextStyle(fontWeight: FontWeight.w800)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'ذكر عشوائي',
+            icon: const Icon(Icons.auto_awesome_rounded),
+            onPressed: _entries.isEmpty ? null : _randomEntry,
+          ),
+          IconButton(
+            tooltip: 'تحديث المكتبة',
+            icon: _refreshing
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.sync_rounded),
+            onPressed: _refreshing ? null : () => _loadLibrary(forceRefresh: true),
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _entries.isEmpty
+              ? _errorView()
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F1EC),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            const Icon(Icons.menu_book_rounded, size: 32, color: Color(0xFF174A43)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '${_entries.length} باباً • $_textCount نصاً\nبحث + تصنيف + مفضلة + نسخ ومشاركة',
+                                textDirection: TextDirection.rtl,
+                                style: const TextStyle(fontWeight: FontWeight.w800, height: 1.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      child: TextField(
+                        controller: _searchController,
+                        textDirection: TextDirection.rtl,
+                        decoration: InputDecoration(
+                          hintText: 'ابحث في عناوين ونصوص الأذكار...',
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: _searchController.text.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear_rounded),
+                                  onPressed: _searchController.clear,
+                                ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 52,
+                      child: ListView.separated(
+                        reverse: true,
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        itemCount: _filters.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 7),
+                        itemBuilder: (_, i) => ChoiceChip(
+                          label: Text(_filters[i]),
+                          selected: _filter == _filters[i],
+                          onSelected: (_) => setState(() => _filter = _filters[i]),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: items.isEmpty
+                          ? const Center(child: Text('لا توجد نتائج مطابقة', textDirection: TextDirection.rtl))
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(12, 6, 12, 24),
+                              itemCount: items.length,
+                              itemBuilder: (_, index) {
+                                final item = items[index];
+                                return _LibraryEntryCard(
+                                  item: item,
+                                  favorite: _favorites.contains(item.id),
+                                  onFavorite: () => _toggleFavorite(item),
+                                  onCopy: () => _copyEntry(item),
+                                  onShare: () => _shareEntry(item),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+    );
+  }
+
+  Widget _errorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 54),
+            const SizedBox(height: 12),
+            Text(_error ?? 'تعذر تحميل المكتبة', textDirection: TextDirection.rtl, textAlign: TextAlign.center),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () => _loadLibrary(forceRefresh: true),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryEntryCard extends StatelessWidget {
+  final LibraryDhikrEntry item;
+  final bool favorite;
+  final VoidCallback onFavorite;
+  final VoidCallback onCopy;
+  final VoidCallback onShare;
+
+  const _LibraryEntryCard({
+    required this.item,
+    required this.favorite,
+    required this.onFavorite,
+    required this.onCopy,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 1.2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFFE8F1EC),
+          foregroundColor: const Color(0xFF174A43),
+          child: Text('${item.id}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+        ),
+        title: Text(item.title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text('${item.texts.length} نص${item.texts.length == 1 ? '' : 'وص'} • ${item.footnotes.length} تخريج', textDirection: TextDirection.rtl),
+        trailing: IconButton(
+          tooltip: favorite ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+          icon: Icon(favorite ? Icons.favorite_rounded : Icons.favorite_border_rounded),
+          onPressed: onFavorite,
+        ),
+        children: [
+          for (var i = 0; i < item.texts.length; i++) ...[
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                item.texts[i],
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18, height: 1.95),
+              ),
+            ),
+            if (i < item.texts.length - 1) const Divider(height: 26),
+          ],
+          if (item.footnotes.isNotEmpty) ...[
+            const Divider(height: 28),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'المصادر والتخريج',
+                textDirection: TextDirection.rtl,
+                style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF174A43)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final note in item.footnotes)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Text('• $note', textDirection: TextDirection.rtl, style: const TextStyle(fontSize: 12, height: 1.6)),
+              ),
+          ],
+          Row(
+            textDirection: TextDirection.rtl,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(onPressed: onCopy, icon: const Icon(Icons.copy_rounded), label: const Text('نسخ')),
+              TextButton.icon(onPressed: onShare, icon: const Icon(Icons.share_rounded), label: const Text('مشاركة')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LibraryEntrySheet extends StatelessWidget {
+  final LibraryDhikrEntry item;
+  final bool favorite;
+  final VoidCallback onFavorite;
+  final VoidCallback onCopy;
+  final VoidCallback onShare;
+
+  const _LibraryEntrySheet({
+    required this.item,
+    required this.favorite,
+    required this.onFavorite,
+    required this.onCopy,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(item.title, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 14),
+            for (var i = 0; i < item.texts.length; i++) ...[
+              Text(item.texts[i], textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.95)),
+              if (i < item.texts.length - 1) const Divider(height: 26),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              textDirection: TextDirection.rtl,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(onPressed: onFavorite, icon: Icon(favorite ? Icons.favorite_rounded : Icons.favorite_border_rounded)),
+                IconButton(onPressed: onCopy, icon: const Icon(Icons.copy_rounded)),
+                IconButton(onPressed: onShare, icon: const Icon(Icons.share_rounded)),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -4353,9 +4958,14 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> {
   }
 }
 
-class QiblaPage extends StatelessWidget {
+class QiblaPage extends StatefulWidget {
   const QiblaPage({super.key});
 
+  @override
+  State<QiblaPage> createState() => _QiblaPageState();
+}
+
+class _QiblaPageState extends State<QiblaPage> {
   static const cityBearing = <String, double>{
     'سامراء': 196.0,
     'بغداد': 196.5,
@@ -4369,20 +4979,177 @@ class QiblaPage extends StatelessWidget {
     'البصرة': 225.0,
   };
 
+  String city = 'سامراء';
+  bool showAllCities = false;
+
   @override
   Widget build(BuildContext context) {
+    final bearing = cityBearing[city]!;
+    final visibleCities = showAllCities
+        ? cityBearing.entries.toList()
+        : cityBearing.entries.take(5).toList();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('القبلة'), centerTitle: true),
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(
+        title: const Text('القبلة', style: TextStyle(fontWeight: FontWeight.w800)),
+        centerTitle: true,
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
-          const Icon(Icons.explore, size: 110),
-          const SizedBox(height: 20),
-          const Text('اتجاه القبلة التقريبي حسب المدينة', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: const Color(0xFF174A43),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22000000),
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'اتجاه القبلة',
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${bearing.toStringAsFixed(1)}°',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 42,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const Text(
+                  'من الشمال مع عقارب الساعة',
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 210,
+                  height: 210,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFE8D7A8),
+                          border: Border.all(color: Colors.white24, width: 8),
+                        ),
+                      ),
+                      const Positioned(top: 14, child: Text('N', style: TextStyle(fontWeight: FontWeight.w900))),
+                      const Positioned(bottom: 14, child: Text('S', style: TextStyle(fontWeight: FontWeight.w900))),
+                      const Positioned(left: 17, child: Text('W', style: TextStyle(fontWeight: FontWeight.w900))),
+                      const Positioned(right: 17, child: Text('E', style: TextStyle(fontWeight: FontWeight.w900))),
+                      Transform.rotate(
+                        angle: bearing * 3.1415926535 / 180,
+                        child: const Icon(
+                          Icons.navigation_rounded,
+                          size: 82,
+                          color: Color(0xFF8E4B38),
+                        ),
+                      ),
+                      Container(
+                        width: 18,
+                        height: 18,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFF174A43),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  const Icon(Icons.location_city_rounded, color: Color(0xFF174A43)),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'المدينة',
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: city,
+                      items: cityBearing.keys
+                          .map((name) => DropdownMenuItem(
+                                value: name,
+                                child: Text(name, textDirection: TextDirection.rtl),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setState(() => city = value);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'اتجاه القبلة الظاهر هنا هو الاتجاه المحسوب للمدينة المختارة. هذه النسخة لا تستخدم حساس البوصلة الحي بعد، لذلك لا تعتمدي على حركة السهم مع دوران الجهاز.',
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF6F746F), fontSize: 12, height: 1.7),
+          ),
           const SizedBox(height: 18),
-          ...cityBearing.entries.map((e) => Card(child: ListTile(title: Text(e.key, textDirection: TextDirection.rtl), trailing: Text('${e.value.toStringAsFixed(1)}°')))),
-          const SizedBox(height: 12),
-          const Text('هذه نسخة بدون حساس البوصلة. لاحقًا يمكن إضافة بوصلة حية عند إضافة حزمة المستشعرات.', textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          Row(
+            textDirection: TextDirection.rtl,
+            children: [
+              const Expanded(
+                child: Text(
+                  'اتجاهات المدن',
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF174A43)),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => showAllCities = !showAllCities),
+                child: Text(showAllCities ? 'إخفاء' : 'عرض الكل'),
+              ),
+            ],
+          ),
+          ...visibleCities.map(
+            (entry) => Card(
+              margin: const EdgeInsets.only(bottom: 7),
+              child: ListTile(
+                dense: true,
+                title: Text(entry.key, textDirection: TextDirection.rtl),
+                trailing: Text(
+                  '${entry.value.toStringAsFixed(1)}°',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                onTap: () => setState(() => city = entry.key),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -4449,7 +5216,7 @@ class LibraryPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Card(child: ListTile(leading: const Icon(Icons.menu_book, size: 35), title: const Text('القرآن الكريم', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('قراءة واستماع وحفظ الآيات', textDirection: TextDirection.rtl), onTap: () => _open(context, const QuranPage()))),
-          Card(child: ListTile(leading: const Icon(Icons.favorite, size: 35), title: const Text('الأذكار', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('الصباح والمساء وبعد الصلاة والنوم', textDirection: TextDirection.rtl), onTap: () => _open(context, const AdhkarPage()))),
+          Card(child: ListTile(leading: const Icon(Icons.favorite, size: 35), title: const Text('الأذكار', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('الصباح والمساء والصلاة والنوم والسفر والمنزل', textDirection: TextDirection.rtl), onTap: () => _open(context, const AdhkarPage()))),
           Card(child: ListTile(leading: const Icon(Icons.auto_awesome, size: 35), title: const Text('الأدعية', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('أدعية مختارة', textDirection: TextDirection.rtl), onTap: () => _open(context, const DuasPage()))),
           Card(child: ListTile(leading: const Icon(Icons.access_time_filled, size: 35), title: const Text('مواقيت الصلاة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('اختر مدينتك', textDirection: TextDirection.rtl), onTap: () => _open(context, const PrayerTimesPage()))),
           Card(child: ListTile(leading: const Icon(Icons.explore, size: 35), title: const Text('القبلة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const QiblaPage()))),
