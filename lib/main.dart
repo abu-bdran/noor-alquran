@@ -758,7 +758,7 @@ class _QuranPageState extends State<QuranPage> {
 
                         return Material(
                           color: const Color(0xFFFFFCF5),
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(isLandscape ? 0 : 18),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(18),
                             onTap: () => _openSurah(index),
@@ -1359,6 +1359,22 @@ Future<void> _loadReciters() async {
     return surahNames[index];
   }
 
+  bool? _lastLandscape;
+
+  void _syncMushafOrientation(bool isLandscape) {
+    if (_lastLandscape == isLandscape) return;
+    _lastLandscape = isLandscape;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || kIsWeb) return;
+      try {
+        await controller.runJavaScript(
+          "if(window.setNoorOrientation){window.setNoorOrientation(${isLandscape ? 'true' : 'false'});}",
+        );
+      } catch (_) {}
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final pageText = 'الصفحة $currentPage من 604';
@@ -1375,9 +1391,14 @@ Future<void> _loadReciters() async {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
+    _syncMushafOrientation(isLandscape);
+
     return Scaffold(
       backgroundColor: shellBackground,
-      appBar: PreferredSize(
+      // الوضع الأفقي للمصحف = قراءة ملء الشاشة بدون أشرطة إضافية.
+      appBar: isLandscape
+          ? null
+          : PreferredSize(
         preferredSize: Size.fromHeight(isLandscape ? 62 : 82),
         child: Container(
           decoration: const BoxDecoration(
@@ -1566,16 +1587,11 @@ Future<void> _loadReciters() async {
       body: Container(
         color: shellBackground,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            isLandscape ? 4 : 8,
-            isLandscape ? 4 : 8,
-            isLandscape ? 4 : 8,
-            isLandscape ? 3 : 6,
-          ),
+          padding: EdgeInsets.zero,
           child: Container(
             decoration: BoxDecoration(
               color: cardBackground,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(isLandscape ? 0 : 24),
               border: Border.all(
                 color: borderColor,
                 width: 1.2,
@@ -1594,7 +1610,7 @@ Future<void> _loadReciters() async {
               children: [
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 7),
+                    padding: EdgeInsets.symmetric(horizontal: isLandscape ? 0 : 7),
                     child: Container(
                       decoration: BoxDecoration(
                         color: _isNightMode
@@ -1617,7 +1633,7 @@ Future<void> _loadReciters() async {
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(17),
+                        borderRadius: BorderRadius.circular(isLandscape ? 0 : 17),
                         child: kIsWeb && _isNightMode
                             ? ColorFiltered(
                                 colorFilter: const ColorFilter.matrix([
@@ -1641,7 +1657,9 @@ Future<void> _loadReciters() async {
           ),
         ),
       ),
-      bottomNavigationBar: SafeArea(
+      bottomNavigationBar: isLandscape
+          ? null
+          : SafeArea(
         top: false,
         child: Container(
           padding: EdgeInsets.fromLTRB(
@@ -3221,10 +3239,10 @@ Future<void> _loadMushafPage(int page) async {
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <style>
-html,body{margin:0;padding:0;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
-#page{width:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
+html,body{margin:0;padding:0;width:100%;height:100%;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-y}
+#page{width:100%;min-height:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
 svg{
 width:100%;
 height:auto;
@@ -3403,6 +3421,22 @@ max-width:none
  var pinchStartDistance=null,pinchStartZoom=1,zoom=1,textScale=1;
  var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
  function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom*textScale)+')';}
+           window.setNoorOrientation=function(isLandscape){
+             document.documentElement.style.width='100%';
+             document.body.style.width='100%';
+             pageEl.style.width='100%';
+             pageEl.style.margin='0';
+             pageEl.style.maxWidth='none';
+             var svgNow=pageEl.querySelector('svg');
+             if(svgNow){
+               svgNow.style.width='100%';
+               svgNow.style.height='auto';
+               svgNow.style.maxWidth='none';
+               svgNow.style.display='block';
+             }
+             document.body.style.overflow='hidden';
+             panX=0; panY=0; applyZoom();
+           };
  function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
  document.addEventListener('touchstart',function(e){
   if(!e.touches||!e.touches.length)return;swiped=false;
@@ -3503,6 +3537,22 @@ max-width:none
           var pageEl=document.querySelector('#page')||document.body;
           pageEl.style.touchAction='none';pageEl.style.transformOrigin='center top';
           function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom*textScale)+')';}
+           window.setNoorOrientation=function(isLandscape){
+             document.documentElement.style.width='100%';
+             document.body.style.width='100%';
+             pageEl.style.width='100%';
+             pageEl.style.margin='0';
+             pageEl.style.maxWidth='none';
+             var svgNow=pageEl.querySelector('svg');
+             if(svgNow){
+               svgNow.style.width='100%';
+               svgNow.style.height='auto';
+               svgNow.style.maxWidth='none';
+               svgNow.style.display='block';
+             }
+             document.body.style.overflow='hidden';
+             panX=0; panY=0; applyZoom();
+           };
           function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
           document.addEventListener('touchstart',function(e){
             if(!e.touches||!e.touches.length)return;didSwipe=false;
@@ -3526,11 +3576,18 @@ max-width:none
           if (window.setNoorTextScale) {
             window.setNoorTextScale(%TEXT_SCALE%);
           }
+          if (window.setNoorOrientation) {
+            window.setNoorOrientation(%IS_LANDSCAPE%);
+          }
           PageChannel.postMessage(String(%PAGE%));
         })();
       '''
           .replaceAll('%PAGE%', '$currentPage')
-          .replaceAll('%TEXT_SCALE%', _mushafTextScale.toStringAsFixed(3)),
+          .replaceAll('%TEXT_SCALE%', _mushafTextScale.toStringAsFixed(3))
+          .replaceAll(
+            '%IS_LANDSCAPE%',
+            MediaQuery.of(context).orientation == Orientation.landscape ? 'true' : 'false',
+          ),
       );
 
       if (_lastHighlightedAyah != null) {
