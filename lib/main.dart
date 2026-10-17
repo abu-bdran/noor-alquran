@@ -825,10 +825,10 @@ class DailyAyahCard extends StatelessWidget {
     final dayIndex = DateTime.now().difference(DateTime(2026, 1, 1)).inDays % _ayahs.length;
     final ayah = _ayahs[dayIndex < 0 ? 0 : dayIndex];
     return Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      const Text('آية اليوم', textDirection: TextDirection.rtl, style: TextStyle(color: _deepGreen, fontSize: 13, fontWeight: FontWeight.w900)),
+      Text('آية اليوم', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFF0B2D25), fontSize: 13, fontWeight: FontWeight.w900)),
       const SizedBox(height: 4),
-      Text(ayah['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: const TextStyle(color: _ink, fontSize: 20, height: 1.7, fontWeight: FontWeight.w800)),
-      Text(ayah['ref']!, textDirection: TextDirection.rtl, style: const TextStyle(color: Color(0xFF777C76), fontSize: 10.5)),
+      Text(ayah['text'] ?? '', textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: TextStyle(color: Color(0xFF25352F), fontSize: 20, height: 1.7, fontWeight: FontWeight.w800)),
+      Text(ayah['ref'] ?? '', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFF777C76), fontSize: 10.5)),
     ]);
   }
 }
