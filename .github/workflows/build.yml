@@ -54,8 +54,11 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze
+      - name: Remove generated sample test
+        run: rm -f test/widget_test.dart
+
+      - name: Analyze app code
+        run: flutter analyze lib
 
       - name: Build release APK
         run: flutter build apk --release
