@@ -1,70 +1,47 @@
-name: Build Noor Al Quran APK
+name: noor_al_quran
+description: تطبيق نور القرآن - القرآن الكريم والأذكار والأدعية ومواقيت الصلاة والقبلة.
+publish_to: "none"
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+version: 1.0.0+1
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+environment:
+  sdk: ">=3.9.0 <4.0.0"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+dependencies:
+  flutter:
+    sdk: flutter
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.7'
-          channel: stable
-          cache: true
+  cupertino_icons: ^1.0.8
 
-      - name: Flutter version
-        run: flutter --version
+  just_audio: ^0.10.6
 
-      - name: Create Android platform files
-        run: flutter create . --platforms=android --project-name=noor_al_quran
+  http: ^1.5.0
 
-      - name: Add location permissions
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+  shared_preferences: ^2.5.5
 
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          text = manifest.read_text(encoding="utf-8")
+  path_provider: ^2.1.5
 
-          permissions = [
-              '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
-              '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
-          ]
+  share_plus: ^12.0.2
 
-          marker = '<application'
+  flutter_tts: ^4.2.5
 
-          missing = [p for p in permissions if p not in text]
+  geolocator: ^14.0.2
 
-          if missing:
-              insertion = "\n".join(missing) + "\n\n"
-              text = text.replace(marker, insertion + marker, 1)
-              manifest.write_text(text, encoding="utf-8")
+  flutter_compass: ^0.8.1
 
-          print(manifest.read_text(encoding="utf-8"))
-          PY
+  adhkar: ^0.0.1
 
-      - name: Get packages
-        run: flutter pub get
+  webview_flutter: ^4.14.1
 
-      - name: Remove generated sample test
-        run: rm -f test/widget_test.dart
+  webview_flutter_web: ^0.2.3+4
 
-      - name: Build release APK
-        run: flutter build apk --release
+  webview_flutter_platform_interface: ^2.15.1
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: noor-al-quran-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
