@@ -1472,15 +1472,25 @@ Future<void> _loadReciters() async {
     final juzText = 'الجزء ${_juz(currentPage)}';
     final currentSurahTitle = 'سورة $_currentSurahName';
     final isBookmarked = _bookmarkPage == currentPage;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    final shellBackground =
-        _isNightMode ? const Color(0xFF121917) : const Color(0xFFF4F0E6);
-    final cardBackground =
-        _isNightMode ? const Color(0xFF1A2421) : const Color(0xFFFFFCF5);
-    final borderColor =
-        _isNightMode ? const Color(0xFF31413B) : const Color(0xFFE1D8C7);
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final shellBackground = _isNightMode
+        ? const Color(0xFF0D1513)
+        : const Color(0xFFF1EBDD);
+    final panel = _isNightMode
+        ? const Color(0xFF16221F)
+        : const Color(0xFFFFFCF4);
+    final panel2 = _isNightMode
+        ? const Color(0xFF1D2B27)
+        : const Color(0xFFF8F2E5);
+    final ink = _isNightMode
+        ? const Color(0xFFF4E8C9)
+        : const Color(0xFF173F38);
+    final muted = _isNightMode
+        ? const Color(0xFFAABBB4)
+        : const Color(0xFF786F61);
+    final gold = const Color(0xFFD5AA4A);
+    final progress = currentPage / 604;
 
     _syncMushafOrientation(isLandscape);
 
@@ -1489,372 +1499,341 @@ Future<void> _loadReciters() async {
       appBar: isLandscape
           ? null
           : PreferredSize(
-        preferredSize: const Size.fromHeight(82),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF174A43),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x33000000),
-                blurRadius: 16,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          tooltip: 'رجوع',
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                currentSurahTitle,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: isLandscape ? 17 : 20,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '$pageText  •  $juzText',
-                                style: const TextStyle(
-                                  color: Color(0xFFD8E7DF),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: isBookmarked
-                              ? 'إزالة العلامة'
-                              : 'حفظ موضع القراءة',
-                          onPressed: () {
-                            setState(() {
-                              _bookmarkPage =
-                                  isBookmarked ? null : currentPage;
-                            });
-                            _saveReaderPreferences();
-                            _showMessage(
-                              isBookmarked
-                                  ? 'تمت إزالة علامة القراءة'
-                                  : 'تم حفظ الصفحة $currentPage كعلامة قراءة',
-                            );
-                          },
-                          icon: Icon(
-                            isBookmarked
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
-                            color: const Color(0xFFF2D58A),
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          tooltip: 'خيارات القارئ',
-                          icon: const Icon(
-                            Icons.more_vert_rounded,
-                            color: Colors.white,
-                          ),
-                          onSelected: (value) {
-                            if (value == 'jump') {
-                              _showGoToPageDialog();
-                            } else if (value == 'bookmark') {
-                              if (_bookmarkPage != null) {
-                                _changePage(_bookmarkPage!);
-                              } else {
-                                _showMessage('لا توجد علامة محفوظة بعد');
-                              }
-                            } else if (value == 'night') {
-                              _toggleNightMode();
-                            } else if (value == 'text_size') {
-                              _showMushafTextSizeDialog();
-                            } else if (value == 'saved') {
-                              _showSavedAyahs();
-                            } else if (value == 'surahs') {
-                              _showReaderTools();
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'jump',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.find_in_page_rounded),
-                                  SizedBox(width: 12),
-                                  Text('الانتقال إلى صفحة'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'bookmark',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.bookmark_rounded),
-                                  SizedBox(width: 12),
-                                  Text('العودة إلى العلامة'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'night',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.dark_mode_rounded),
-                                  SizedBox(width: 12),
-                                  Expanded(child: Text('الوضع الليلي')),
-                                  Switch(
-                                    value: _isNightMode,
-                                    onChanged: null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'text_size',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.text_fields_rounded),
-                                  SizedBox(width: 12),
-                                  Text('حجم خط المصحف'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'saved',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.bookmarks_rounded),
-                                  SizedBox(width: 12),
-                                  Text('الآيات المحفوظة'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'surahs',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.swap_horiz_rounded),
-                                  SizedBox(width: 12),
-                                  Text('السورة السابقة / التالية'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+              preferredSize: const Size.fromHeight(104),
+              child: SafeArea(
+                bottom: false,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: _isNightMode
+                          ? const [Color(0xFF123D36), Color(0xFF102F2A)]
+                          : const [Color(0xFF19554B), Color(0xFF123F38)],
                     ),
-                  ),
-                ),
-                LinearProgressIndicator(
-                  minHeight: 3,
-                  value: currentPage / 604,
-                  backgroundColor: const Color(0x335E8B7C),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFF2D58A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      body: Container(
-        color: shellBackground,
-        child: Padding(
-          padding: EdgeInsets.zero,
-          child: Container(
-            decoration: BoxDecoration(
-              color: cardBackground,
-              borderRadius: BorderRadius.circular(isLandscape ? 0 : 24),
-              border: isLandscape
-                  ? null
-                  : Border.all(
-                      color: borderColor,
-                      width: 1.2,
-                    ),
-              boxShadow: isLandscape
-                  ? const []
-                  : [
+                    boxShadow: const [
                       BoxShadow(
-                        color: _isNightMode
-                            ? const Color(0x55000000)
-                            : const Color(0x1A000000),
-                        blurRadius: 22,
-                        offset: const Offset(0, 8),
+                        color: Color(0x33000000),
+                        blurRadius: 18,
+                        offset: Offset(0, 6),
                       ),
                     ],
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.zero,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _isNightMode
-                            ? const Color(0xFF151B19)
-                            : const Color(0xFFFFFEFA),
-                        borderRadius: BorderRadius.circular(isLandscape ? 0 : 18),
-                        border: isLandscape
-                            ? null
-                            : Border.all(
-                                color: _isNightMode
-                                    ? const Color(0xFF34453E)
-                                    : const Color(0xFFE4DCCB),
-                              ),
-                        boxShadow: isLandscape
-                            ? const []
-                            : [
-                                BoxShadow(
-                                  color: _isNightMode
-                                      ? const Color(0x33000000)
-                                      : const Color(0x10000000),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(isLandscape ? 0 : 17),
-                        child: kIsWeb && _isNightMode
-                            ? ColorFiltered(
-                                colorFilter: const ColorFilter.matrix([
-                                  -0.8, 0, 0, 0, 204,
-                                  0, -0.8, 0, 0, 204,
-                                  0, 0, -0.8, 0, 204,
-                                  0, 0, 0, 1, 0,
-                                ]),
-                                child: WebViewWidget(
-                                   key: ValueKey(
-                                     'mushaf-webview-${isLandscape ? "landscape" : "portrait"}',
-                                   ),
-                                   controller: controller,
-                                 ),
-                              )
-                            : WebViewWidget(controller: controller),
-                      ),
-                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: isLandscape
-          ? null
-          : SafeArea(
-        top: false,
-        child: Container(
-          padding: EdgeInsets.fromLTRB(
-            isLandscape ? 4 : 8,
-            3,
-            isLandscape ? 4 : 8,
-            isLandscape ? 4 : 7,
-          ),
-          color: shellBackground,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_selectedRead != null) _buildAudioBar(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 7,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: cardBackground,
-                  borderRadius: BorderRadius.circular(21),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isNightMode
-                          ? const Color(0x33000000)
-                          : const Color(0x14000000),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(15),
-                        onTap: _showGoToPageDialog,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 3),
-                          child: Column(
-                            children: [
-                              Row(
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 72,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              tooltip: 'رجوع',
+                              onPressed: () => Navigator.of(context).maybePop(),
+                              icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                            ),
+                            Expanded(
+                              child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.menu_book_rounded,
-                                    size: 15,
-                                    color: _isNightMode
-                                        ? const Color(0xFFF2D58A)
-                                        : const Color(0xFF174A43),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.auto_stories_rounded, color: Color(0xFFF0CF7A), size: 17),
+                                      const SizedBox(width: 7),
+                                      Text(
+                                        currentSurahTitle,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 19,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 5),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'مصحف المدينة • اسحب للتصفح',
-                                    style: TextStyle(
-                                      color: _isNightMode
-                                          ? Colors.white
-                                          : const Color(0xFF174A43),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '$pageText  •  $juzText',
-                                style: TextStyle(
-                                  color: _isNightMode
-                                      ? const Color(0xFFB9C7C1)
-                                      : const Color(0xFF766F63),
-                                  fontSize: 10,
-                                ),
-                              ),
-                              if (isBookmarked)
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 2),
-                                  child: Text(
-                                    '★ علامة القراءة محفوظة',
-                                    style: TextStyle(
-                                      color: Color(0xFFB58A2A),
-                                      fontSize: 9,
+                                    '$juzText  •  $pageText',
+                                    style: const TextStyle(
+                                      color: Color(0xFFD9E6DF),
+                                      fontSize: 10.5,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'الوضع الليلي',
+                              onPressed: _toggleNightMode,
+                              icon: Icon(
+                                _isNightMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                                color: const Color(0xFFF0CF7A),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: isBookmarked ? 'إزالة العلامة' : 'حفظ الصفحة',
+                              onPressed: () {
+                                setState(() => _bookmarkPage = isBookmarked ? null : currentPage);
+                                _saveReaderPreferences();
+                                _showMessage(isBookmarked ? 'تمت إزالة علامة القراءة' : 'تم حفظ الصفحة $currentPage');
+                              },
+                              icon: Icon(
+                                isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                                color: const Color(0xFFF0CF7A),
+                              ),
+                            ),
+                            PopupMenuButton<String>(
+                              tooltip: 'أدوات المصحف',
+                              icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                              onSelected: (value) {
+                                if (value == 'jump') {
+                                  _showGoToPageDialog();
+                                } else if (value == 'bookmark') {
+                                  if (_bookmarkPage != null) {
+                                    _changePage(_bookmarkPage!);
+                                  } else {
+                                    _showMessage('لا توجد علامة محفوظة بعد');
+                                  }
+                                } else if (value == 'text_size') {
+                                  _showMushafTextSizeDialog();
+                                } else if (value == 'saved') {
+                                  _showSavedAyahs();
+                                } else if (value == 'surahs') {
+                                  _showReaderTools();
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'jump',
+                                  child: ListTile(leading: Icon(Icons.find_in_page_rounded), title: Text('الانتقال إلى صفحة')),
                                 ),
-                            ],
+                                const PopupMenuItem(
+                                  value: 'bookmark',
+                                  child: ListTile(leading: Icon(Icons.bookmark_rounded), title: Text('العودة إلى العلامة')),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'text_size',
+                                  child: ListTile(leading: Icon(Icons.text_fields_rounded), title: Text('حجم عرض المصحف')),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'saved',
+                                  child: ListTile(leading: Icon(Icons.bookmarks_rounded), title: Text('الآيات المحفوظة')),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'surahs',
+                                  child: ListTile(leading: Icon(Icons.swap_horiz_rounded), title: Text('السورة السابقة / التالية')),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: LinearProgressIndicator(
+                            minHeight: 4,
+                            value: progress,
+                            backgroundColor: const Color(0x335E8B7C),
+                            valueColor: AlwaysStoppedAnimation<Color>(gold),
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 9),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+      body: SafeArea(
+        top: isLandscape,
+        bottom: false,
+        child: Column(
+          children: [
+            if (!isLandscape)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 9, 12, 6),
+                child: Row(
+                  children: [
+                    _readerMiniChip(Icons.menu_book_rounded, 'مصحف المدينة', ink, panel2, muted),
+                    const Spacer(),
+                    _readerMiniChip(Icons.layers_rounded, juzText, ink, panel2, muted),
+                    const SizedBox(width: 6),
+                    _readerMiniChip(Icons.bookmark_rounded, isBookmarked ? 'محفوظ' : 'غير محفوظ', isBookmarked ? gold : ink, panel2, muted),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isLandscape ? 0 : 10,
+                  isLandscape ? 0 : 2,
+                  isLandscape ? 0 : 10,
+                  0,
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: panel,
+                    borderRadius: BorderRadius.circular(isLandscape ? 0 : 26),
+                    border: isLandscape ? null : Border.all(color: _isNightMode ? const Color(0xFF30443D) : const Color(0xFFE1D5BE)),
+                    boxShadow: isLandscape
+                        ? const []
+                        : const [BoxShadow(color: Color(0x18000000), blurRadius: 18, offset: Offset(0, 6))],
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(isLandscape ? 0 : 25),
+                          child: Container(
+                            color: _isNightMode ? const Color(0xFF111816) : const Color(0xFFFFFEFA),
+                            child: kIsWeb && _isNightMode
+                                ? ColorFiltered(
+                                    colorFilter: const ColorFilter.matrix([
+                                      -0.8, 0, 0, 0, 204,
+                                      0, -0.8, 0, 0, 204,
+                                      0, 0, -0.8, 0, 204,
+                                      0, 0, 0, 1, 0,
+                                    ]),
+                                    child: WebViewWidget(
+                                      key: ValueKey('mushaf-webview-${isLandscape ? "landscape" : "portrait"}'),
+                                      controller: controller,
+                                    ),
+                                  )
+                                : WebViewWidget(controller: controller),
+                          ),
+                        ),
+                      ),
+                      if (!isLandscape)
+                        Positioned(
+                          top: 12,
+                          left: 14,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _isNightMode ? const Color(0xCC18302A) : const Color(0xE6FFF8E9),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: _isNightMode ? const Color(0x665A806F) : const Color(0x66B58A2A)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.touch_app_rounded, size: 14, color: _isNightMode ? const Color(0xFFE5C66F) : const Color(0xFF8E6C22)),
+                                const SizedBox(width: 5),
+                                Text('اسحب للتنقل • كبّر بإصبعين', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: muted)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (!isLandscape)
+                        Positioned(
+                          bottom: 13,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: _isNightMode ? const Color(0xE61B302B) : const Color(0xF2FFF9EC),
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(color: _isNightMode ? const Color(0x554E6B60) : const Color(0x668C6D2C)),
+                                boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 10, offset: Offset(0, 3))],
+                              ),
+                              child: Text(
+                                'ص ${currentPage}  •  ${progress >= 0.99 ? 'آخر المصحف' : '${(progress * 100).round()}%'}',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: ink),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (!isLandscape)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 7, 10, 6),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_selectedRead != null) _buildAudioBar(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: panel,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: _isNightMode ? const Color(0xFF30443D) : const Color(0xFFE0D4BD)),
+                        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 3))],
+                      ),
+                      child: Row(
+                        children: [
+                          _readerNavButton(Icons.arrow_back_ios_new_rounded, 'السابق', currentPage > 1 ? () => _changePage(currentPage - 1) : null, ink, gold),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: _showGoToPageDialog,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 3),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(currentSurahTitle, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: ink)),
+                                    const SizedBox(height: 2),
+                                    Text('$pageText  •  اضغط للانتقال', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: muted)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          _readerNavButton(Icons.arrow_forward_ios_rounded, 'التالي', currentPage < 604 ? () => _changePage(currentPage + 1) : null, ink, gold),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _readerMiniChip(IconData icon, String text, Color ink, Color bg, Color muted) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _isNightMode ? const Color(0xFF30443D) : const Color(0xFFE0D4BD)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: _isNightMode ? const Color(0xFFE2C26A) : const Color(0xFF806525)),
+          const SizedBox(width: 5),
+          Text(text, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: muted)),
+        ],
+      ),
+    );
+  }
+
+  Widget _readerNavButton(IconData icon, String label, VoidCallback? onPressed, Color ink, Color gold) {
+    final enabled = onPressed != null;
+    return SizedBox(
+      width: 66,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 17, color: enabled ? ink : const Color(0xFFAAA69C)),
+              const SizedBox(height: 2),
+              Text(label, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: enabled ? ink : const Color(0xFFAAA69C))),
             ],
           ),
         ),
