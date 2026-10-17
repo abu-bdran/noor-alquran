@@ -1670,6 +1670,14 @@ Future<void> _loadReciters() async {
                               ),
                             ),
                             IconButton(
+                              tooltip: 'التجويد الملون',
+                              onPressed: _openTajweedColoredPage,
+                              icon: const Icon(
+                                Icons.format_color_text_rounded,
+                                color: Color(0xFFF0CF7A),
+                              ),
+                            ),
+                            IconButton(
                               tooltip: isBookmarked ? 'إزالة العلامة' : 'حفظ الصفحة',
                               onPressed: () {
                                 setState(() => _bookmarkPage = isBookmarked ? null : currentPage);
@@ -1701,6 +1709,8 @@ Future<void> _loadReciters() async {
                                   _showSurahInfo();
                                 } else if (value == 'tajweed') {
                                   _showTajweedGuide();
+                                } else if (value == 'tajweed_colored') {
+                                  _openTajweedColoredPage();
                                 } else if (value == 'surahs') {
                                   _showReaderTools();
                                 }
@@ -1729,6 +1739,10 @@ Future<void> _loadReciters() async {
                                 const PopupMenuItem(
                                   value: 'tajweed',
                                   child: ListTile(leading: Icon(Icons.palette_outlined), title: Text('دليل التجويد')),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'tajweed_colored',
+                                  child: ListTile(leading: Icon(Icons.format_color_text_rounded), title: Text('التجويد الملون')),
                                 ),
                                 const PopupMenuItem(
                                   value: 'surahs',
@@ -1910,6 +1924,18 @@ Future<void> _loadReciters() async {
     );
   }
 
+
+
+  void _openTajweedColoredPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TajweedColoredPage(
+          surahNumber: widget.surahNumber,
+          surahName: widget.surahName,
+        ),
+      ),
+    );
+  }
 
   Future<void> _showSurahInfo() async {
     final info = _surahInfoFor(widget.surahNumber);
@@ -4104,6 +4130,12 @@ class _AdhkarPageState extends State<AdhkarPage> {
     'المنزل',
     'السفر',
     'الحج والعمرة',
+    'الأدعية',
+    'الكرب والهم',
+    'الرزق والشكر',
+    'الوالدان والأهل',
+    'المسجد والوضوء',
+    'المطر والعافية',
   ];
 
   static const data = <List<AdhkarItem>>[
@@ -4152,6 +4184,43 @@ class _AdhkarPageState extends State<AdhkarPage> {
       AdhkarItem('الدعاء أثناء الطواف', 'ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار.', 1),
       AdhkarItem('الدعاء عند الصفا والمروة', 'إن الصفا والمروة من شعائر الله، أبدأ بما بدأ الله به.', 1),
     ],
+    [
+      AdhkarItem('دعاء جامع', 'ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار.', 1),
+      AdhkarItem('دعاء الهداية', 'اهدني وسددني.', 1),
+      AdhkarItem('دعاء الثبات', 'يا مقلب القلوب ثبت قلبي على دينك.', 1),
+      AdhkarItem('دعاء المغفرة', 'رب اغفر لي وتب علي إنك أنت التواب الرحيم.', 1),
+      AdhkarItem('دعاء حسن العبادة', 'اللهم أعني على ذكرك وشكرك وحسن عبادتك.', 1),
+      AdhkarItem('دعاء الخير', 'اللهم إني أسألك من الخير كله عاجله وآجله ما علمت منه وما لم أعلم.', 1),
+    ],
+    [
+      AdhkarItem('دعاء الكرب', 'لا إله إلا الله العظيم الحليم، لا إله إلا الله رب العرش العظيم، لا إله إلا الله رب السماوات ورب الأرض ورب العرش الكريم.', 1),
+      AdhkarItem('دعاء الهم والحزن', 'اللهم إني أعوذ بك من الهم والحزن، وأعوذ بك من العجز والكسل، وأعوذ بك من الجبن والبخل، وأعوذ بك من غلبة الدين وقهر الرجال.', 1),
+      AdhkarItem('حسبنا الله', 'حسبنا الله ونعم الوكيل.', 7),
+      AdhkarItem('دعاء تفريج الكرب', 'لا إله إلا أنت سبحانك إني كنت من الظالمين.', 1),
+    ],
+    [
+      AdhkarItem('دعاء الرزق', 'اللهم اكفني بحلالك عن حرامك وأغنني بفضلك عمن سواك.', 1),
+      AdhkarItem('دعاء البركة', 'اللهم بارك لنا فيما رزقتنا وقنا عذاب النار.', 1),
+      AdhkarItem('الحمد لله', 'الحمد لله رب العالمين.', 33),
+      AdhkarItem('الشكر', 'رب أوزعني أن أشكر نعمتك التي أنعمت علي وعلى والدي وأن أعمل صالحًا ترضاه.', 1),
+    ],
+    [
+      AdhkarItem('دعاء للوالدين', 'رب ارحمهما كما ربياني صغيرًا.', 1),
+      AdhkarItem('دعاء للأهل', 'ربنا هب لنا من أزواجنا وذرياتنا قرة أعين واجعلنا للمتقين إمامًا.', 1),
+      AdhkarItem('دعاء الصلاح', 'وأصلح لي في ذريتي إني تبت إليك وإني من المسلمين.', 1),
+    ],
+    [
+      AdhkarItem('دعاء دخول المسجد', 'اللهم افتح لي أبواب رحمتك.', 1),
+      AdhkarItem('دعاء الخروج من المسجد', 'اللهم إني أسألك من فضلك.', 1),
+      AdhkarItem('دعاء الوضوء', 'أشهد أن لا إله إلا الله وحده لا شريك له، وأشهد أن محمدًا عبده ورسوله.', 1),
+      AdhkarItem('بعد الأذان', 'اللهم رب هذه الدعوة التامة والصلاة القائمة، آت محمدًا الوسيلة والفضيلة، وابعثه مقامًا محمودًا الذي وعدته.', 1),
+    ],
+    [
+      AdhkarItem('دعاء المطر', 'اللهم صيبًا نافعًا.', 1),
+      AdhkarItem('دعاء العافية', 'اللهم إني أسألك العفو والعافية في الدنيا والآخرة.', 1),
+      AdhkarItem('دعاء للمريض', 'أسأل الله العظيم رب العرش العظيم أن يشفيك.', 7),
+      AdhkarItem('دعاء السلامة', 'اللهم إني أسألك السلامة من كل إثم والغنيمة من كل بر.', 1),
+    ],
   ];
 
   @override
@@ -4194,10 +4263,24 @@ class _AdhkarPageState extends State<AdhkarPage> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdhkarLibraryPage())),
-              icon: const Icon(Icons.library_books_rounded),
-              label: const Text('فتح مكتبة الأذكار الموسعة'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdhkarLibraryPage())),
+                    icon: const Icon(Icons.library_books_rounded),
+                    label: const Text('مكتبة الأذكار'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasbeehCounterPage())),
+                    icon: const Icon(Icons.touch_app_rounded),
+                    label: const Text('عداد التسبيح'),
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(
@@ -4233,25 +4316,48 @@ class _DhikrCard extends StatefulWidget {
 }
 
 class _DhikrCardState extends State<_DhikrCard> {
-  late int remaining;
+  late int completed;
+  bool _loaded = false;
+
+  String get _prefsKey => 'noor_dhikr_count_${base64Url.encode(utf8.encode('${widget.item.title}|${widget.item.text}'))}';
 
   @override
   void initState() {
     super.initState();
-    remaining = widget.item.count;
+    completed = 0;
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_prefsKey) ?? 0;
+    if (!mounted) return;
+    setState(() {
+      completed = value.clamp(0, widget.item.count).toInt();
+      _loaded = true;
+    });
+  }
+
+  Future<void> _saveCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_prefsKey, completed);
   }
 
   @override
   Widget build(BuildContext context) {
-    final done = remaining == 0;
-    final progress = widget.item.count == 0 ? 1.0 : (widget.item.count - remaining) / widget.item.count;
+    final done = completed >= widget.item.count;
+    final remaining = (widget.item.count - completed).clamp(0, widget.item.count);
+    final progress = widget.item.count == 0 ? 1.0 : completed / widget.item.count;
     return Card(
       elevation: 1.5,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: done ? null : () => setState(() => remaining--),
+        onTap: done || !_loaded ? null : () {
+          setState(() => completed++);
+          _saveCount();
+        },
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
           child: Column(
@@ -4268,12 +4374,161 @@ class _DhikrCardState extends State<_DhikrCard> {
               const SizedBox(height: 10),
               Row(textDirection: TextDirection.rtl, children: [
                 Expanded(child: Text(done ? 'تم الذكر ✓' : 'المتبقي: $remaining', textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.w800))),
-                TextButton.icon(onPressed: () => setState(() => remaining = widget.item.count), icon: const Icon(Icons.refresh_rounded, size: 19), label: const Text('إعادة')),
+                TextButton.icon(onPressed: () { setState(() => completed = 0); _saveCount(); }, icon: const Icon(Icons.refresh_rounded, size: 19), label: const Text('تصفير')),
               ]),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+
+class TasbeehCounterPage extends StatefulWidget {
+  const TasbeehCounterPage({super.key});
+
+  @override
+  State<TasbeehCounterPage> createState() => _TasbeehCounterPageState();
+}
+
+class _TasbeehCounterPageState extends State<TasbeehCounterPage> {
+  static const _countKey = 'noor_tasbeeh_count';
+  static const _phraseKey = 'noor_tasbeeh_phrase';
+  int count = 0;
+  String phrase = 'سبحان الله';
+  bool loading = true;
+
+  static const phrases = ['سبحان الله', 'الحمد لله', 'الله أكبر', 'أستغفر الله'];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      count = prefs.getInt(_countKey) ?? 0;
+      phrase = prefs.getString(_phraseKey) ?? phrases.first;
+      loading = false;
+    });
+  }
+
+  Future<void> _increment() async {
+    setState(() => count++);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_countKey, count);
+  }
+
+  Future<void> _reset() async {
+    setState(() => count = 0);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_countKey, 0);
+  }
+
+  Future<void> _setPhrase(String value) async {
+    setState(() => phrase = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_phraseKey, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(
+        title: const Text('عداد التسبيح', style: TextStyle(fontWeight: FontWeight.w900)),
+        actions: [
+          IconButton(
+            tooltip: 'تصفير العداد',
+            onPressed: loading ? null : _reset,
+            icon: const Icon(Icons.restart_alt_rounded),
+          ),
+        ],
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 30),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF1B5B50), Color(0xFF123F38)]),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 18, offset: Offset(0, 8))],
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded, color: Color(0xFFF0CF7A), size: 28),
+                      const SizedBox(height: 8),
+                      const Text('عدادك محفوظ تلقائيًا', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 5),
+                      const Text('يمكنك الخروج من الصفحة والعودة لاحقًا وسيبقى العدد كما هو.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFD7E4DF), height: 1.5, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        const Align(alignment: Alignment.centerRight, child: Text('الذكر', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF173F38)))),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 7,
+                          runSpacing: 7,
+                          children: phrases.map((item) => ChoiceChip(label: Text(item), selected: phrase == item, onSelected: (_) => _setPhrase(item))).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: GestureDetector(
+                    onTap: _increment,
+                    child: Container(
+                      width: 235,
+                      height: 235,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFE7EFE9),
+                        border: Border.all(color: const Color(0xFFB8CDBF), width: 8),
+                        boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 20, offset: Offset(0, 10))],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('$count', style: const TextStyle(fontSize: 58, fontWeight: FontWeight.w900, color: Color(0xFF173F38))),
+                          const SizedBox(height: 4),
+                          Text(phrase, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF47734A))),
+                          const SizedBox(height: 10),
+                          const Text('اضغط للعد', style: TextStyle(fontSize: 11, color: Color(0xFF7A827C))),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                FilledButton.icon(
+                  onPressed: _reset,
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), backgroundColor: const Color(0xFF7A3E3E)),
+                  icon: const Icon(Icons.delete_sweep_rounded),
+                  label: const Text('تصفير عدد التسبيحات', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(height: 9),
+                Text('العدد الحالي: $count', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF6D756F), fontWeight: FontWeight.w700)),
+              ],
+            ),
     );
   }
 }
@@ -6378,4 +6633,223 @@ class _HajjVisualPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _HajjVisualPainter oldDelegate) =>
       oldDelegate.type != type || oldDelegate.progress != progress;
+}
+
+
+class TajweedColoredPage extends StatefulWidget {
+  final int surahNumber;
+  final String surahName;
+
+  const TajweedColoredPage({
+    super.key,
+    required this.surahNumber,
+    required this.surahName,
+  });
+
+  @override
+  State<TajweedColoredPage> createState() => _TajweedColoredPageState();
+}
+
+class _TajweedColoredPageState extends State<TajweedColoredPage> {
+  static const _editionUrl = 'https://raw.githubusercontent.com/quran-ws/quran-tajweed/main/editions/uthmani-hafs.json';
+  static const _annotationsUrl = 'https://raw.githubusercontent.com/quran-ws/quran-tajweed/main/packages/annotations/uthmani-hafs.json';
+
+  Map<String, dynamic>? _edition;
+  Map<String, dynamic>? _annotations;
+  String? _error;
+
+  static const _defaultColor = Color(0xFF26332F);
+  static const _colors = <String, Color>{
+    'madd': Color(0xFFC94B4B),
+    'qalqalah': Color(0xFF4267B2),
+    'noon': Color(0xFF8A4DA8),
+    'tanween': Color(0xFF8A4DA8),
+    'ghunnah': Color(0xFF2C8A66),
+    'ikhfa': Color(0xFF8A4DA8),
+    'idgham': Color(0xFF2C8A66),
+    'iqlab': Color(0xFFD77A27),
+    'meem': Color(0xFF2F7C8A),
+    'tafkhim': Color(0xFF9A6B28),
+    'tarqiq': Color(0xFF607D68),
+    'raa': Color(0xFF9A6B28),
+    'lam': Color(0xFF5D6470),
+    'mutamathilain': Color(0xFF6D4AA8),
+    'mutajanisain': Color(0xFF6D4AA8),
+    'mutqaribain': Color(0xFF6D4AA8),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final responses = await Future.wait([
+        http.get(Uri.parse(_editionUrl)),
+        http.get(Uri.parse(_annotationsUrl)),
+      ]);
+      if (responses[0].statusCode != 200 || responses[1].statusCode != 200) {
+        throw Exception('تعذر تحميل بيانات التجويد');
+      }
+      final edition = jsonDecode(responses[0].body) as Map<String, dynamic>;
+      final annotations = jsonDecode(responses[1].body) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _edition = edition;
+        _annotations = annotations;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'تعذر تحميل التجويد الملون الآن. تحقق من الإنترنت ثم حاول مرة أخرى.');
+    }
+  }
+
+  Color _ruleColor(String ruleId) {
+    final id = ruleId.toLowerCase();
+    for (final entry in _colors.entries) {
+      if (id.contains(entry.key)) return entry.value;
+    }
+    return _defaultColor;
+  }
+
+  List<TextSpan> _buildAyahSpans(String ref, String text) {
+    final raw = _annotations?['spans'];
+    final ruleIds = (_annotations?['ruleIds'] as List?)?.map((e) => '$e').toList() ?? <String>[];
+    final packed = raw is Map ? raw[ref] : null;
+    final marks = List<int?>.filled(text.length, null);
+    if (packed is List) {
+      for (final item in packed) {
+        if (item is! List || item.length < 3) continue;
+        final start = int.tryParse('${item[0]}');
+        final end = int.tryParse('${item[1]}');
+        final ruleIndex = int.tryParse('${item[2]}');
+        if (start == null || end == null || ruleIndex == null || ruleIndex < 0 || ruleIndex >= ruleIds.length) continue;
+        for (var i = start; i < end && i < marks.length; i++) {
+          if (i >= 0) marks[i] = ruleIndex;
+        }
+      }
+    }
+
+    final spans = <TextSpan>[];
+    var buffer = StringBuffer();
+    Color? currentColor;
+
+    void flush() {
+      if (buffer.isEmpty) return;
+      spans.add(TextSpan(
+        text: buffer.toString(),
+        style: TextStyle(color: currentColor ?? _defaultColor),
+      ));
+      buffer = StringBuffer();
+    }
+
+    bool isCombining(String ch) {
+      if (ch.isEmpty) return false;
+      final code = ch.runes.first;
+      return (code >= 0x064B && code <= 0x065F) ||
+          (code >= 0x0670 && code <= 0x0670) ||
+          code == 0x06D6 || code == 0x06D7 || code == 0x06D8 ||
+          code == 0x06D9 || code == 0x06DA || code == 0x06DB ||
+          code == 0x06DC || code == 0x06DF || code == 0x06E0 ||
+          code == 0x06E1 || code == 0x06E2 || code == 0x06E3 ||
+          code == 0x06E4 || code == 0x06E7 || code == 0x06E8 ||
+          code == 0x06EA || code == 0x06EB || code == 0x06EC ||
+          code == 0x06ED;
+    }
+
+    for (var i = 0; i < text.length; i++) {
+      final ch = text[i];
+      final ruleIndex = marks[i];
+      final nextColor = ruleIndex == null ? null : _ruleColor(ruleIds[ruleIndex]);
+      final effectiveColor = isCombining(ch) ? currentColor : nextColor;
+      if (effectiveColor != currentColor) flush();
+      currentColor = effectiveColor;
+      buffer.write(ch);
+    }
+    flush();
+    return spans;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ayahs = (_edition?['ayahs'] as Map?)?.entries
+        .where((entry) => entry.key.toString().startsWith('${widget.surahNumber}:'))
+        .toList()
+      ?..sort((a, b) => int.parse(a.key.toString().split(':').last).compareTo(int.parse(b.key.toString().split(':').last)));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1EBDD),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF173F38),
+        foregroundColor: Colors.white,
+        title: Text('التجويد الملون • ${widget.surahName}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        actions: [
+          IconButton(onPressed: _loadData, tooltip: 'تحديث', icon: const Icon(Icons.refresh_rounded)),
+        ],
+      ),
+      body: _error != null
+          ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.cloud_off_rounded, size: 46, color: Color(0xFF7A3E3E)), const SizedBox(height: 12), Text(_error!, textAlign: TextAlign.center), const SizedBox(height: 14), FilledButton.icon(onPressed: _loadData, icon: const Icon(Icons.refresh_rounded), label: const Text('إعادة المحاولة'))])))
+          : _edition == null || _annotations == null
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 30),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(color: const Color(0xFFFFFCF4), borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE0D4BD)), boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 6))]),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        const Text('التجويد الملون الحقيقي', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF173F38))),
+                        const SizedBox(height: 5),
+                        const Text('تلوين مبني على مواضع أحكام التجويد المعلَّمة في بيانات متخصصة، مع إبقاء نص الآية كما هو دون إعادة كتابة الأحرف.', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 11.5, height: 1.6, color: Color(0xFF6D665C))),
+                        const SizedBox(height: 12),
+                        Wrap(spacing: 8, runSpacing: 7, children: const [
+                          _TajweedLegend(color: Color(0xFFC94B4B), label: 'المد'),
+                          _TajweedLegend(color: Color(0xFF2C8A66), label: 'الإدغام'),
+                          _TajweedLegend(color: Color(0xFF8A4DA8), label: 'النون والتنوين'),
+                          _TajweedLegend(color: Color(0xFF4267B2), label: 'القلقلة'),
+                          _TajweedLegend(color: Color(0xFF2F7C8A), label: 'الميم'),
+                          _TajweedLegend(color: Color(0xFF9A6B28), label: 'التفخيم/الراء'),
+                        ]),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
+                    if (ayahs != null)
+                      ...ayahs.map((entry) {
+                        final ref = entry.key.toString();
+                        final text = entry.value.toString();
+                        final ayah = ref.split(':').last;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.fromLTRB(15, 14, 15, 12),
+                          decoration: BoxDecoration(color: const Color(0xFFFFFCF4), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2D6BE))),
+                          child: Column(children: [
+                            RichText(textDirection: TextDirection.rtl, textAlign: TextAlign.center, text: TextSpan(style: const TextStyle(fontFamily: 'Arial', fontSize: 25, height: 2.15, fontWeight: FontWeight.w600), children: _buildAyahSpans(ref, text))),
+                            const SizedBox(height: 8),
+                            Container(width: 32, height: 32, alignment: Alignment.center, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE7EFE9)), child: Text(ayah, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF315E53)))),
+                          ]),
+                        );
+                      }),
+                  ],
+                ),
+    );
+  }
+}
+
+class _TajweedLegend extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _TajweedLegend({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        decoration: BoxDecoration(color: color.withOpacity(.10), borderRadius: BorderRadius.circular(12)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: color)),
+        ]),
+      );
 }
