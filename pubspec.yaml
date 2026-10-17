@@ -22,6 +22,7 @@ dependencies:
   geolocator: ^14.0.2
   adhkar: ^0.0.1
   flutter_compass: ^0.8.1
+  flutter_tts: ^4.2.5
 
 
 dev_dependencies:
