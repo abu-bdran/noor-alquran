@@ -334,74 +334,108 @@ class HomeContent extends StatelessWidget {
                       ),
                     ),
 
-                    // Abbasid-inspired hero: arch + geometric ornament, no external image dependency.
+                    // Premium Abbasid-inspired daily Quran مجلس. No external images.
                     SliverPadding(
                       padding: EdgeInsets.symmetric(horizontal: horizontal),
                       sliver: SliverToBoxAdapter(
                         child: Container(
-                          height: wide ? 300 : 285,
+                          height: wide ? 315 : 300,
                           clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
-                            color: _green,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(32),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topRight,
+                              end: Alignment.bottomLeft,
+                              colors: [Color(0xFF0B352B), Color(0xFF173F35), Color(0xFF0D2A23)],
+                            ),
                             boxShadow: [
-                              BoxShadow(color: _deepGreen.withOpacity(.20), blurRadius: 24, offset: const Offset(0, 12)),
+                              BoxShadow(color: _deepGreen.withOpacity(.25), blurRadius: 28, offset: const Offset(0, 14)),
                             ],
+                            border: Border.all(color: _gold.withOpacity(.45), width: 1),
                           ),
                           child: Stack(
                             children: [
                               Positioned.fill(child: CustomPaint(painter: _AbbasidHomePainter())),
+                              Positioned(
+                                top: 18,
+                                right: 18,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(.075),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(color: _gold.withOpacity(.45)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    textDirection: TextDirection.rtl,
+                                    children: [
+                                      Icon(Icons.auto_awesome_rounded, color: _gold, size: 15),
+                                      SizedBox(width: 7),
+                                      Text('مَجْلِسُ نُورٍ وَتِلَاوَة', textDirection: TextDirection.rtl,
+                                        style: TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .2)),
+                                    ],
+                                  ),
+                                ),
+                              ),
                               Positioned.fill(
                                 child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+                                  padding: const EdgeInsets.fromLTRB(22, 70, 22, 20),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(.10),
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(color: _gold.withOpacity(.45)),
-                                        ),
-                                        child: const Text('وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا', textDirection: TextDirection.rtl,
-                                          style: TextStyle(color: _gold, fontSize: 12, fontWeight: FontWeight.w800)),
-                                      ),
-                                      const Spacer(),
                                       const Text('مجلسك اليومي مع القرآن', textDirection: TextDirection.rtl,
                                         textAlign: TextAlign.right,
-                                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, height: 1.35)),
-                                      const SizedBox(height: 6),
-                                      const Text('تلاوة • أذكار • صلاة • قبلة • مناسك', textDirection: TextDirection.rtl,
-                                        style: TextStyle(color: Color(0xFFD9E5DE), fontSize: 12.5, fontWeight: FontWeight.w600)),
-                                      const SizedBox(height: 17),
-                                      Row(
-                                        textDirection: TextDirection.rtl,
-                                        children: [
-                                          FilledButton.icon(
-                                            onPressed: () => _open(context, const QuranPage()),
-                                            icon: const Icon(Icons.menu_book_rounded, size: 19),
-                                            label: const Text('ابدأ التلاوة'),
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor: _gold,
-                                              foregroundColor: _deepGreen,
-                                              padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                                              textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                                        style: TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900, height: 1.3)),
+                                      const SizedBox(height: 7),
+                                      const Text('تلاوة هادئة • ذكر • صلاة • قبلة • مناسك', textDirection: TextDirection.rtl,
+                                        style: TextStyle(color: Color(0xFFD9E7E0), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(.13),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: Colors.white.withOpacity(.10)),
+                                        ),
+                                        child: Row(
+                                          textDirection: TextDirection.rtl,
+                                          children: [
+                                            Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: BoxDecoration(
+                                                color: _gold,
+                                                borderRadius: BorderRadius.circular(14),
+                                              ),
+                                              child: const Icon(Icons.menu_book_rounded, color: _deepGreen, size: 24),
                                             ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(.08),
-                                              borderRadius: BorderRadius.circular(15),
-                                              border: Border.all(color: Colors.white.withOpacity(.13)),
+                                            const SizedBox(width: 11),
+                                            const Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                children: [
+                                                  Text('وردك الحالي', textDirection: TextDirection.rtl,
+                                                    style: TextStyle(color: Color(0xFFB9C9C2), fontSize: 10.5, fontWeight: FontWeight.w700)),
+                                                  SizedBox(height: 2),
+                                                  Text('سورة المزمل • الآية 4', textDirection: TextDirection.rtl,
+                                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900)),
+                                                ],
+                                              ),
                                             ),
-                                            child: const Text('سورة المزمل • 4', textDirection: TextDirection.rtl,
-                                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 10),
+                                            FilledButton(
+                                              onPressed: () => _open(context, const QuranPage()),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: _gold,
+                                                foregroundColor: _deepGreen,
+                                                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              ),
+                                              child: const Text('ابدأ التلاوة', style: TextStyle(fontWeight: FontWeight.w900)),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -438,7 +472,8 @@ class HomeContent extends StatelessWidget {
                           _AbbasidFeatureCard(icon: Icons.auto_awesome_rounded, title: 'الأدعية', subtitle: 'أدعية مختارة', onTap: () => _open(context, const DuasPage())),
                           _AbbasidFeatureCard(icon: Icons.access_time_filled_rounded, title: 'مواقيت الصلاة', subtitle: 'حسب موقعك', onTap: () => _open(context, const PrayerTimesPage())),
                           _AbbasidFeatureCard(icon: Icons.explore_rounded, title: 'القبلة', subtitle: 'اتجاه القبلة بالبوصلة', onTap: () => _open(context, const QiblaPage())),
-                          _AbbasidFeatureCard(icon: Icons.mosque_rounded, title: 'مناسك الحج', subtitle: 'دليل تفاعلي مصوّر', onTap: () => _open(context, const HajjGuidePage()), gold: true),
+                          _AbbasidFeatureCard(icon: Icons.mosque_rounded, title: 'مناسك الحج', subtitle: 'دليل واسع وتفاعلي', onTap: () => _open(context, const HajjGuidePage()), gold: true),
+                          _AbbasidFeatureCard(icon: Icons.download_rounded, title: 'التنزيلات', subtitle: 'الأصوات المحفوظة أوفلاين', onTap: () => _open(context, const DownloadsPage())),
                           _AbbasidFeatureCard(icon: Icons.touch_app_rounded, title: 'التسبيح', subtitle: 'عداد إلكتروني', onTap: () => _open(context, const TasbihPage())),
                           _AbbasidFeatureCard(icon: Icons.library_books_rounded, title: 'المكتبة', subtitle: 'كل محتوى نور القرآن', onTap: () => _open(context, const LibraryPage())),
                         ]),
@@ -4466,50 +4501,77 @@ class DuasPage extends StatelessWidget {
   const DuasPage({super.key});
 
   static const List<Map<String, String>> duas = [
-    {'title': 'دعاء ربنا آتنا', 'text': 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ.'},
-    {'title': 'دعاء الهداية', 'text': 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ.'},
-    {'title': 'دعاء العلم', 'text': 'رَبِّ زِدْنِي عِلْمًا.'},
-    {'title': 'دعاء الوالدين', 'text': 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا.'},
-    {'title': 'دعاء التيسير', 'text': 'رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي.'},
-    {'title': 'دعاء المغفرة', 'text': 'رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا الَّذِينَ سَبَقُونَا بِالْإِيمَانِ.'},
-    {'title': 'دعاء الثبات', 'text': 'يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ.'},
+    {'title': 'دعاء قبول العمل', 'text': 'رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنْتَ السَّمِيعُ الْعَلِيمُ', 'source': 'البقرة: 127'},
+    {'title': 'دعاء إتمام الطاعة والتوبة', 'text': 'رَبَّنَا وَاجْعَلْنَا مُسْلِمَيْنِ لَكَ وَمِنْ ذُرِّيَّتِنَا أُمَّةً مُسْلِمَةً لَكَ وَأَرِنَا مَنَاسِكَنَا وَتُبْ عَلَيْنَا إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ', 'source': 'البقرة: 128'},
+    {'title': 'دعاء خير الدنيا والآخرة', 'text': 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ', 'source': 'البقرة: 201'},
+    {'title': 'دعاء الثبات', 'text': 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ', 'source': 'آل عمران: 8'},
+    {'title': 'دعاء المغفرة والتقصير', 'text': 'رَبَّنَا اغْفِرْ لَنَا ذُنُوبَنَا وَإِسْرَافَنَا فِي أَمْرِنَا وَثَبِّتْ أَقْدَامَنَا وَانْصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ', 'source': 'آل عمران: 147'},
+    {'title': 'دعاء تفريج الكرب', 'text': 'لَا إِلَهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ', 'source': 'الأنبياء: 87'},
+    {'title': 'دعاء الشكر والعمل الصالح', 'text': 'رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ الَّتِي أَنْعَمْتَ عَلَيَّ وَعَلَى وَالِدَيَّ وَأَنْ أَعْمَلَ صَالِحًا تَرْضَاهُ وَأَصْلِحْ لِي فِي ذُرِّيَّتِي إِنِّي تُبْتُ إِلَيْكَ وَإِنِّي مِنَ الْمُسْلِمِينَ', 'source': 'الأحقاف: 15'},
+    {'title': 'دعاء الوالدين', 'text': 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا', 'source': 'الإسراء: 24'},
+    {'title': 'دعاء إقامة الصلاة', 'text': 'رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِنْ ذُرِّيَّتِي رَبَّنَا وَتَقَبَّلْ دُعَاءِ. رَبَّنَا اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ يَوْمَ يَقُومُ الْحِسَابُ', 'source': 'إبراهيم: 40-41'},
+    {'title': 'دعاء العلم', 'text': 'رَبِّ زِدْنِي عِلْمًا', 'source': 'طه: 114'},
+    {'title': 'دعاء التيسير', 'text': 'رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي، وَاحْلُلْ عُقْدَةً مِنْ لِسَانِي، يَفْقَهُوا قَوْلِي', 'source': 'طه: 25-28'},
+    {'title': 'دعاء الحاجة والفضل', 'text': 'رَبِّ إِنِّي لِمَا أَنْزَلْتَ إِلَيَّ مِنْ خَيْرٍ فَقِيرٌ', 'source': 'القصص: 24'},
+    {'title': 'دعاء النجاة والمغفرة', 'text': 'رَبَّنَا ظَلَمْنَا أَنْفُسَنَا وَإِنْ لَمْ تَغْفِرْ لَنَا وَتَرْحَمْنَا لَنَكُونَنَّ مِنَ الْخَاسِرِينَ', 'source': 'الأعراف: 23'},
+    {'title': 'دعاء الصبر والثبات', 'text': 'رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَتَوَفَّنَا مُسْلِمِينَ', 'source': 'الأعراف: 126'},
+    {'title': 'دعاء طلب الذرية الصالحة', 'text': 'رَبِّ هَبْ لِي مِنْ لَدُنْكَ ذُرِّيَّةً طَيِّبَةً إِنَّكَ سَمِيعُ الدُّعَاءِ', 'source': 'آل عمران: 38'},
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الأدعية'), centerTitle: true),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: duas.length,
-        itemBuilder: (_, index) {
-          final dua = duas[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(dua['title']!, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 10),
-                  Text(dua['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, height: 1.9)),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      tooltip: 'نسخ الدعاء',
-                      icon: const Icon(Icons.copy),
-                      onPressed: () async {
-                        await Clipboard.setData(ClipboardData(text: dua['text']!));
-                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ الدعاء')));
-                      },
-                    ),
-                  ),
-                ],
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(title: const Text('أدعية من القرآن الكريم', style: TextStyle(fontWeight: FontWeight.w900)), centerTitle: true),
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF123D32), Color(0xFF0C2C24)]),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFD4B36A).withOpacity(.55)),
               ),
+              child: const Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text('أدعية مأثورة من كتاب الله', textAlign: TextAlign.right, style: TextStyle(color: Color(0xFFD4B36A), fontSize: 20, fontWeight: FontWeight.w900)),
+                SizedBox(height: 7),
+                Text('نصوص الدعاء هنا من القرآن الكريم، مع ذكر موضع الآية. يمكن نسخ الدعاء ومشاركته بسهولة.', textAlign: TextAlign.right, style: TextStyle(color: Color(0xFFE5ECE8), height: 1.7, fontSize: 12.5)),
+              ]),
             ),
-          );
-        },
+            const SizedBox(height: 12),
+            for (final dua in duas)
+              Card(
+                margin: const EdgeInsets.only(bottom: 11),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21), side: BorderSide(color: const Color(0xFFD4B36A).withOpacity(.30))),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 15, 16, 11),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Row(children: [
+                      Expanded(child: Text(dua['title']!, style: const TextStyle(color: Color(0xFF173F35), fontWeight: FontWeight.w900, fontSize: 15))),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: const Color(0xFFEAF1EC), borderRadius: BorderRadius.circular(12)), child: Text(dua['source']!, style: const TextStyle(color: Color(0xFF4B675C), fontSize: 10, fontWeight: FontWeight.w800))),
+                    ]),
+                    const SizedBox(height: 12),
+                    Text(dua['text']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, height: 2.0, fontWeight: FontWeight.w700, color: Color(0xFF28352F))),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        tooltip: 'نسخ الدعاء',
+                        icon: const Icon(Icons.copy_rounded),
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: '${dua['text']}\n(${dua['source']})'));
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ الدعاء')));
+                        },
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -5458,6 +5520,129 @@ class _TasbihPageState extends State<TasbihPage> {
   }
 }
 
+class DownloadsPage extends StatefulWidget {
+  const DownloadsPage({super.key});
+
+  @override
+  State<DownloadsPage> createState() => _DownloadsPageState();
+}
+
+class _DownloadsPageState extends State<DownloadsPage> {
+  bool loading = true;
+  List<File> files = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => loading = true);
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final list = dir
+          .listSync()
+          .whereType<File>()
+          .where((f) => RegExp(r'^noor_quran_\d+_\d+\.mp3$').hasMatch(f.uri.pathSegments.last))
+          .toList()
+        ..sort((a, b) => a.uri.pathSegments.last.compareTo(b.uri.pathSegments.last));
+      if (mounted) setState(() { files = list; loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { files = []; loading = false; });
+    }
+  }
+
+  Map<String, int>? _parse(File file) {
+    final name = file.uri.pathSegments.last.replaceFirst('noor_quran_', '').replaceFirst('.mp3', '');
+    final parts = name.split('_');
+    if (parts.length != 2) return null;
+    final surah = int.tryParse(parts[0]);
+    final read = int.tryParse(parts[1]);
+    if (surah == null || read == null) return null;
+    return {'surah': surah, 'read': read};
+  }
+
+  Future<void> _delete(File file) async {
+    await file.delete();
+    await _load();
+  }
+
+  String _size(File file) {
+    try {
+      final mb = file.lengthSync() / (1024 * 1024);
+      return '${mb.toStringAsFixed(mb < 10 ? 1 : 0)} MB';
+    } catch (_) { return 'ملف صوتي'; }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(
+        title: const Text('التنزيلات', style: TextStyle(fontWeight: FontWeight.w900)),
+        centerTitle: true,
+        actions: [IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded), tooltip: 'تحديث')],
+      ),
+      body: Directionality(
+        textDirection: TextDirection.rtl,
+        child: loading
+            ? const Center(child: CircularProgressIndicator())
+            : files.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Container(width: 82, height: 82, decoration: BoxDecoration(color: const Color(0xFFE7EEE9), borderRadius: BorderRadius.circular(26)), child: const Icon(Icons.download_for_offline_rounded, size: 43, color: Color(0xFF173F35))),
+                        const SizedBox(height: 16),
+                        const Text('لا توجد تنزيلات بعد', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF173F35))),
+                        const SizedBox(height: 7),
+                        const Text('عند تنزيل صوت أي سورة من شاشة القراء، ستظهر هنا ويمكنك إدارتها بدون إنترنت.', textAlign: TextAlign.center, style: TextStyle(height: 1.7, color: Color(0xFF6C756F))),
+                      ]),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
+                      itemCount: files.length,
+                      itemBuilder: (_, i) {
+                        final file = files[i];
+                        final parsed = _parse(file);
+                        final surah = parsed?['surah'];
+                        final read = parsed?['read'];
+                        final title = surah != null && surah >= 1 && surah <= surahNames.length ? surahNames[surah - 1] : 'سورة غير معروفة';
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(19), side: BorderSide(color: const Color(0xFFD4B36A).withOpacity(.28))),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                            leading: Container(width: 46, height: 46, decoration: BoxDecoration(color: const Color(0xFF173F35), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.audiotrack_rounded, color: Color(0xFFD4B36A))),
+                            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                            subtitle: Text('القارئ رقم ${read ?? '-'} • ${_size(file)} • محفوظ بدون إنترنت'),
+                            trailing: IconButton(
+                              tooltip: 'حذف التنزيل',
+                              icon: const Icon(Icons.delete_outline_rounded),
+                              onPressed: () async {
+                                final ok = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+                                  title: const Text('حذف التنزيل'),
+                                  content: Text('هل تريد حذف صوت سورة $title من الجهاز؟'),
+                                  actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حذف'))],
+                                ));
+                                if (ok == true) await _delete(file);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+      ),
+    );
+  }
+}
+
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
 
@@ -5477,7 +5662,8 @@ class LibraryPage extends StatelessWidget {
           Card(child: ListTile(leading: const Icon(Icons.auto_awesome, size: 35), title: const Text('الأدعية', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('أدعية مختارة', textDirection: TextDirection.rtl), onTap: () => _open(context, const DuasPage()))),
           Card(child: ListTile(leading: const Icon(Icons.access_time_filled, size: 35), title: const Text('مواقيت الصلاة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('اختر مدينتك', textDirection: TextDirection.rtl), onTap: () => _open(context, const PrayerTimesPage()))),
           Card(child: ListTile(leading: const Icon(Icons.explore, size: 35), title: const Text('القبلة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const QiblaPage()))),
-          Card(child: ListTile(leading: const Icon(Icons.mosque_rounded, size: 35), title: const Text('مناسك الحج', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('دليل تفاعلي مصوّر', textDirection: TextDirection.rtl), onTap: () => _open(context, const HajjGuidePage()))),
+          Card(child: ListTile(leading: const Icon(Icons.mosque_rounded, size: 35), title: const Text('مناسك الحج والعمرة', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('دليل واسع خطوة بخطوة', textDirection: TextDirection.rtl), onTap: () => _open(context, const HajjGuidePage()))),
+          Card(child: ListTile(leading: const Icon(Icons.download_rounded, size: 35), title: const Text('التنزيلات', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('إدارة السور الصوتية المحفوظة بدون إنترنت', textDirection: TextDirection.rtl), onTap: () => _open(context, const DownloadsPage()))),
           Card(child: ListTile(leading: const Icon(Icons.touch_app, size: 35), title: const Text('التسبيح الإلكتروني', textDirection: TextDirection.rtl, style: TextStyle(fontWeight: FontWeight.bold)), onTap: () => _open(context, const TasbihPage()))),
         ],
       ),
@@ -5494,61 +5680,83 @@ class HajjGuidePage extends StatefulWidget {
 }
 
 class _HajjGuidePageState extends State<HajjGuidePage> {
+  bool isUmrah = false;
   int step = 0;
   int counter = 0;
 
-  static const steps = <_HajjStep>[ 
-    _HajjStep('الإحرام', 'الاستعداد والإحرام والنية والتلبية حسب النسك.', Icons.checkroom_rounded, 'الإحرام'),
-    _HajjStep('الطواف', 'الطواف حول الكعبة سبعة أشواط، مع استحضار الخشوع والدعاء بما تيسر.', Icons.sync_rounded, 'الطواف'),
-    _HajjStep('السعي', 'السعي بين الصفا والمروة سبعة أشواط، يبدأ بالصفا وينتهي بالمروة.', Icons.swap_horiz_rounded, 'السعي'),
-    _HajjStep('عرفة', 'الوقوف بعرفة في وقته المشروع، وهو أعظم أركان الحج.', Icons.landscape_rounded, 'عرفة'),
-    _HajjStep('مزدلفة', 'بعد الإفاضة من عرفة يبيت الحاج بمزدلفة ويذكر الله ويستعد للرمي.', Icons.nightlight_round, 'مزدلفة'),
-    _HajjStep('رمي الجمرات', 'رمي الجمرات وفق النسك والوقت المشروع، مع الالتزام بالتنظيم والسلامة.', Icons.adjust_rounded, 'الجمرات'),
-    _HajjStep('الحلق أو التقصير', 'بعد إتمام ما يلزم من أعمال النسك يحلق الرجل أو يقصر، والمرأة تقصر من شعرها.', Icons.content_cut_rounded, 'الحلق والتقصير'),
-    _HajjStep('طواف الإفاضة', 'طواف الإفاضة من أعمال الحج، ويؤدى في الوقت المشروع وفق أحكام النسك.', Icons.circle_outlined, 'الإفاضة'),
-    _HajjStep('طواف الوداع', 'طواف الوداع يكون عند مغادرة مكة لمن يلزمه، مع مراعاة أحكام النسك.', Icons.logout_rounded, 'الوداع'),
+  static const hajjSteps = <_HajjStep>[
+    _HajjStep('الإحرام والنية', 'الإحرام ليس مجرد لباس؛ بل دخول في النسك بنيةٍ صحيحة والتزامٍ بأحكامه. يبدأ الحاج من الميقات الذي يمر به بحسب طريقه، فيغتسل ويتطيب قبل الإحرام إن تيسر، ثم يلبس ما يناسب أحكام إحرامه وينوي النسك ويلبي.', ['تحديد نوع النسك قبل الإحرام: تمتع أو قران أو إفراد بحسب ما يختاره الحاج وما يوافق الفتوى التي يتبعها.', 'الإحرام من الميقات المحدد للطريق، وعدم تجاوز الميقات بلا إحرام لمن أراد النسك.', 'الإكثار من التلبية والذكر، والابتعاد عن محظورات الإحرام.', 'المرأة تحرم في لباسها الساتر المعتاد، مع مراعاة أحكام النقاب والقفازين أثناء الإحرام وفق الفتوى المعتبرة.'], 'الإحرام', Icons.checkroom_rounded),
+    _HajjStep('دخول مكة والطواف', 'بعد الوصول إلى المسجد الحرام يبدأ الحاج بما شرعه الله له من أعمال النسك. والطواف سبعة أشواط حول الكعبة، يبدأ كل شوط من جهة الحجر الأسود وينتهي إليها، مع المحافظة على الخشوع وعدم إيذاء الناس.', ['الطواف سبعة أشواط كاملة.', 'جعل الكعبة عن اليسار أثناء الطواف.', 'الدعاء والذكر بما تيسر دون التزام دعاء مخصوص لكل شوط.', 'المحافظة على الطهارة وستر العورة، ومراعاة الزحام وعدم التدافع.', 'يُسن عند محاذاة الحجر الأسود استلامه أو الإشارة إليه عند العجز عن الوصول إليه دون أذية.'], 'الطواف', Icons.sync_rounded),
+    _HajjStep('الصلاة بعد الطواف والسعي', 'بعد الطواف يصلي الحاج ركعتين إن تيسر ذلك من غير أذية ولا مزاحمة، ثم يتجه إلى المسعى لأداء السعي في موضعه من النسك.', ['لا تجعل الصلاة خلف مقام إبراهيم سببًا في تعطيل حركة الناس؛ صلِّ حيث يتيسر في المسجد.', 'بعد الطواف اشرب من زمزم إن تيسر، ثم توجه إلى السعي.', 'يبدأ السعي من الصفا وينتهي بالمروة، وليس العكس.'], 'الطواف', Icons.mosque_rounded),
+    _HajjStep('السعي بين الصفا والمروة', 'السعي سبعة أشواط: من الصفا إلى المروة شوط، ومن المروة إلى الصفا شوط آخر. يبدأ بالصفا وينتهي بالمروة. وفي المسار توجد العلامات التي تبين موضع الإسراع للرجال في الموضع المعروف.', ['عند الصفا يستقبل الحاج القبلة ويذكر الله ويدعو بما تيسر.', 'يمشي حتى المروة، وهذا هو الشوط الأول، ثم يعود إلى الصفا للشوط الثاني.', 'يكمل سبعة أشواط، وآخرها يكون عند المروة.', 'المرأة تمشي مشيًا معتادًا ولا تشرع لها هيئة الإسراع الخاصة بالرجال.', 'لا يوجد دعاء ملزم لكل شوط؛ الدعاء بما تيسر مشروع.'], 'السعي', Icons.swap_horiz_rounded),
+    _HajjStep('يوم عرفة', 'الوقوف بعرفة هو أعظم أركان الحج. يكون الحاج في عرفة في الوقت المشروع، فيكثر من التوحيد والدعاء والذكر والتوبة، ويحافظ على وقته فيما ينفعه.', ['الوقوف بعرفة يكون في اليوم التاسع من ذي الحجة وفي الوقت المعتبر شرعًا.', 'الإكثار من الدعاء والاستغفار والتوحيد والصلاة على النبي ﷺ.', 'الحرص على الراحة وشرب الماء وتجنب التعرض المفرط للحرارة.', 'عدم الانشغال بالتصوير أو الجدال على حساب العبادة والسكينة.', 'من فاته الوقوف بعرفة فقد فاته الحج؛ لذلك يجب الالتزام بتعليمات الحملات والجهات المنظمة.'], 'عرفة', Icons.landscape_rounded),
+    _HajjStep('المبيت بمزدلفة', 'بعد الإفاضة من عرفة يتوجه الحاج إلى مزدلفة، ويذكر الله ويبيت فيها بحسب ما تقتضيه أحكام النسك والرخص الشرعية. يجمع الحاج بين الذكر والراحة والاستعداد لأعمال يوم النحر.', ['الالتزام بتوجيهات التفويج والنقل وعدم تعريض النفس أو الآخرين للخطر.', 'جمع الحصى للرمي من المواضع المباحة، مع عدم التكلف في اختيار حجم معين ما دام ضمن القدر المشروع.', 'الإكثار من الذكر والاستغفار والدعاء.', 'الاستفادة من الرخص الشرعية لمن له عذر وفق فتوى موثوقة.'], 'مزدلفة', Icons.nightlight_round),
+    _HajjStep('يوم النحر ورمي جمرة العقبة', 'يوم النحر يوم عظيم تتعدد فيه أعمال الحج. من أهمها رمي جمرة العقبة، ثم ما يتبع ذلك من أعمال الهدي والحلق أو التقصير وطواف الإفاضة بحسب ترتيب النسك وحال الحاج.', ['رمي جمرة العقبة بسبع حصيات، واحدة بعد أخرى.', 'التقيد بالوقت والتنظيم الرسمي للرمي وعدم التدافع.', 'لا يشرع إيذاء الجمرة أو ضربها؛ المقصود إسقاط الحصاة في الحوض بالطريقة المعتبرة.', 'بعد الرمي يكمل الحاج بقية أعمال يوم النحر وفق نوع نسكه.'], 'الجمرات', Icons.adjust_rounded),
+    _HajjStep('الحلق أو التقصير', 'الحلق أو التقصير من أعمال التحلل. للرجل الحلق أو التقصير، والحلق أفضل عند كثير من أهل العلم، والمرأة تقصر من شعرها بالقدر المشروع ولا تحلقه.', ['الرجل يحلق أو يقصر شعر الرأس.', 'المرأة تقصر من أطراف شعرها ولا تحلق.', 'ترتيب الأعمال قد يختلف في بعض الصور، ولذلك ينبغي اتباع ترتيب النسك والفتوى المعتبرة.', 'بعد التحلل الأول تتغير بعض أحكام الإحرام، ويبقى ما يتعلق بالتحلل الكامل حتى استكمال الأعمال اللازمة.'], 'الحلق والتقصير', Icons.content_cut_rounded),
+    _HajjStep('طواف الإفاضة', 'طواف الإفاضة من أركان الحج، ويؤدى بعد عرفة وما يتصل بها من أعمال يوم النحر في الوقت المشروع. لا ينبغي الاستعجال بطريقة تؤدي إلى أذية الناس أو ترك ركن.', ['الطواف سبعة أشواط.', 'يُراعى فيه ما يراعى في الطواف من ستر العورة والطهارة بحسب الحكم الشرعي المتبع.', 'بعد طواف الإفاضة يؤدي الحاج ما يلزمه من سعي إذا كان السعي باقيًا عليه بحسب نوع نسكه.', 'العودة إلى منى وأيام التشريق تكون وفق برنامج الحملة والتعليمات المنظمة.'], 'الإفاضة', Icons.circle_outlined),
+    _HajjStep('أيام التشريق والرمي', 'يقضي الحاج أيام التشريق في منى لمن لزمه ذلك، ويرمي الجمرات في الأيام المقررة وفق النسك والوقت الشرعي. المقصود أداء العبادة بسكينة والتزام التنظيم.', ['رمي الجمرات الثلاث في الأيام التي يشرع فيها الرمي، بحسب أحكام النسك.', 'كل جمرة ترمى بسبع حصيات، واحدة بعد أخرى.', 'يستحب الدعاء بعد الجمرة الصغرى والوسطى في الموضع الذي يتيسر فيه دون أذية، ولا يطول بما يعرقل حركة الناس.', 'الجمرة الكبرى لا يقف عندها للدعاء على الصورة نفسها بعد الرمي.', 'الالتزام بتعليمات التفويج ومواعيد الحملة أمر مهم للسلامة.'], 'الجمرات', Icons.stacked_bar_chart_rounded),
+    _HajjStep('طواف الوداع', 'عند إرادة مغادرة مكة بعد إتمام الحج، يطوف الحاج طواف الوداع لمن يلزمه، ثم يغادر، مع مراعاة أحكام الحيض والنفاس وسائر الأعذار التي لها أحكام خاصة.', ['الوداع يكون من آخر أعمال الحاج في مكة عند المغادرة.', 'إذا احتاج الحاج إلى أمر عارض بعد الطواف فلا يلزمه إعادة الطواف لمجرد كل حركة يسيرة، وتفاصيل ذلك تُرجع إلى المفتي عند الحاجة.', 'من كانت لها عذر شرعي خاص تسأل أهل العلم عن الحكم الخاص بها.', 'لا تجعل الوداع سباقًا أو موضع تدافع؛ المقصود العبادة والسكينة.'], 'الوداع', Icons.logout_rounded),
   ];
 
-  void _next() {
-    if (step < steps.length - 1) setState(() { step++; counter = 0; });
-  }
+  static const umrahSteps = <_HajjStep>[
+    _HajjStep('الإحرام من الميقات', 'يبدأ المعتمر الإحرام من الميقات المناسب لطريقه، ثم ينوي العمرة ويلبي، ويدخل في أحكام الإحرام حتى يتم نسكه.', ['الاغتسال والتنظف والتطيب قبل الإحرام إن تيسر.', 'لبس ما يوافق أحكام الإحرام ثم النية والتلبية.', 'تجنب محظورات الإحرام حتى نهاية النسك.', 'المرأة تحرم في لباسها الساتر المعتاد مع مراعاة الأحكام الشرعية الخاصة بالنقاب والقفازين.'], 'الإحرام', Icons.checkroom_rounded),
+    _HajjStep('الطواف', 'يطوف المعتمر حول الكعبة سبعة أشواط، يبدأ من جهة الحجر الأسود وينتهي إليها، ويجعل الكعبة عن يساره.', ['سبعة أشواط كاملة.', 'الذكر والدعاء بما تيسر دون تخصيص دعاء ثابت لكل شوط.', 'تجنب التدافع ورفع الصوت وإيذاء الطائفين.', 'استلام الحجر أو الإشارة إليه عند القدرة دون مزاحمة أو أذية.'], 'الطواف', Icons.sync_rounded),
+    _HajjStep('السعي', 'بعد الطواف يسعى المعتمر بين الصفا والمروة سبعة أشواط، يبدأ بالصفا وينتهي بالمروة.', ['الشوط من الصفا إلى المروة واحد، والعودة شوط ثانٍ.', 'الدعاء والذكر بما تيسر.', 'الرجال يسرعون في الموضع المعروف بين العلامتين، والنساء يمشين مشيًا معتادًا.', 'إكمال سبعة أشواط كاملة.'], 'السعي', Icons.swap_horiz_rounded),
+    _HajjStep('الحلق أو التقصير', 'بعد السعي يتحلل المعتمر بالحلق أو التقصير للرجل، وبالتقصير للمرأة، وبذلك تتم العمرة.', ['الرجل يحلق أو يقصر، والحلق أفضل عند كثير من أهل العلم.', 'المرأة تقصر من شعرها ولا تحلق.', 'بعد إتمام التحلل تنتهي أحكام الإحرام الخاصة بالعمرة.'], 'الحلق والتقصير', Icons.content_cut_rounded),
+  ];
 
-  void _previous() {
-    if (step > 0) setState(() { step--; counter = 0; });
-  }
+  List<_HajjStep> get steps => isUmrah ? umrahSteps : hajjSteps;
+
+  void _selectStep(int value) => setState(() { step = value; counter = 0; });
+  void _next() { if (step < steps.length - 1) setState(() { step++; counter = 0; }); }
+  void _previous() { if (step > 0) setState(() { step--; counter = 0; }); }
 
   @override
   Widget build(BuildContext context) {
     final current = steps[step];
-    final isTawaf = current.visual == 'الطواف';
+    final isTawaf = current.visual == 'الطواف' || current.visual == 'الإفاضة' || current.visual == 'الوداع';
     final isSai = current.visual == 'السعي';
     final isJamarat = current.visual == 'الجمرات';
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EC),
-      appBar: AppBar(title: const Text('مناسك الحج والعمرة', style: TextStyle(fontWeight: FontWeight.w800))),
+      appBar: AppBar(title: const Text('مناسك الحج والعمرة', style: TextStyle(fontWeight: FontWeight.w900)), centerTitle: true),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 30),
           children: [
-            Card(
-              elevation: 0,
-              color: const Color(0xFFEDE7D7),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(children: [
-                  const Icon(Icons.mosque_rounded, size: 40, color: Color(0xFF7A5A2D)),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF123D32), Color(0xFF0C2D25)]),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: const Color(0xFFD4B36A).withOpacity(.55)),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Container(width: 50, height: 50, decoration: BoxDecoration(color: const Color(0xFFD4B36A), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.mosque_rounded, color: Color(0xFF123D32), size: 28)),
                   const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('دليل بصري تفاعلي', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 4),
-                    Text('المرحلة ${step + 1} من ${steps.length}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('دليل المناسك خطوة بخطوة', style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
+                    SizedBox(height: 4),
+                    Text('شرح تعليمي موسع مع نقاط عملية وتذكيرات مهمة', style: TextStyle(color: Color(0xFFD9E6DF), fontSize: 11.5)),
                   ])),
                 ]),
-              ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: ChoiceChip(label: const Text('الحج'), selected: !isUmrah, onSelected: (_) => setState(() { isUmrah = false; step = 0; counter = 0; }), selectedColor: const Color(0xFFD4B36A), labelStyle: TextStyle(color: !isUmrah ? const Color(0xFF123D32) : Colors.white, fontWeight: FontWeight.w900), backgroundColor: Colors.white.withOpacity(.10))),
+                  const SizedBox(width: 10),
+                  Expanded(child: ChoiceChip(label: const Text('العمرة'), selected: isUmrah, onSelected: (_) => setState(() { isUmrah = true; step = 0; counter = 0; }), selectedColor: const Color(0xFFD4B36A), labelStyle: TextStyle(color: isUmrah ? const Color(0xFF123D32) : Colors.white, fontWeight: FontWeight.w900), backgroundColor: Colors.white.withOpacity(.10))),
+                ]),
+              ]),
             ),
             const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: const Color(0xFFFFFCF5), borderRadius: BorderRadius.circular(19), border: Border.all(color: const Color(0xFFE4DCCB))),
+              child: const Text('تنبيه علمي: هذا الدليل تعليمي لتقريب ترتيب الأعمال وشرحها، وليس فتوى شخصية. بعض التفاصيل تختلف باختلاف نوع النسك والقدرة والعذر والمذهب أو الفتوى المعتمدة؛ لذلك تُرجع المسائل الخاصة إلى عالم موثوق أو الجهة الرسمية المنظمة للنسك.', style: TextStyle(height: 1.75, fontSize: 12.5, color: Color(0xFF5F665F))),
+            ),
+            const SizedBox(height: 14),
             SizedBox(
               height: 78,
               child: ListView.separated(
@@ -5556,20 +5764,16 @@ class _HajjGuidePageState extends State<HajjGuidePage> {
                 itemCount: steps.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) => GestureDetector(
-                  onTap: () => setState(() { step = i; counter = 0; }),
+                  onTap: () => _selectStep(i),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
-                    width: 105,
+                    width: 112,
                     padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: i == step ? const Color(0xFF173F35) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: i == step ? const Color(0xFF173F35) : const Color(0xFFE3DDCF)),
-                    ),
+                    decoration: BoxDecoration(color: i == step ? const Color(0xFF173F35) : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: i == step ? const Color(0xFF173F35) : const Color(0xFFE3DDCF))),
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(steps[i].icon, size: 22, color: i == step ? Colors.white : const Color(0xFF7A5A2D)),
+                      Icon(steps[i].icon, size: 21, color: i == step ? const Color(0xFFD4B36A) : const Color(0xFF7A5A2D)),
                       const SizedBox(height: 5),
-                      Text(steps[i].title, textAlign: TextAlign.center, maxLines: 2, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: i == step ? Colors.white : const Color(0xFF173F35))),
+                      Text(steps[i].title, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: i == step ? Colors.white : const Color(0xFF173F35))),
                     ]),
                   ),
                 ),
@@ -5578,51 +5782,60 @@ class _HajjGuidePageState extends State<HajjGuidePage> {
             const SizedBox(height: 14),
             Card(
               clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               child: Column(children: [
-                Container(
-                  height: 250,
-                  width: double.infinity,
-                  color: const Color(0xFFF1ECE0),
-                  child: CustomPaint(painter: _HajjVisualPainter(type: current.visual, progress: counter)),
-                ),
+                SizedBox(height: 250, width: double.infinity, child: CustomPaint(painter: _HajjVisualPainter(type: current.visual, progress: counter))),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    Text(current.title, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: Color(0xFF173F35))),
-                    const SizedBox(height: 8),
-                    Text(current.description, style: const TextStyle(fontSize: 16, height: 1.8)),
+                    Row(children: [
+                      Expanded(child: Text(current.title, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: Color(0xFF173F35)))),
+                      Text('${step + 1} / ${steps.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF7A806E))),
+                    ]),
+                    const SizedBox(height: 10),
+                    Text(current.description, style: const TextStyle(fontSize: 15.5, height: 1.85, color: Color(0xFF303934))),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(color: const Color(0xFFF4F0E6), borderRadius: BorderRadius.circular(18)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        const Text('ما الذي تفعله في هذه المرحلة؟', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF173F35))),
+                        const SizedBox(height: 10),
+                        for (final item in current.details)
+                          Padding(padding: const EdgeInsets.only(bottom: 9), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Padding(padding: EdgeInsets.only(top: 5), child: Icon(Icons.check_circle_rounded, size: 15, color: Color(0xFF5E7B69))),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(item, style: const TextStyle(fontSize: 13, height: 1.7, color: Color(0xFF4A524D)))),
+                          ])),
+                      ]),
+                    ),
                     if (isTawaf || isSai || isJamarat) ...[
                       const SizedBox(height: 16),
                       Row(children: [
-                        Expanded(child: Text(isTawaf ? 'الأشواط: $counter / 7' : isSai ? 'الأشواط: $counter / 7' : 'الرميات المسجلة: $counter', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))),
+                        Expanded(child: Text(isJamarat ? 'الرميات المسجلة: $counter / 7' : 'الأشواط: $counter / 7', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16))),
                         FilledButton.icon(
-                          onPressed: () => setState(() {
-                            final max = isJamarat ? 21 : 7;
-                            if (counter < max) counter++;
-                          }),
+                          onPressed: () => setState(() { final max = isJamarat ? 7 : 7; if (counter < max) counter++; }),
                           icon: const Icon(Icons.add),
                           label: Text(isJamarat ? 'تسجيل رمية' : 'تسجيل شوط'),
                         ),
                       ]),
-                      if ((isTawaf || isSai) && counter >= 7) const Padding(padding: EdgeInsets.only(top: 10), child: Text('اكتمل العداد التفاعلي ✓', style: TextStyle(color: Color(0xFF47734A), fontWeight: FontWeight.w900))),
+                      if (counter >= 7) const Padding(padding: EdgeInsets.only(top: 9), child: Text('اكتمل العداد التفاعلي ✓', style: TextStyle(color: Color(0xFF47734A), fontWeight: FontWeight.w900))),
                     ],
                   ]),
                 ),
               ]),
             ),
             const SizedBox(height: 14),
-            Card(
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  const Text('تنبيه مهم', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                  const SizedBox(height: 7),
-                  const Text('هذا القسم تعليمي لتوضيح ترتيب المناسك، ولا يغني عن الرجوع إلى أحكام النسك الموثوقة عند أداء الحج أو العمرة.', style: TextStyle(height: 1.6)),
-                ]),
-              ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFFEAF1EC), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFB9CDBF))),
+              child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.info_outline_rounded, color: Color(0xFF173F35)),
+                SizedBox(width: 10),
+                Expanded(child: Text('لا توجد أدعية ثابتة خاصة بكل شوط من الطواف أو السعي. ادعُ الله بما تيسر من خيري الدنيا والآخرة، ومن الأدعية القرآنية الموجودة في قسم الأدعية داخل التطبيق.', style: TextStyle(height: 1.7, fontSize: 12.5, color: Color(0xFF3F5048)))),
+              ]),
             ),
+            const SizedBox(height: 14),
             Row(children: [
               Expanded(child: OutlinedButton.icon(onPressed: step == 0 ? null : _previous, icon: const Icon(Icons.arrow_back), label: const Text('السابق'))),
               const SizedBox(width: 10),
@@ -5638,9 +5851,10 @@ class _HajjGuidePageState extends State<HajjGuidePage> {
 class _HajjStep {
   final String title;
   final String description;
-  final IconData icon;
+  final List<String> details;
   final String visual;
-  const _HajjStep(this.title, this.description, this.icon, this.visual);
+  final IconData icon;
+  const _HajjStep(this.title, this.description, this.details, this.visual, this.icon);
 }
 
 class _HajjVisualPainter extends CustomPainter {
