@@ -758,7 +758,7 @@ class _QuranPageState extends State<QuranPage> {
 
                         return Material(
                           color: const Color(0xFFFFFCF5),
-                          borderRadius: BorderRadius.circular(isLandscape ? 0 : 18),
+                          borderRadius: BorderRadius.circular(18),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(18),
                             onTap: () => _openSurah(index),
