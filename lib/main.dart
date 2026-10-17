@@ -39,93 +39,87 @@ Future<void> main() async {
   runApp(const NoorAlQuranApp());
 
   // رسالة ترحيبية صوتية عند أول تشغيل للتطبيق.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    Future<void>.delayed(const Duration(milliseconds: 500), _playWelcomeVoiceOnce);
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    // نحاول بعد اكتمال الواجهة، وإذا كان محرك النطق ما زال قيد التهيئة نعيد المحاولة.
+    await Future<void>.delayed(const Duration(seconds: 1));
+    var played = await _playWelcomeVoiceOnce();
+    if (!played) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      played = await _playWelcomeVoiceOnce();
+    }
+    if (!played) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      await _playWelcomeVoiceOnce();
+    }
   });
 }
 
-Future<void> _playWelcomeVoiceOnce() async {
-  await _speakWelcomeVoice(force: false);
+Future<bool> _playWelcomeVoiceOnce() async {
+  return _speakWelcomeVoice(force: false);
 }
 
-Future<void> _speakWelcomeVoice({bool force = false}) async {
+Future<bool> _speakWelcomeVoice({bool force = false}) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    if (!force && prefs.getBool('noor_welcome_voice_played_v4') == true) return;
-
-    // نعطي الواجهة ومحرك الصوت وقتًا كافيًا حتى لا تضيع أول كلمة على iOS.
+    if (!force && prefs.getBool('noor_welcome_voice_played_v5') == true) return true;
     await Future<void>.delayed(const Duration(seconds: 2));
-
     final tts = FlutterTts();
-    try {
-      if (!kIsWeb && Platform.isIOS) {
+    if (!kIsWeb && Platform.isIOS) {
+      try {
         await tts.setSharedInstance(true);
         await tts.setIosAudioCategory(
           IosTextToSpeechAudioCategory.playback,
-          [IosTextToSpeechAudioCategoryOptions.mixWithOthers],
+          [IosTextToSpeechAudioCategoryOptions.duckOthers],
           IosTextToSpeechAudioMode.voicePrompt,
         );
-      }
-    } catch (_) {}
-
-    try {
-      await tts.stop();
-    } catch (_) {}
-
+      } catch (_) {}
+    }
+    try { await tts.stop(); } catch (_) {}
     String language = 'ar-SA';
     try {
       final available = await tts.getLanguages;
-      final languages = available is List
-          ? available.map((e) => e.toString()).toList()
-          : <String>[];
+      final languages = available is List ? available.map((e) => e.toString()).toList() : <String>[];
       final candidates = <String>['ar-SA', 'ar-IQ', 'ar', 'ar-EG', 'ar-AE'];
-      for (final candidate in candidates) {
-        if (languages.contains(candidate)) {
-          language = candidate;
-          break;
+      language = candidates.firstWhere(
+        (candidate) => languages.contains(candidate),
+        orElse: () => languages.firstWhere((e) => e.toLowerCase().startsWith('ar'), orElse: () => 'ar-SA'),
+      );
+    } catch (_) {}
+    await tts.setLanguage(language);
+    // على iOS نختار صوتًا عربيًا صريحًا إن كان متوفرًا بدل الاعتماد على الصوت الافتراضي.
+    try {
+      final voices = await tts.getVoices;
+      if (voices is List) {
+        final arabicVoice = voices.cast<dynamic>().firstWhere(
+          (voice) => voice is Map && '${voice['locale'] ?? ''}'.toLowerCase().startsWith('ar'),
+          orElse: () => null,
+        );
+        if (arabicVoice is Map) {
+          final name = arabicVoice['name']?.toString();
+          final locale = arabicVoice['locale']?.toString();
+          if (name != null && name.isNotEmpty && locale != null && locale.isNotEmpty) {
+            await tts.setVoice({'name': name, 'locale': locale});
+          }
         }
       }
-      if (!languages.contains(language)) {
-        final arabic = languages
-            .where((e) => e.toLowerCase().startsWith('ar'))
-            .toList();
-        if (arabic.isNotEmpty) language = arabic.first;
-      }
     } catch (_) {}
-
-    try {
-      await tts.setLanguage(language);
-      await tts.setSpeechRate(0.40);
-      await tts.setPitch(0.95);
-      await tts.setVolume(1.0);
-      await tts.awaitSpeakCompletion(true);
-    } catch (_) {}
-
+    await tts.setSpeechRate(0.38);
+    await tts.setPitch(0.95);
+    await tts.setVolume(1.0);
+    await tts.awaitSpeakCompletion(true);
     const welcomeMessage =
         'السلام عليكم ورحمة الله وبركاته. أهلاً وسهلاً بكم في نور القرآن. '
         'اجعل القرآن رفيق يومك، واقرأ ورتّل القرآن ترتيلاً. '
         'نسأل الله أن يجعل هذا التطبيق نوراً في قلوبكم وحياتكم.';
-
     dynamic result;
-    try {
-      result = await tts.speak(welcomeMessage);
-    } catch (_) {
-      result = null;
-    }
-
-    // لا نعتبر الرسالة منتهية إلا إذا قبلها محرك النطق. وإذا لم يقبلها، نجرب مرة ثانية.
+    try { result = await tts.speak(welcomeMessage); } catch (_) { result = null; }
     final accepted = result == 1 || result == '1' || result == true;
-    if (!accepted) {
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-      try {
-        result = await tts.speak(welcomeMessage);
-      } catch (_) {}
-    }
-
-    // نضع العلامة بعد محاولة النطق حتى لا تختفي الرسالة بسبب فشل مؤقت في المحرك.
-    await prefs.setBool('noor_welcome_voice_played_v4', true);
+    if (!accepted) return false;
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    await prefs.setBool('noor_welcome_voice_played_v5', true);
+    return true;
   } catch (_) {
-    // الصوت ميزة إضافية ولا يجب أن يمنع التطبيق من العمل.
+    return false;
   }
 }
 
@@ -399,6 +393,8 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
         builder: (_) => QuranReaderPage(
           surahNumber: _surah!,
           surahName: surahNames[_surah! - 1],
+          initialPage: _page,
+          initialAyah: _ayah,
         ),
       ),
     );
@@ -415,7 +411,10 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
         ? _ayah!.split(':').last
         : null;
 
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: hasPosition ? _openLastReading : null,
+      child: Container(
       margin: const EdgeInsets.fromLTRB(18, 18, 18, 0),
       padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
@@ -475,6 +474,7 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
                 ],
               ),
             ),
+      ),
     );
   }
 }
@@ -605,9 +605,26 @@ class HomeContent extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      const Text('مجلسك اليومي مع القرآن', textDirection: TextDirection.rtl,
-                                        textAlign: TextAlign.right,
-                                        style: TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900, height: 1.3)),
+                                      Row(
+                                        textDirection: TextDirection.rtl,
+                                        children: [
+                                          Expanded(
+                                            child: Text('مجلسك اليومي مع القرآن', textDirection: TextDirection.rtl,
+                                              textAlign: TextAlign.right,
+                                              style: const TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900, height: 1.3)),
+                                          ),
+                                          IconButton(
+                                            tooltip: 'تشغيل الترحيب الصوتي',
+                                            onPressed: () async {
+                                              final ok = await _speakWelcomeVoice(force: true);
+                                              if (context.mounted && !ok) {
+                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر تشغيل الصوت. تأكدي من رفع صوت الجهاز وتوفر صوت عربي في إعدادات النطق.')));
+                                              }
+                                            },
+                                            icon: const Icon(Icons.volume_up_rounded, color: Colors.white),
+                                          ),
+                                        ],
+                                      ),
                                       const SizedBox(height: 7),
                                       const Text('تلاوة هادئة • ذكر • صلاة • قبلة • مناسك', textDirection: TextDirection.rtl,
                                         style: TextStyle(color: Color(0xFFD9E7E0), fontSize: 12.5, fontWeight: FontWeight.w600)),
@@ -729,21 +746,7 @@ class HomeContent extends StatelessWidget {
                                 child: const Icon(Icons.format_quote_rounded, color: _gold, size: 24),
                               ),
                               const SizedBox(width: 12),
-                              const Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text('آية اليوم', textDirection: TextDirection.rtl,
-                                      style: TextStyle(color: _deepGreen, fontSize: 13, fontWeight: FontWeight.w900)),
-                                    SizedBox(height: 4),
-                                    Text('إِنَّ مَعَ الْعُسْرِ يُسْرًا', textDirection: TextDirection.rtl,
-                                      textAlign: TextAlign.right,
-                                      style: TextStyle(color: _ink, fontSize: 20, height: 1.7, fontWeight: FontWeight.w800)),
-                                    Text('سورة الشرح • 6', textDirection: TextDirection.rtl,
-                                      style: TextStyle(color: Color(0xFF777C76), fontSize: 10.5)),
-                                  ],
-                                ),
-                              ),
+                              const Expanded(child: DailyAyahCard()),
                             ],
                           ),
                         ),
@@ -757,6 +760,53 @@ class HomeContent extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class DailyAyahCard extends StatelessWidget {
+  const DailyAyahCard({super.key});
+  static const _ayahs = <Map<String, String>>[
+    {'text': 'إِنَّ مَعَ الْعُسْرِ يُسْرًا', 'ref': 'سورة الشرح • 6'},
+    {'text': 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ', 'ref': 'سورة البقرة • 152'},
+    {'text': 'إِنَّ اللَّهَ مَعَ الصَّابِرِينَ', 'ref': 'سورة البقرة • 153'},
+    {'text': 'وَقُلْ رَبِّ زِدْنِي عِلْمًا', 'ref': 'سورة طه • 114'},
+    {'text': 'وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا', 'ref': 'سورة الطلاق • 2'},
+    {'text': 'وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ', 'ref': 'سورة الطلاق • 3'},
+    {'text': 'إِنَّ اللَّهَ لَا يُغَيِّرُ مَا بِقَوْمٍ حَتَّىٰ يُغَيِّرُوا مَا بِأَنفُسِهِمْ', 'ref': 'سورة الرعد • 11'},
+    {'text': 'وَلَا تَيْأَسُوا مِن رَّوْحِ اللَّهِ', 'ref': 'سورة يوسف • 87'},
+    {'text': 'إِنَّ اللَّهَ يُحِبُّ التَّوَّابِينَ وَيُحِبُّ الْمُتَطَهِّرِينَ', 'ref': 'سورة البقرة • 222'},
+    {'text': 'إِنَّ أَكْرَمَكُمْ عِندَ اللَّهِ أَتْقَاكُمْ', 'ref': 'سورة الحجرات • 13'},
+    {'text': 'وَبَشِّرِ الصَّابِرِينَ', 'ref': 'سورة البقرة • 155'},
+    {'text': 'وَاللَّهُ مَعَ الصَّابِرِينَ', 'ref': 'سورة الأنفال • 46'},
+    {'text': 'وَاذْكُر رَّبَّكَ إِذَا نَسِيتَ', 'ref': 'سورة الكهف • 24'},
+    {'text': 'إِنَّ رَبِّي قَرِيبٌ مُّجِيبٌ', 'ref': 'سورة هود • 61'},
+    {'text': 'إِنَّ اللَّهَ يَأْمُرُ بِالْعَدْلِ وَالْإِحْسَانِ', 'ref': 'سورة النحل • 90'},
+    {'text': 'وَقُولُوا لِلنَّاسِ حُسْنًا', 'ref': 'سورة البقرة • 83'},
+    {'text': 'إِنَّ اللَّهَ غَفُورٌ رَّحِيمٌ', 'ref': 'سورة البقرة • 173'},
+    {'text': 'وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ', 'ref': 'سورة هود • 88'},
+    {'text': 'حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ', 'ref': 'سورة التوبة • 129'},
+    {'text': 'إِنَّ اللَّهَ يُحِبُّ الْمُحْسِنِينَ', 'ref': 'سورة البقرة • 195'},
+    {'text': 'وَاسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ', 'ref': 'سورة البقرة • 45'},
+    {'text': 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', 'ref': 'سورة الرعد • 28'},
+    {'text': 'وَقُلْ لِعِبَادِي يَقُولُوا الَّتِي هِيَ أَحْسَنُ', 'ref': 'سورة الإسراء • 53'},
+    {'text': 'وَاخْفِضْ لَهُمَا جَنَاحَ الذُّلِّ مِنَ الرَّحْمَةِ', 'ref': 'سورة الإسراء • 24'},
+    {'text': 'وَقُلْ رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا', 'ref': 'سورة الإسراء • 24'},
+    {'text': 'إِنَّ اللَّهَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', 'ref': 'سورة البقرة • 20'},
+    {'text': 'إِنَّ اللَّهَ مَعَ الَّذِينَ اتَّقَوا وَالَّذِينَ هُم مُّحْسِنُونَ', 'ref': 'سورة النحل • 128'},
+    {'text': 'وَلَا تَهِنُوا وَلَا تَحْزَنُوا', 'ref': 'سورة آل عمران • 139'},
+    {'text': 'وَتَوَكَّلْ عَلَى الْحَيِّ الَّذِي لَا يَمُوتُ', 'ref': 'سورة الفرقان • 58'},
+    {'text': 'فَإِنَّ مَعَ الْعُسْرِ يُسْرًا', 'ref': 'سورة الشرح • 5'},
+  ];
+  @override
+  Widget build(BuildContext context) {
+    final dayIndex = DateTime.now().difference(DateTime(2026, 1, 1)).inDays % _ayahs.length;
+    final ayah = _ayahs[dayIndex < 0 ? 0 : dayIndex];
+    return Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      const Text('آية اليوم', textDirection: TextDirection.rtl, style: TextStyle(color: _deepGreen, fontSize: 13, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 4),
+      Text(ayah['text']!, textDirection: TextDirection.rtl, textAlign: TextAlign.right, style: const TextStyle(color: _ink, fontSize: 20, height: 1.7, fontWeight: FontWeight.w800)),
+      Text(ayah['ref']!, textDirection: TextDirection.rtl, style: const TextStyle(color: Color(0xFF777C76), fontSize: 10.5)),
+    ]);
   }
 }
 
@@ -1283,11 +1333,15 @@ SurahInfo _surahInfoFor(int number) {
 class QuranReaderPage extends StatefulWidget {
   final int surahNumber;
   final String surahName;
+  final int? initialPage;
+  final String? initialAyah;
 
   const QuranReaderPage({
     super.key,
     required this.surahNumber,
     required this.surahName,
+    this.initialPage,
+    this.initialAyah,
   });
 
   @override
@@ -1340,8 +1394,11 @@ List<TimingRead> timingReads = [];
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    currentPage =
-        surahStartPages[widget.surahNumber - 1];
+    currentPage = (widget.initialPage != null && widget.initialPage! >= 1 && widget.initialPage! <= 604)
+        ? widget.initialPage!
+        : surahStartPages[widget.surahNumber - 1];
+    _lastReadAyah = widget.initialAyah;
+    _lastHighlightedAyah = widget.initialAyah;
     _bookmarkPage = currentPage;
     _loadReaderPreferences();
 
@@ -3795,50 +3852,49 @@ Future<void> _loadReciters() async {
   Future<void> _loadReaderPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedPage =
-          prefs.getInt('noor_last_read_page_${widget.surahNumber}');
-      final savedAyah =
-          prefs.getString('noor_last_read_ayah_${widget.surahNumber}');
+      final savedPage = prefs.getInt('noor_last_read_page_${widget.surahNumber}');
+      final savedAyah = prefs.getString('noor_last_read_ayah_${widget.surahNumber}');
+      final globalSurah = prefs.getInt('noor_last_read_surah');
+      final globalAyah = prefs.getString('noor_last_read_ayah_global');
       final bookmark = prefs.getInt('noor_bookmark_page');
       final night = prefs.getBool('noor_night_mode') ?? false;
-      final mushafScale =
-          prefs.getDouble('noor_mushaf_text_scale') ?? 1.0;
+      final mushafScale = prefs.getDouble('noor_mushaf_text_scale') ?? 1.0;
       final saved = prefs.getStringList('noor_saved_ayahs') ?? <String>[];
       final favoriteReciters = prefs.getStringList('noor_favorite_reciters') ?? <String>[];
       final lastReciter = prefs.getInt('noor_last_reciter_id');
-
+      final useInitial = widget.initialPage != null;
+      final pageToOpen = useInitial ? widget.initialPage! : ((savedPage != null && savedPage >= 1 && savedPage <= 604) ? savedPage : currentPage);
+      String? ayahToHighlight = useInitial ? widget.initialAyah : savedAyah;
+      if (!useInitial && ayahToHighlight == null && globalSurah == widget.surahNumber) ayahToHighlight = globalAyah;
       if (!mounted) return;
       setState(() {
-        _lastReadPage = savedPage;
-        _lastReadAyah = savedAyah;
-        _lastHighlightedAyah = savedAyah;
+        _lastReadPage = pageToOpen;
+        _lastReadAyah = ayahToHighlight;
+        _lastHighlightedAyah = ayahToHighlight;
         _bookmarkPage = bookmark ?? currentPage;
         _isNightMode = night;
         _mushafTextScale = mushafScale.clamp(0.85, 1.40).toDouble();
-        _savedAyahs
-          ..clear()
-          ..addAll(saved);
-        _favoriteReciterIds
-          ..clear()
-          ..addAll(favoriteReciters.map((e) => int.tryParse(e)).whereType<int>());
+        _savedAyahs..clear()..addAll(saved);
+        _favoriteReciterIds..clear()..addAll(favoriteReciters.map((e) => int.tryParse(e)).whereType<int>());
         _lastReciterId = lastReciter;
         _prefsLoaded = true;
       });
-
-      if (savedPage != null && savedPage >= 1 && savedPage <= 604) {
-        if (savedPage != currentPage) {
-          await _changePage(savedPage, forceReload: true);
-        } else {
-          // حتى إذا كانت الصفحة نفسها، نعيد تحميلها لتطبيق تظليل آخر آية مقروءة.
-          await _loadMushafPage(savedPage);
-        }
-      } else if (kIsWeb && night) {
-        await _loadMushafPage(currentPage);
+      if (pageToOpen != currentPage) {
+        await _changePage(pageToOpen, forceReload: true);
+      } else {
+        await _loadMushafPage(pageToOpen);
       }
-
-    } catch (_){
+    } catch (_) {
       _prefsLoaded = true;
     }
+  }
+
+  int _surahForPage(int page) {
+    var index = 0;
+    for (var i = 0; i < surahStartPages.length; i++) {
+      if (surahStartPages[i] <= page) index = i; else break;
+    }
+    return index + 1;
   }
 
   Future<void> _rememberLastReadAyah(String ayahKey) async {
@@ -3846,349 +3902,45 @@ Future<void> _loadReciters() async {
     if (parts.length != 2) return;
     final surah = int.tryParse(parts[0]);
     final ayah = int.tryParse(parts[1]);
-    if (surah == null || ayah == null || surah != widget.surahNumber) return;
+    if (surah == null || ayah == null || surah < 1 || surah > 114) return;
     _lastReadAyah = '$surah:$ayah';
     _lastHighlightedAyah = _lastReadAyah;
     _lastHighlightedPage = currentPage;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('noor_last_read_ayah_${widget.surahNumber}', _lastReadAyah!);
-      await prefs.setInt('noor_last_read_page_${widget.surahNumber}', currentPage);
-      await prefs.setInt('noor_last_read_surah', widget.surahNumber);
-      await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
+      await prefs.setString('noor_last_read_ayah_$surah', _lastReadAyah!);
+      await prefs.setInt('noor_last_read_page_$surah', currentPage);
+      await prefs.setInt('noor_last_read_surah', surah);
       await prefs.setInt('noor_last_read_page_global', currentPage);
+      await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
+      await prefs.setInt('noor_reading_position_version', 2);
     } catch (_) {}
   }
 
   Future<void> _saveReaderPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-        'noor_last_read_page_${widget.surahNumber}',
-        currentPage,
-      );
-      await prefs.setInt('noor_last_read_surah', widget.surahNumber);
+      final actualSurah = _surahForPage(currentPage);
+      await prefs.setInt('noor_last_read_surah', actualSurah);
       await prefs.setInt('noor_last_read_page_global', currentPage);
-      await prefs.setInt('noor_reading_position_version', 1);
+      await prefs.setInt('noor_reading_position_version', 2);
+      await prefs.setInt('noor_last_read_page_$actualSurah', currentPage);
       if (_lastReadAyah != null && _lastReadAyah!.isNotEmpty) {
-        await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
+        final parts = _lastReadAyah!.split(':');
+        if (parts.length == 2 && int.tryParse(parts[0]) == actualSurah) {
+          await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
+          await prefs.setString('noor_last_read_ayah_$actualSurah', _lastReadAyah!);
+        }
       }
-      if (_lastReadAyah != null && _lastReadAyah!.isNotEmpty) {
-        await prefs.setString('noor_last_read_ayah_${widget.surahNumber}', _lastReadAyah!);
-      }
-      if (_bookmarkPage == null) {
-        await prefs.remove('noor_bookmark_page');
-      } else {
-        await prefs.setInt('noor_bookmark_page', _bookmarkPage!);
-      }
+      if (_bookmarkPage == null) await prefs.remove('noor_bookmark_page');
+      else await prefs.setInt('noor_bookmark_page', _bookmarkPage!);
       await prefs.setBool('noor_night_mode', _isNightMode);
       await prefs.setDouble('noor_mushaf_text_scale', _mushafTextScale);
       await prefs.setStringList('noor_saved_ayahs', _savedAyahs.toList()..sort());
       await prefs.setStringList('noor_favorite_reciters', _favoriteReciterIds.map((e) => e.toString()).toList()..sort());
-      if (_lastReciterId == null) {
-        await prefs.remove('noor_last_reciter_id');
-      } else {
-        await prefs.setInt('noor_last_reciter_id', _lastReciterId!);
-      }
+      if (_lastReciterId == null) await prefs.remove('noor_last_reciter_id');
+      else await prefs.setInt('noor_last_reciter_id', _lastReciterId!);
     } catch (_) {}
-  }
-
-Future<void> _loadMushafPage(int page) async {
-    final p = page.toString().padLeft(3, '0');
-    final url = Uri.parse(
-      'https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/$p.svg',
-    );
-
-    try {
-      final response = await http.get(url).timeout(
-        const Duration(seconds: 20),
-      );
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-
-      var svg = response.body
-          .replaceFirst(RegExp(r'<\?xml[^>]*>'), '')
-          .replaceFirst(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '');
-
-      final html = '''
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<style>
-html,body{margin:0;padding:0;width:100%;height:100%;background:${_isNightMode ? '#151B19' : '#f7f1df'};font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
-#page{width:100%;height:auto;min-height:100%;display:block;transition:opacity .15s ease;touch-action:none;user-select:none;-webkit-user-select:none;transform-origin:center top;will-change:transform}
-svg{
-width:100%;
-height:auto;
-display:block;
-margin:0 auto;
-max-width:none
-}
-.ayahPolygon{cursor:pointer;transition:fill .15s ease,fill-opacity .15s ease}
-.noor-active{fill:#7652d6!important;fill-opacity:.38!important}
-#readerSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:20}
-#readerPanel{position:relative;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;max-height:78%;border-radius:22px 22px 0 0;padding:18px 16px 22px;box-sizing:border-box;box-shadow:0 -10px 30px rgba(0,0,0,.18)}
-#readerTitle{font-size:18px;font-weight:700;text-align:center;margin-bottom:8px}
-#readerAyah{font-size:13px;opacity:.7;text-align:center;margin-bottom:12px}
-#readerSearch{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:12px;padding:11px 13px;font-size:15px;background:transparent;color:inherit;outline:none;margin-bottom:10px}
-#readerList{max-height:38vh;overflow:auto}
-.readerRow{display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid rgba(127,127,127,.16);cursor:pointer}
-.readerRow:hover{background:rgba(118,82,214,.08)}
-.readerAvatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(118,82,214,.12);font-weight:700;color:#7652d6;flex:0 0 auto}
-.readerName{font-weight:700;font-size:14px;flex:1}.readerRewaya{font-size:11px;opacity:.62;margin-top:2px}
-#choiceSheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:30}
-#choicePanel{background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#f4f4f4' : '#222'};width:100%;border-radius:22px 22px 0 0;padding:20px;box-sizing:border-box}
-.choiceBtn{width:100%;border:0;border-radius:14px;padding:14px;margin-top:9px;font-size:15px;font-weight:700;cursor:pointer;background:rgba(118,82,214,.12);color:inherit}
-.choiceBtn.primary{background:#7652d6;color:white}
-#player{position:fixed;left:10px;right:10px;bottom:10px;display:none;z-index:15;background:${_isNightMode ? '#202522' : '#fff'};color:${_isNightMode ? '#fff' : '#222'};border-radius:18px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.2);direction:rtl}
-#playerTop{display:flex;align-items:center;gap:10px}.playerInfo{flex:1}.playerName{font-weight:700;font-size:13px}.playerStatus{font-size:11px;opacity:.65;margin-top:2px}
-.playerBtn{border:0;background:rgba(118,82,214,.12);border-radius:12px;width:42px;height:42px;cursor:pointer;font-size:18px}
-#progress{width:100%;margin-top:8px;accent-color:#7652d6}
-#closeReader{position:absolute;left:12px;top:10px;border:0;background:transparent;color:inherit;font-size:24px;cursor:pointer}
-</style></head>
-<body>
-<div id="page">$svg</div>
-<div id="readerSheet"><div id="readerPanel"><button id="closeReader">×</button><div id="readerTitle">اختر القارئ</div><div id="readerAyah"></div><input id="readerSearch" placeholder="ابحث عن اسم القارئ..."/><div id="readerList"></div></div></div>
-<div id="choiceSheet"><div id="choicePanel"><div id="readerTitle">ماذا تريد أن تسمع؟</div><div id="readerAyah"></div><button class="choiceBtn primary" id="playAyah">▶ الاستماع إلى الآية</button><button class="choiceBtn" id="playSurah">▶ الاستماع إلى السورة كاملة</button><button class="choiceBtn" id="cancelChoice">إلغاء</button></div></div>
-<div id="player"><div id="playerTop"><div class="playerInfo"><div class="playerName" id="playerName">نور القرآن</div><div class="playerStatus" id="playerStatus">جاهز</div></div><button class="playerBtn" id="stopBtn">■</button><button class="playerBtn" id="pauseBtn">Ⅱ</button></div><input id="progress" type="range" min="0" max="100" value="0" step="0.1"/></div>
-<audio id="audio" preload="auto"></audio>
-<script>
-(function(){
- const SURAH=%SURAH%;
- const INITIAL_PAGE=%PAGE%;
- const pageEl=document.getElementById('page'), audio=document.getElementById('audio');
- const readerSheet=document.getElementById('readerSheet'), choiceSheet=document.getElementById('choiceSheet');
- const readerList=document.getElementById('readerList'), readerSearch=document.getElementById('readerSearch');
- const readerAyah=document.querySelector('#readerPanel #readerAyah'), choiceAyah=document.querySelector('#choicePanel #readerAyah');
- const player=document.getElementById('player'), playerName=document.getElementById('playerName'), playerStatus=document.getElementById('playerStatus'), progress=document.getElementById('progress');
- let readers=[], timings=[], selectedAyah=null, selectedReader=null, playMode='ayah', currentTiming=null, loadingPage=false;
- const api='https://mp3quran.net/api/v3';
- const qsvg='https://cdn.quran.ws/svg/pages/v1.1.1/hafs-kfqc/';
- function esc(v){return String(v||'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));}
- function setSheet(el,on){el.style.display=on?'flex':'none';}
- async function loadReaders(){
-   if(readers.length) return readers;
-   try{const r=await fetch(api+'/ayat_timing/reads'); if(!r.ok) throw 0; readers=await r.json(); readers=readers.filter(x=>x&&x.id&&x.folder_url); renderReaders(); return readers;}
-   catch(e){readerList.innerHTML='<div style="padding:20px;text-align:center;opacity:.7">تعذر تحميل قائمة القراء. تحقق من الإنترنت.</div>'; return [];}
- }
- function renderReaders(){
-   const q=(readerSearch.value||'').trim();
-   const list=readers.filter(r=>!q || (r.name||'').includes(q) || (r.rewaya||'').includes(q)).slice(0,80);
-   readerList.innerHTML=list.map(r=>`<div class="readerRow" data-id="\${r.id}"><div class="readerAvatar">\${esc((r.name||'ق').trim().charAt(0))}</div><div class="readerName">\${esc(r.name)}<div class="readerRewaya">\${esc(r.rewaya||'رواية غير محددة')}</div></div><div>›</div></div>`).join('') || '<div style="padding:20px;text-align:center;opacity:.7">لا توجد نتائج</div>';
-   readerList.querySelectorAll('.readerRow').forEach(row=>row.onclick=()=>{selectedReader=readers.find(r=>String(r.id)===row.dataset.id);setSheet(readerSheet,false);setSheet(choiceSheet,true);choiceAyah.textContent='الآية '+selectedAyah;});
- }
- async function openAyah(ayah){
-   selectedAyah=ayah;
-   readerAyah.textContent='الآية '+ayah;
-   setSheet(readerSheet,true); readerSearch.value='';
-   await loadReaders(); renderReaders();
- }
- function clearHighlight(){
-   document.querySelectorAll('.ayahPolygon').forEach(e=>e.classList.remove('noor-active'));
- }
- function highlight(surah,ayah){
-   window.noorPendingHighlight=String(surah)+':'+String(ayah);
-   clearHighlight();
-   document.querySelectorAll('.ayahPolygon').forEach(e=>{
-     if(e.getAttribute('surah')==String(surah)&&e.getAttribute('ayah')==String(ayah)) e.classList.add('noor-active');
-   });
- }
- window.setNoorAyahHighlight=function(surah,ayah){
-   highlight(surah,ayah);
- };
- window.clearNoorAyahHighlight=function(){
-   window.noorPendingHighlight=null;
-   clearHighlight();
- };
- async function loadTimings(read){
-   const r=await fetch(api+'/ayat_timing?surah='+SURAH+'&read='+read.id); if(!r.ok) throw 0;
-   timings=(await r.json()).filter(x=>x.ayah>=1&&x.end_time>x.start_time);
-   return timings;
- }
- function audioUrl(read){return read.folder_url+String(SURAH).padStart(3,'0')+'.mp3';}
- function pageFromTiming(t){const m=String(t.page||'').match(/(\d{3})\.svg/); return m?parseInt(m[1],10):null;}
- async function loadPage(p){
-   if(loadingPage) return; loadingPage=true;
-   try{const u=qsvg+String(p).padStart(3,'0')+'.svg'; const r=await fetch(u); if(!r.ok) throw 0; const txt=await r.text(); pageEl.style.opacity='.2'; pageEl.innerHTML=txt.replace(/<\?xml[^>]*>/,'').replace(/<!DOCTYPE[^>]*>/i,''); pageEl.style.opacity='1'; bindPolygons();}
-   finally{loadingPage=false;}
- }
- function bindPolygons(){
-  document.querySelectorAll('.ayahPolygon').forEach(el=>{
-   el.style.cursor='default';
-   var pressTimer=null;
-   var longPressed=false;
-   var startX=0;
-   var startY=0;
-
-   var sendAyah=function(){
-    const s=el.getAttribute('surah'),a=el.getAttribute('ayah');
-    if(!s||!a)return;
-    longPressed=true;
-    if(window.AyahChannel){AyahChannel.postMessage(s+':'+a);}
-    else{openAyah(s+':'+a);}
-   };
-
-   var cancelPress=function(){
-    if(pressTimer!==null){
-      clearTimeout(pressTimer);
-      pressTimer=null;
-    }
-   };
-
-   el.onclick=function(e){
-    // A normal tap only selects the page; it does not open the reciter list.
-    if(longPressed){
-      e.preventDefault();
-      e.stopPropagation();
-      longPressed=false;
-    }
-   };
-
-   el.addEventListener('touchstart',function(e){
-    if(!e.touches||!e.touches.length)return;
-    startX=e.touches[0].clientX;
-    startY=e.touches[0].clientY;
-    longPressed=false;
-    cancelPress();
-    pressTimer=setTimeout(function(){
-      pressTimer=null;
-      sendAyah();
-    },650);
-   },{passive:true});
-
-   el.addEventListener('touchmove',function(e){
-    if(!e.touches||!e.touches.length)return;
-    var dx=e.touches[0].clientX-startX;
-    var dy=e.touches[0].clientY-startY;
-    if(Math.abs(dx)>12||Math.abs(dy)>12) cancelPress();
-   },{passive:true});
-
-   el.addEventListener('touchend',function(e){
-    cancelPress();
-    if(longPressed){
-      e.preventDefault();
-      e.stopPropagation();
-      setTimeout(function(){longPressed=false;},0);
-    }
-   },{passive:false});
-
-   el.addEventListener('touchcancel',cancelPress,{passive:true});
-  });
-  if(currentTiming)highlight(SURAH,currentTiming.ayah);
- }
- async function play(mode){
-   if(!selectedReader||!selectedAyah) return;
-   try{
-     if(!timings.length) await loadTimings(selectedReader);
-     if(!timings.length) throw 0;
-     playMode=mode; const verse=parseInt(selectedAyah.split(':')[1],10); currentTiming=timings.find(x=>x.ayah===verse)||timings[0];
-     audio.src=audioUrl(selectedReader); audio.playbackRate=1; await audio.play();
-     if(mode==='ayah') audio.currentTime=currentTiming.start_time/1000;
-     playerName.textContent=selectedReader.name+' • '+(selectedReader.rewaya||''); playerStatus.textContent=mode==='ayah'?'تشغيل الآية':'تشغيل السورة كاملة'; player.style.display='block'; setSheet(choiceSheet,false); highlight(SURAH,currentTiming.ayah);
-   }catch(e){playerStatus.textContent='تعذر تشغيل الصوت؛ تحقق من الإنترنت';player.style.display='block';}
- }
- audio.ontimeupdate=async()=>{
-   if(!currentTiming||!timings.length) return;
-   const ms=audio.currentTime*1000;
-   if(playMode==='ayah' && ms>=currentTiming.end_time){audio.pause();playerStatus.textContent='انتهت الآية';return;}
-   if(playMode==='surah'){
-     const t=timings.find(x=>ms>=x.start_time&&ms<x.end_time);
-     if(t&&t.ayah!==currentTiming.ayah){currentTiming=t;highlight(SURAH,t.ayah);const pg=pageFromTiming(t);if(pg) await loadPage(pg);}
-   }
-   if(audio.duration) progress.value=(audio.currentTime/audio.duration)*100;
- };
- audio.onended=()=>{clearHighlight();playerStatus.textContent=playMode==='ayah'?'انتهت الآية':'انتهت السورة';};
- document.getElementById('playAyah').onclick=()=>play('ayah');
- document.getElementById('playSurah').onclick=()=>play('surah');
- document.getElementById('cancelChoice').onclick=()=>setSheet(choiceSheet,false);
- document.getElementById('closeReader').onclick=()=>setSheet(readerSheet,false);
- document.getElementById('pauseBtn').onclick=()=>{if(audio.paused){audio.play();}else{audio.pause();}};
- document.getElementById('stopBtn').onclick=()=>{audio.pause();audio.currentTime=0;clearHighlight();player.style.display='none';};
- progress.oninput=()=>{if(audio.duration) audio.currentTime=(Number(progress.value)/100)*audio.duration;};
- readerSearch.oninput=renderReaders;
- var swipeStartX=null,swipeStartY=null,swiped=false;
- var pinchStartDistance=null,pinchStartZoom=1,zoom=1,textScale=1;
- var panX=0,panY=0,panStartX=0,panStartY=0,panStartPanX=0,panStartPanY=0;
- function applyZoom(){pageEl.style.transform='translate3d('+panX+'px,'+panY+'px,0) scale('+(zoom*textScale)+')';}
- window.setNoorOrientation=function(landscape){
-   panX=0; panY=0; zoom=1;
-   document.documentElement.style.overflowY=landscape?'auto':'hidden';
-   document.body.style.overflowY=landscape?'auto':'hidden';
-   document.documentElement.style.touchAction=landscape?'pan-y':'none';
-   document.body.style.touchAction=landscape?'pan-y':'none';
-   pageEl.style.width='100%';
-   pageEl.style.height='auto';
-   pageEl.style.minHeight=landscape?'0':'100%';
-   pageEl.style.touchAction=landscape?'pan-y':'none';
-   pageEl.style.transformOrigin='center top';
-   var svg=pageEl.querySelector('svg');
-   if(svg){
-     svg.style.width='100%';
-     svg.style.height='auto';
-     svg.style.display='block';
-     svg.style.maxWidth='none';
-   }
-   applyZoom();
-   window.scrollTo(0,0);
- };
- function dist(a,b){var dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
- document.addEventListener('touchstart',function(e){
-  if(!e.touches||!e.touches.length)return;swiped=false;
-  if(e.touches.length>=2){pinchStartDistance=dist(e.touches[0],e.touches[1]);pinchStartZoom=zoom;swipeStartX=null;return;}
-  swipeStartX=e.touches[0].clientX;swipeStartY=e.touches[0].clientY;panStartX=swipeStartX;panStartY=swipeStartY;panStartPanX=panX;panStartPanY=panY;
- },{passive:true});
- document.addEventListener('touchmove',function(e){
-  if(!e.touches||!e.touches.length)return;
-  if(e.touches.length>=2){
-   var d=dist(e.touches[0],e.touches[1]);
-   if(pinchStartDistance===null){pinchStartDistance=d;pinchStartZoom=zoom;}
-   zoom=Math.max(1,Math.min(3,pinchStartZoom*(d/pinchStartDistance)));swiped=zoom>1;applyZoom();return;
-  }
-  if(swipeStartX===null)return;
-  var dx=e.touches[0].clientX-swipeStartX,dy=e.touches[0].clientY-swipeStartY;
-  if(zoom>1.01){panX=panStartPanX+(e.touches[0].clientX-panStartX);panY=panStartPanY+(e.touches[0].clientY-panStartY);applyZoom();swiped=true;return;}
-  if(Math.abs(dx)>35&&Math.abs(dx)>Math.abs(dy)*1.15)swiped=true;
- },{passive:true});
- document.addEventListener('touchend',function(e){
-  if(e.touches&&e.touches.length>=2)return;
-  if(pinchStartDistance!==null){pinchStartDistance=null;if(zoom<1.05){zoom=1;panX=0;panY=0;applyZoom();}swipeStartX=null;return;}
-  if(swipeStartX===null)return;
-  var dx=e.changedTouches[0].clientX-swipeStartX,dy=e.changedTouches[0].clientY-swipeStartY;swipeStartX=null;swipeStartY=null;
-  if(zoom<=1.01&&Math.abs(dx)>105&&Math.abs(dx)>Math.abs(dy)*1.15){swiped=true;if(window.NavigationChannel)NavigationChannel.postMessage(dx>0?'next':'prev');setTimeout(function(){swiped=false;},100);}
- },{passive:true});
- document.addEventListener('dblclick',function(){zoom=1;panX=0;panY=0;applyZoom();});
- document.addEventListener('click',function(e){if(swiped){e.preventDefault();e.stopPropagation();swiped=false;}},true);
- bindPolygons();
-})();
-</script></body></html>
-''';
-
-      final webHtml = html
-          .replaceFirst('%SURAH%', '${widget.surahNumber}')
-          .replaceFirst('%PAGE%', '$page')
-          .replaceFirst(
-            '%IS_LANDSCAPE%',
-            (mounted &&
-                    MediaQuery.of(context).orientation == Orientation.landscape)
-                ? 'true'
-                : 'false',
-          );
-
-      await controller.loadHtmlString(webHtml);
-      _loadedPage = page;
-      _lastLandscape = null;
-      if (mounted) {
-        _syncMushafOrientation(
-          MediaQuery.of(context).orientation == Orientation.landscape,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        _showMessage('تعذر تحميل صفحة المصحف. تحقق من الإنترنت.');
-      }
-    }
   }
 
   Future<void> _installMushafInteractions() async {
@@ -4681,8 +4433,8 @@ class TasbeehCounterPage extends StatefulWidget {
 }
 
 class _TasbeehCounterPageState extends State<TasbeehCounterPage> {
-  static const _countKey = 'noor_tasbeeh_count';
-  static const _phraseKey = 'noor_tasbeeh_phrase';
+  static const _countKey = 'noor_tasbeeh_count_v3';
+  static const _phraseKey = 'noor_tasbeeh_phrase_v3';
   int count = 0;
   String phrase = 'سبحان الله';
   bool loading = true;
@@ -6288,14 +6040,13 @@ class TasbihPage extends StatefulWidget {
 }
 
 class _TasbihPageState extends State<TasbihPage> {
-  static const _countKey = 'noor_tasbeeh_count_v2';
-  static const _targetKey = 'noor_tasbeeh_target_v2';
-  static const _oldCountKey = 'noor_tasbeeh_count';
-  static const _oldTargetKey = 'noor_tasbeeh_target';
+  static const _countKey = 'noor_tasbeeh_count_v3';
+  static const _targetKey = 'noor_tasbeeh_target_v3';
+  static const _oldCountKey = 'noor_tasbeeh_count_v2';
+  static const _oldTargetKey = 'noor_tasbeeh_target_v2';
   int count = 0;
   int target = 33;
   bool loading = true;
-  bool _saving = false;
 
   @override
   void initState() {
@@ -6306,8 +6057,8 @@ class _TasbihPageState extends State<TasbihPage> {
   Future<void> _loadSavedTasbeeh() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedCount = prefs.getInt(_countKey) ?? prefs.getInt(_oldCountKey) ?? 0;
-      final savedTarget = prefs.getInt(_targetKey) ?? prefs.getInt(_oldTargetKey) ?? 33;
+      final savedCount = prefs.getInt(_countKey) ?? prefs.getInt(_oldCountKey) ?? prefs.getInt('noor_tasbeeh_count') ?? 0;
+      final savedTarget = prefs.getInt(_targetKey) ?? prefs.getInt(_oldTargetKey) ?? prefs.getInt('noor_tasbeeh_target') ?? 33;
       if (!mounted) return;
       setState(() {
         count = savedCount < 0 ? 0 : savedCount;
@@ -6320,17 +6071,13 @@ class _TasbihPageState extends State<TasbihPage> {
   }
 
   Future<void> _increment() async {
-    if (loading || _saving) return;
+    if (loading) return;
     final next = count + 1;
     if (mounted) setState(() => count = next);
-    _saving = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_countKey, next);
-      await prefs.setInt(_oldCountKey, next);
-    } catch (_) {} finally {
-      _saving = false;
-    }
+    } catch (_) {}
   }
 
   Future<void> _reset() async {
@@ -6339,7 +6086,6 @@ class _TasbihPageState extends State<TasbihPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_countKey, 0);
-      await prefs.setInt(_oldCountKey, 0);
     } catch (_) {}
   }
 
@@ -6349,7 +6095,6 @@ class _TasbihPageState extends State<TasbihPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_targetKey, value);
-      await prefs.setInt(_oldTargetKey, value);
     } catch (_) {}
   }
 
