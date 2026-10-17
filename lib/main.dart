@@ -5036,8 +5036,8 @@ class _AdhkarLibraryPageState extends State<AdhkarLibraryPage> {
       // لا تعتمد على حزمة خارجية أو GitHub أو الإنترنت، لذلك تعمل أوفلاين أيضاً.
       final entries = <LibraryDhikrEntry>[];
 
-      for (var i = 0; i < AdhkarPage.data.length; i++) {
-        final items = AdhkarPage.data[i];
+      for (var i = 0; i < _AdhkarPageState.data.length; i++) {
+        final items = _AdhkarPageState.data[i];
         final texts = items
             .map((item) => item.text.trim())
             .where((text) => text.isNotEmpty)
@@ -5048,7 +5048,7 @@ class _AdhkarLibraryPageState extends State<AdhkarLibraryPage> {
         entries.add(
           LibraryDhikrEntry(
             id: i + 1,
-            title: AdhkarPage.categories[i],
+            title: _AdhkarPageState.categories[i],
             texts: texts,
             footnotes: const <String>[],
           ),
@@ -5991,7 +5991,7 @@ class QiblaPage extends StatefulWidget {
   State<QiblaPage> createState() => _QiblaPageState();
 }
 
-class _QiblaPageState extends State<QiblaPage> {
+class _QiblaPageState extends State<QiblaPage> with WidgetsBindingObserver {
   // الإحداثيات الدقيقة للكعبة المشرفة.
   static const double _kaabaLatitude = 21.422487;
   static const double _kaabaLongitude = 39.826206;
@@ -6115,16 +6115,17 @@ class _QiblaPageState extends State<QiblaPage> {
         throw Exception('NO_LOCATION_FIX');
       }
 
+      final currentPosition = position;
       final bearing = _calculateQiblaBearing(
-        position.latitude,
-        position.longitude,
+        currentPosition.latitude,
+        currentPosition.longitude,
       );
 
       if (!mounted) return;
       setState(() {
-        latitude = position.latitude;
-        longitude = position.longitude;
-        locationAccuracy = position.accuracy;
+        latitude = currentPosition.latitude;
+        longitude = currentPosition.longitude;
+        locationAccuracy = currentPosition.accuracy;
         _qiblaBearing = bearing;
         _loading = false;
         _locationServiceDisabled = false;
@@ -6132,9 +6133,9 @@ class _QiblaPageState extends State<QiblaPage> {
       });
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble('noor_qibla_latitude', position.latitude);
-      await prefs.setDouble('noor_qibla_longitude', position.longitude);
-      await prefs.setDouble('noor_qibla_accuracy', position.accuracy);
+      await prefs.setDouble('noor_qibla_latitude', currentPosition.latitude);
+      await prefs.setDouble('noor_qibla_longitude', currentPosition.longitude);
+      await prefs.setDouble('noor_qibla_accuracy', currentPosition.accuracy);
     } catch (_) {
       if (!mounted) return;
       setState(() {
