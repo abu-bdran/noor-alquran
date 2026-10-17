@@ -268,31 +268,34 @@ class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
   void _open(BuildContext context, Widget page) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => page),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
+
+  static const _green = Color(0xFF123D32);
+  static const _deepGreen = Color(0xFF0B2D25);
+  static const _gold = Color(0xFFD4B36A);
+  static const _ivory = Color(0xFFF6F1E5);
+  static const _paper = Color(0xFFFBF9F3);
+  static const _ink = Color(0xFF25352F);
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F4EC),
+      backgroundColor: _ivory,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 760;
-            final horizontal = wide ? 48.0 : 20.0;
+            final horizontal = wide ? 48.0 : 18.0;
+            final crossAxisCount = wide ? 4 : 2;
 
             return Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1050),
+                constraints: const BoxConstraints(maxWidth: 1120),
                 child: CustomScrollView(
                   slivers: [
                     SliverPadding(
-                      padding: EdgeInsets.fromLTRB(horizontal, 20, horizontal, 8),
+                      padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 10),
                       sliver: SliverToBoxAdapter(
                         child: Row(
                           textDirection: TextDirection.rtl,
@@ -301,38 +304,22 @@ class HomeContent extends StatelessWidget {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF173F35),
+                                color: _green,
                                 borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: _gold.withOpacity(.65), width: 1.2),
                               ),
-                              child: const Icon(
-                                Icons.menu_book_rounded,
-                                color: Color(0xFFE8D7A8),
-                                size: 26,
-                              ),
+                              child: const Icon(Icons.auto_awesome_rounded, color: _gold, size: 25),
                             ),
                             const SizedBox(width: 12),
                             const Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text(
-                                    'نور القرآن',
-                                    textDirection: TextDirection.rtl,
-                                    style: TextStyle(
-                                      color: Color(0xFF173F35),
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
+                                  Text('نور القرآن', textDirection: TextDirection.rtl,
+                                    style: TextStyle(color: _deepGreen, fontSize: 22, fontWeight: FontWeight.w900)),
                                   SizedBox(height: 2),
-                                  Text(
-                                    'رفيقك في تلاوة القرآن والذكر',
-                                    textDirection: TextDirection.rtl,
-                                    style: TextStyle(
-                                      color: Color(0xFF6F746D),
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                  Text('رفيقك في القرآن والذكر والعبادة', textDirection: TextDirection.rtl,
+                                    style: TextStyle(color: Color(0xFF6E746E), fontSize: 11.5)),
                                 ],
                               ),
                             ),
@@ -340,84 +327,83 @@ class HomeContent extends StatelessWidget {
                               tooltip: 'الإعدادات',
                               onPressed: () => _open(context, const LibraryPage()),
                               icon: const Icon(Icons.settings_outlined),
-                              color: const Color(0xFF173F35),
+                              color: _green,
                             ),
                           ],
                         ),
                       ),
                     ),
+
+                    // Abbasid-inspired hero: arch + geometric ornament, no external image dependency.
                     SliverPadding(
-                      padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+                      padding: EdgeInsets.symmetric(horizontal: horizontal),
                       sliver: SliverToBoxAdapter(
                         child: Container(
-                          padding: const EdgeInsets.all(24),
+                          height: wide ? 300 : 285,
+                          clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topRight,
-                              end: Alignment.bottomLeft,
-                              colors: [Color(0xFF173F35), Color(0xFF245B4D)],
-                            ),
-                            borderRadius: BorderRadius.circular(28),
+                            color: _green,
+                            borderRadius: BorderRadius.circular(30),
                             boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF173F35).withOpacity(.16),
-                                blurRadius: 22,
-                                offset: const Offset(0, 10),
-                              ),
+                              BoxShadow(color: _deepGreen.withOpacity(.20), blurRadius: 24, offset: const Offset(0, 12)),
                             ],
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                          child: Stack(
                             children: [
-                              Row(
-                                textDirection: TextDirection.rtl,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(.12),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Text(
-                                      'وردك اليومي',
-                                      textDirection: TextDirection.rtl,
-                                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFFE8D7A8), size: 24),
-                                ],
-                              ),
-                              const SizedBox(height: 22),
-                              const Text(
-                                'وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا',
-                                textDirection: TextDirection.rtl,
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 25,
-                                  height: 1.7,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'سورة المزمل • 4',
-                                textDirection: TextDirection.rtl,
-                                style: TextStyle(color: Color(0xFFD5E0D9), fontSize: 12),
-                              ),
-                              const SizedBox(height: 20),
-                              SizedBox(
-                                height: 48,
-                                child: FilledButton.icon(
-                                  onPressed: () => _open(context, const QuranPage()),
-                                  icon: const Icon(Icons.arrow_back_rounded),
-                                  label: const Text('ابدأ التلاوة'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFFE8D7A8),
-                                    foregroundColor: const Color(0xFF173F35),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                                    textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                              Positioned.fill(child: CustomPaint(painter: _AbbasidHomePainter())),
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(.10),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: _gold.withOpacity(.45)),
+                                        ),
+                                        child: const Text('وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا', textDirection: TextDirection.rtl,
+                                          style: TextStyle(color: _gold, fontSize: 12, fontWeight: FontWeight.w800)),
+                                      ),
+                                      const Spacer(),
+                                      const Text('مجلسك اليومي مع القرآن', textDirection: TextDirection.rtl,
+                                        textAlign: TextAlign.right,
+                                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, height: 1.35)),
+                                      const SizedBox(height: 6),
+                                      const Text('تلاوة • أذكار • صلاة • قبلة • مناسك', textDirection: TextDirection.rtl,
+                                        style: TextStyle(color: Color(0xFFD9E5DE), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 17),
+                                      Row(
+                                        textDirection: TextDirection.rtl,
+                                        children: [
+                                          FilledButton.icon(
+                                            onPressed: () => _open(context, const QuranPage()),
+                                            icon: const Icon(Icons.menu_book_rounded, size: 19),
+                                            label: const Text('ابدأ التلاوة'),
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: _gold,
+                                              foregroundColor: _deepGreen,
+                                              padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                              textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(.08),
+                                              borderRadius: BorderRadius.circular(15),
+                                              border: Border.all(color: Colors.white.withOpacity(.13)),
+                                            ),
+                                            child: const Text('سورة المزمل • 4', textDirection: TextDirection.rtl,
+                                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -426,133 +412,79 @@ class HomeContent extends StatelessWidget {
                         ),
                       ),
                     ),
+
                     SliverPadding(
-                      padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 0),
+                      padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 10),
                       sliver: SliverToBoxAdapter(
                         child: Row(
                           textDirection: TextDirection.rtl,
-                          children: [
-                            Text(
-                              'الوصول السريع',
-                              textDirection: TextDirection.rtl,
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: scheme.onSurface),
-                            ),
-                            const Spacer(),
-                            Text(
-                              'كل ما تحتاجه',
-                              textDirection: TextDirection.rtl,
-                              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-                            ),
+                          children: const [
+                            Text('بوابة العبادة', textDirection: TextDirection.rtl,
+                              style: TextStyle(color: _deepGreen, fontSize: 19, fontWeight: FontWeight.w900)),
+                            Spacer(),
+                            Text('الوصول السريع', textDirection: TextDirection.rtl,
+                              style: TextStyle(color: Color(0xFF7B817C), fontSize: 11.5)),
                           ],
                         ),
                       ),
                     ),
+
                     SliverPadding(
-                      padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+                      padding: EdgeInsets.symmetric(horizontal: horizontal),
                       sliver: SliverGrid(
                         delegate: SliverChildListDelegate([
-                          _ModernFeatureCard(
-                            icon: Icons.menu_book_rounded,
-                            title: 'القرآن الكريم',
-                            subtitle: 'تلاوة وتصفح المصحف',
-                            color: const Color(0xFFE4EFE9),
-                            iconColor: const Color(0xFF1E5A4A),
-                            onTap: () => _open(context, const QuranPage()),
-                          ),
-                          _ModernFeatureCard(
-                            icon: Icons.wb_sunny_rounded,
-                            title: 'الأذكار',
-                            subtitle: 'صباحًا ومساءً',
-                            color: const Color(0xFFF2E9D5),
-                            iconColor: const Color(0xFF8B6B2F),
-                            onTap: () => _open(context, const AdhkarPage()),
-                          ),
-                          _ModernFeatureCard(
-                            icon: Icons.auto_awesome_rounded,
-                            title: 'الأدعية',
-                            subtitle: 'أدعية مختارة',
-                            color: const Color(0xFFE9E5F2),
-                            iconColor: const Color(0xFF66558A),
-                            onTap: () => _open(context, const DuasPage()),
-                          ),
-                          _ModernFeatureCard(
-                            icon: Icons.access_time_filled_rounded,
-                            title: 'مواقيت الصلاة',
-                            subtitle: 'مواقيتك اليومية',
-                            color: const Color(0xFFE6EDF2),
-                            iconColor: const Color(0xFF41677C),
-                            onTap: () => _open(context, const PrayerTimesPage()),
-                          ),
-                          _ModernFeatureCard(
-                            icon: Icons.explore_rounded,
-                            title: 'القبلة',
-                            subtitle: 'اتجاه القبلة',
-                            color: const Color(0xFFE8EFE8),
-                            iconColor: const Color(0xFF47734A),
-                            onTap: () => _open(context, const QiblaPage()),
-                          ),
-                          _ModernFeatureCard(
-                            icon: Icons.mosque_rounded,
-                            title: 'مناسك الحج',
-                            subtitle: 'دليل تفاعلي مصوّر',
-                            color: const Color(0xFFEDE7D7),
-                            iconColor: const Color(0xFF7A5A2D),
-                            onTap: () => _open(context, const HajjGuidePage()),
-                          ),
-                          _ModernFeatureCard(
-                            icon: Icons.touch_app_rounded,
-                            title: 'التسبيح',
-                            subtitle: 'عداد التسبيح',
-                            color: const Color(0xFFF1E6E1),
-                            iconColor: const Color(0xFF8A5A49),
-                            onTap: () => _open(context, const TasbihPage()),
-                          ),
+                          _AbbasidFeatureCard(icon: Icons.menu_book_rounded, title: 'القرآن الكريم', subtitle: 'تلاوة وتصفح المصحف', onTap: () => _open(context, const QuranPage())),
+                          _AbbasidFeatureCard(icon: Icons.wb_sunny_rounded, title: 'الأذكار', subtitle: 'الصباح والمساء وغيرها', onTap: () => _open(context, const AdhkarPage()), gold: true),
+                          _AbbasidFeatureCard(icon: Icons.auto_awesome_rounded, title: 'الأدعية', subtitle: 'أدعية مختارة', onTap: () => _open(context, const DuasPage())),
+                          _AbbasidFeatureCard(icon: Icons.access_time_filled_rounded, title: 'مواقيت الصلاة', subtitle: 'حسب موقعك', onTap: () => _open(context, const PrayerTimesPage())),
+                          _AbbasidFeatureCard(icon: Icons.explore_rounded, title: 'القبلة', subtitle: 'اتجاه القبلة بالبوصلة', onTap: () => _open(context, const QiblaPage())),
+                          _AbbasidFeatureCard(icon: Icons.mosque_rounded, title: 'مناسك الحج', subtitle: 'دليل تفاعلي مصوّر', onTap: () => _open(context, const HajjGuidePage()), gold: true),
+                          _AbbasidFeatureCard(icon: Icons.touch_app_rounded, title: 'التسبيح', subtitle: 'عداد إلكتروني', onTap: () => _open(context, const TasbihPage())),
+                          _AbbasidFeatureCard(icon: Icons.library_books_rounded, title: 'المكتبة', subtitle: 'كل محتوى نور القرآن', onTap: () => _open(context, const LibraryPage())),
                         ]),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: wide ? 3 : 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: wide ? 1.75 : 1.35,
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 11,
+                          mainAxisSpacing: 11,
+                          childAspectRatio: wide ? 1.18 : 1.10,
                         ),
                       ),
                     ),
+
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 30),
                       sliver: SliverToBoxAdapter(
                         child: Container(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(color: const Color(0xFFE6E1D5)),
+                            color: _paper,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: _gold.withOpacity(.35)),
                           ),
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                          child: Row(
+                            textDirection: TextDirection.rtl,
                             children: [
-                              Row(
-                                textDirection: TextDirection.rtl,
-                                children: [
-                                  Icon(Icons.format_quote_rounded, color: Color(0xFFB49455), size: 25),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'آية اليوم',
-                                    textDirection: TextDirection.rtl,
-                                    style: TextStyle(color: Color(0xFF173F35), fontWeight: FontWeight.w800, fontSize: 16),
-                                  ),
-                                ],
+                              Container(
+                                width: 45,
+                                height: 45,
+                                decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(14)),
+                                child: const Icon(Icons.format_quote_rounded, color: _gold, size: 24),
                               ),
-                              SizedBox(height: 12),
-                              Text(
-                                'إِنَّ مَعَ الْعُسْرِ يُسْرًا',
-                                textDirection: TextDirection.rtl,
-                                textAlign: TextAlign.right,
-                                style: TextStyle(color: Color(0xFF2C332F), fontSize: 22, height: 1.8, fontWeight: FontWeight.w700),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                'سورة الشرح • 6',
-                                textDirection: TextDirection.rtl,
-                                style: TextStyle(color: Color(0xFF777C76), fontSize: 12),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text('آية اليوم', textDirection: TextDirection.rtl,
+                                      style: TextStyle(color: _deepGreen, fontSize: 13, fontWeight: FontWeight.w900)),
+                                    SizedBox(height: 4),
+                                    Text('إِنَّ مَعَ الْعُسْرِ يُسْرًا', textDirection: TextDirection.rtl,
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(color: _ink, fontSize: 20, height: 1.7, fontWeight: FontWeight.w800)),
+                                    Text('سورة الشرح • 6', textDirection: TextDirection.rtl,
+                                      style: TextStyle(color: Color(0xFF777C76), fontSize: 10.5)),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -568,6 +500,103 @@ class HomeContent extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AbbasidFeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool gold;
+
+  const _AbbasidFeatureCard({required this.icon, required this.title, required this.subtitle, required this.onTap, this.gold = false});
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF123D32);
+    const goldColor = Color(0xFFD4B36A);
+    return Material(
+      color: const Color(0xFFFBF9F3),
+      borderRadius: BorderRadius.circular(21),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(21),
+        child: Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(21),
+            border: Border.all(color: goldColor.withOpacity(gold ? .52 : .24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: green,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: goldColor.withOpacity(.55)),
+                ),
+                child: Icon(icon, color: goldColor, size: 23),
+              ),
+              const Spacer(),
+              Text(title, textDirection: TextDirection.rtl,
+                style: const TextStyle(color: Color(0xFF25352F), fontSize: 13.5, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 3),
+              Text(subtitle, textDirection: TextDirection.rtl, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF7B817C), fontSize: 10.5)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AbbasidHomePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final gold = Paint()..color = const Color(0xFFD4B36A)..style = PaintingStyle.stroke..strokeWidth = 1.1;
+    final faint = Paint()..color = Colors.white.withOpacity(.055)..style = PaintingStyle.stroke..strokeWidth = 1;
+    final r = Rect.fromLTWH(size.width * .48, -30, size.width * .70, size.height + 60);
+    canvas.drawOval(r, faint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * .82, size.height * .52), width: size.height * 1.35, height: size.height * 1.35), faint);
+
+    // Eight-point geometric rosettes inspired by Abbasid ornament, kept subtle so text stays readable.
+    for (var row = -1; row < 5; row++) {
+      for (var col = 0; col < 6; col++) {
+        final x = size.width * .70 + col * 34 + (row.isOdd ? 17 : 0);
+        final y = 12 + row * 34.0;
+        if (x > size.width + 18 || y > size.height + 18) continue;
+        final c = Offset(x, y);
+        for (var i = 0; i < 8; i++) {
+          final a = i * math.pi / 4;
+          final p1 = Offset(c.dx + math.cos(a) * 9, c.dy + math.sin(a) * 9);
+          final p2 = Offset(c.dx + math.cos(a + math.pi / 4) * 4, c.dy + math.sin(a + math.pi / 4) * 4);
+          canvas.drawLine(p1, p2, faint);
+        }
+      }
+    }
+
+    // Stylized pointed arch.
+    final arch = Path()
+      ..moveTo(size.width * .08, size.height)
+      ..lineTo(size.width * .08, size.height * .62)
+      ..quadraticBezierTo(size.width * .22, size.height * .25, size.width * .36, size.height * .62)
+      ..lineTo(size.width * .36, size.height);
+    canvas.drawPath(arch, gold);
+    final inner = Path()
+      ..moveTo(size.width * .13, size.height)
+      ..lineTo(size.width * .13, size.height * .65)
+      ..quadraticBezierTo(size.width * .22, size.height * .40, size.width * .31, size.height * .65)
+      ..lineTo(size.width * .31, size.height);
+    canvas.drawPath(inner, Paint()..color = Colors.white.withOpacity(.07)..style = PaintingStyle.fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ModernFeatureCard extends StatelessWidget {
@@ -5567,7 +5596,14 @@ class _HajjGuidePageState extends State<HajjGuidePage> {
                       const SizedBox(height: 16),
                       Row(children: [
                         Expanded(child: Text(isTawaf ? 'الأشواط: $counter / 7' : isSai ? 'الأشواط: $counter / 7' : 'الرميات المسجلة: $counter', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))),
-                        FilledButton.icon(onPressed: () => setState(() => counter++), icon: const Icon(Icons.add), label: Text(isJamarat ? 'تسجيل رمية' : 'تسجيل شوط')),
+                        FilledButton.icon(
+                          onPressed: () => setState(() {
+                            final max = isJamarat ? 21 : 7;
+                            if (counter < max) counter++;
+                          }),
+                          icon: const Icon(Icons.add),
+                          label: Text(isJamarat ? 'تسجيل رمية' : 'تسجيل شوط'),
+                        ),
                       ]),
                       if ((isTawaf || isSai) && counter >= 7) const Padding(padding: EdgeInsets.only(top: 10), child: Text('اكتمل العداد التفاعلي ✓', style: TextStyle(color: Color(0xFF47734A), fontWeight: FontWeight.w900))),
                     ],
@@ -5612,48 +5648,258 @@ class _HajjVisualPainter extends CustomPainter {
   final int progress;
   const _HajjVisualPainter({required this.type, required this.progress});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()..style = PaintingStyle.fill;
-    paint.color = const Color(0xFF173F35);
-    canvas.drawCircle(center, 74, paint);
-    paint.color = const Color(0xFFF7F4EC);
-    canvas.drawRect(Rect.fromCenter(center: center, width: 78, height: 78), paint);
-    paint.color = const Color(0xFF222222);
-    canvas.drawRect(Rect.fromCenter(center: center, width: 48, height: 48), paint);
-    paint.color = const Color(0xFFD4B25F);
-    canvas.drawRect(Rect.fromCenter(center: Offset(center.dx, center.dy - 5), width: 48, height: 8), paint);
+  static const _green = Color(0xFF173F35);
+  static const _deep = Color(0xFF0E2B25);
+  static const _gold = Color(0xFFD4B25F);
+  static const _sand = Color(0xFFE9D9B8);
+  static const _paper = Color(0xFFF7F4EC);
+  static const _stone = Color(0xFFB7A98E);
 
-    if (type == 'الطواف' || type == 'الإفاضة' || type == 'الوداع') {
-      final ring = Paint()..style = PaintingStyle.stroke..strokeWidth = 9..color = const Color(0xFF7A5A2D);
-      canvas.drawCircle(center, 102, ring);
-      final dotPaint = Paint()..style = PaintingStyle.fill..color = const Color(0xFF47734A);
-      final n = progress.clamp(0, 7);
-      for (var i = 0; i < n; i++) {
-        final a = -math.pi / 2 + i * (2 * math.pi / 7);
-        canvas.drawCircle(Offset(center.dx + 102 * math.cos(a), center.dy + 102 * math.sin(a)), 7, dotPaint);
-      }
-    } else if (type == 'السعي') {
-      final line = Paint()..style = PaintingStyle.stroke..strokeWidth = 14..strokeCap = StrokeCap.round..color = const Color(0xFF7A5A2D);
-      final path = Path()..moveTo(65, center.dy + 30)..quadraticBezierTo(size.width / 2, center.dy - 75, size.width - 65, center.dy + 30);
-      canvas.drawPath(path, line);
-      final p = Paint()..color = const Color(0xFF47734A);
-      canvas.drawCircle(Offset(65, center.dy + 30), 20, p);
-      canvas.drawCircle(Offset(size.width - 65, center.dy + 30), 20, p);
-      final textPainter = TextPainter(text: const TextSpan(text: 'الصفا                 المروة', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF173F35))), textDirection: TextDirection.rtl)..layout(maxWidth: size.width);
-      textPainter.paint(canvas, Offset((size.width - textPainter.width) / 2, center.dy + 65));
-    } else {
-      paint.color = const Color(0xFF47734A);
-      canvas.drawCircle(Offset(size.width * .22, size.height * .66), 28, paint);
-      canvas.drawCircle(Offset(size.width * .50, size.height * .36), 38, paint);
-      canvas.drawCircle(Offset(size.width * .78, size.height * .66), 28, paint);
-      final pathPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 8..color = const Color(0xFF7A5A2D);
-      canvas.drawLine(Offset(size.width * .22, size.height * .66), Offset(size.width * .50, size.height * .36), pathPaint);
-      canvas.drawLine(Offset(size.width * .50, size.height * .36), Offset(size.width * .78, size.height * .66), pathPaint);
+  void _fill(Paint p, Color c) {
+    p.style = PaintingStyle.fill;
+    p.color = c;
+  }
+
+  void _stroke(Paint p, Color c, double width) {
+    p.style = PaintingStyle.stroke;
+    p.strokeWidth = width;
+    p.strokeCap = StrokeCap.round;
+    p.strokeJoin = StrokeJoin.round;
+    p.color = c;
+  }
+
+  void _drawArch(Canvas canvas, Size size, {double left = .10, double right = .90}) {
+    final p = Paint();
+    _stroke(p, _gold.withOpacity(.55), 2.2);
+    final path = Path()
+      ..moveTo(size.width * left, size.height * .88)
+      ..lineTo(size.width * left, size.height * .34)
+      ..quadraticBezierTo(size.width * .50, size.height * .02, size.width * right, size.height * .34)
+      ..lineTo(size.width * right, size.height * .88);
+    canvas.drawPath(path, p);
+  }
+
+  void _drawGround(Canvas canvas, Size size) {
+    final p = Paint()..color = const Color(0xFFE6DDCB);
+    canvas.drawRect(Rect.fromLTWH(0, size.height * .82, size.width, size.height * .18), p);
+    final line = Paint();
+    _stroke(line, const Color(0xFFC8BCA5).withOpacity(.55), 1);
+    for (var i = 0; i < 9; i++) {
+      final x = size.width * i / 8;
+      canvas.drawLine(Offset(x, size.height * .82), Offset(x + 28, size.height), line);
     }
   }
 
+  void _drawKaaba(Canvas canvas, Size size, {double scale = 1}) {
+    final cx = size.width / 2;
+    final cy = size.height * .48;
+    final w = 94 * scale;
+    final h = 94 * scale;
+    final p = Paint();
+    _fill(p, const Color(0xFF202020));
+    canvas.drawRect(Rect.fromCenter(center: Offset(cx, cy + 18 * scale), width: w, height: h), p);
+
+    final roof = Path()
+      ..moveTo(cx - w / 2, cy - h / 2 + 18 * scale)
+      ..lineTo(cx, cy - h / 2 - 4 * scale)
+      ..lineTo(cx + w / 2, cy - h / 2 + 18 * scale)
+      ..close();
+    _fill(p, const Color(0xFF292929));
+    canvas.drawPath(roof, p);
+
+    _fill(p, _gold);
+    canvas.drawRect(Rect.fromCenter(center: Offset(cx, cy - 2 * scale), width: w, height: 8 * scale), p);
+    canvas.drawRect(Rect.fromCenter(center: Offset(cx, cy + 31 * scale), width: w, height: 4 * scale), p);
+
+    _fill(p, const Color(0xFF121212));
+    canvas.drawRect(Rect.fromCenter(center: Offset(cx + 23 * scale, cy + 24 * scale), width: 16 * scale, height: 31 * scale), p);
+    _fill(p, const Color(0xFF5B4632));
+    canvas.drawRect(Rect.fromCenter(center: Offset(cx + 23 * scale, cy + 10 * scale), width: 19 * scale, height: 3 * scale), p);
+  }
+
+  void _drawTawaf(Canvas canvas, Size size) {
+    _drawGround(canvas, size);
+    _drawKaaba(canvas, size, scale: .92);
+    final center = Offset(size.width / 2, size.height * .52);
+    final ring = Paint();
+    for (var i = 0; i < 3; i++) {
+      _stroke(ring, const Color(0xFF8B7655).withOpacity(.24), 10);
+      canvas.drawOval(Rect.fromCenter(center: center, width: 220 + i * 38, height: 128 + i * 24), ring);
+    }
+    final n = progress.clamp(0, 7);
+    final dot = Paint();
+    for (var i = 0; i < n; i++) {
+      final a = -math.pi / 2 + i * (2 * math.pi / 7);
+      final x = center.dx + 112 * math.cos(a);
+      final y = center.dy + 65 * math.sin(a);
+      _fill(dot, i == n - 1 ? _gold : _green);
+      canvas.drawCircle(Offset(x, y), i == n - 1 ? 9 : 6, dot);
+    }
+  }
+
+  void _drawSai(Canvas canvas, Size size) {
+    _drawGround(canvas, size);
+    final line = Paint();
+    _stroke(line, const Color(0xFF9A845E).withOpacity(.45), 15);
+    final path = Path()
+      ..moveTo(size.width * .16, size.height * .62)
+      ..quadraticBezierTo(size.width * .50, size.height * .18, size.width * .84, size.height * .62);
+    canvas.drawPath(path, line);
+
+    final p = Paint();
+    _fill(p, _green);
+    canvas.drawCircle(Offset(size.width * .14, size.height * .62), 23, p);
+    canvas.drawCircle(Offset(size.width * .86, size.height * .62), 23, p);
+
+    _drawArch(canvas, size, left: .30, right: .70);
+    final tp = TextPainter(
+      text: const TextSpan(text: 'الصفا                 المروة', style: TextStyle(color: _green, fontSize: 15, fontWeight: FontWeight.w900)),
+      textDirection: TextDirection.rtl,
+    )..layout(maxWidth: size.width);
+    tp.paint(canvas, Offset((size.width - tp.width) / 2, size.height * .73));
+
+    final n = progress.clamp(0, 7);
+    final dot = Paint();
+    for (var i = 0; i < n; i++) {
+      _fill(dot, i == n - 1 ? _gold : _green);
+      canvas.drawCircle(Offset(size.width * .35 + i * size.width * .05, size.height * .88), 5, dot);
+    }
+  }
+
+  void _drawIhram(Canvas canvas, Size size) {
+    _drawGround(canvas, size);
+    final p = Paint();
+    _fill(p, Colors.white);
+    final body = Path()
+      ..moveTo(size.width * .35, size.height * .78)
+      ..lineTo(size.width * .40, size.height * .42)
+      ..lineTo(size.width * .50, size.height * .30)
+      ..lineTo(size.width * .60, size.height * .42)
+      ..lineTo(size.width * .65, size.height * .78)
+      ..close();
+    canvas.drawPath(body, p);
+    _fill(p, const Color(0xFFD5C7AB));
+    canvas.drawCircle(Offset(size.width * .50, size.height * .23), 34, p);
+    _stroke(p, _gold, 3);
+    canvas.drawLine(Offset(size.width * .41, size.height * .43), Offset(size.width * .59, size.height * .43), p);
+    _drawArch(canvas, size, left: .20, right: .80);
+    _fill(p, _green);
+    canvas.drawCircle(Offset(size.width * .50, size.height * .10), 5, p);
+  }
+
+  void _drawArafat(Canvas canvas, Size size) {
+    final sky = Paint()..shader = const LinearGradient(colors: [Color(0xFFEDE5D4), Color(0xFFF8F4EA)]).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, sky);
+    _drawGround(canvas, size);
+    final hill = Path()
+      ..moveTo(size.width * .05, size.height * .78)
+      ..quadraticBezierTo(size.width * .32, size.height * .35, size.width * .55, size.height * .76)
+      ..quadraticBezierTo(size.width * .76, size.height * .45, size.width * .95, size.height * .78)
+      ..close();
+    final p = Paint()..color = _sand;
+    canvas.drawPath(hill, p);
+    _fill(p, _green);
+    canvas.drawRect(Rect.fromLTWH(size.width * .35, size.height * .57, size.width * .30, size.height * .18), p);
+    _fill(p, Colors.white);
+    canvas.drawRect(Rect.fromLTWH(size.width * .37, size.height * .53, size.width * .26, size.height * .07), p);
+    _drawArch(canvas, size, left: .08, right: .92);
+  }
+
+  void _drawMuzdalifah(Canvas canvas, Size size) {
+    final p = Paint()..color = const Color(0xFF253A36);
+    canvas.drawRect(Offset.zero & size, p);
+    _fill(p, const Color(0xFFF1E7D0));
+    canvas.drawCircle(Offset(size.width * .78, size.height * .20), 27, p);
+    final stars = Paint()..color = _gold.withOpacity(.75);
+    for (var i = 0; i < 13; i++) {
+      final x = size.width * (.08 + ((i * 37) % 83) / 100);
+      final y = size.height * (.08 + ((i * 19) % 48) / 100);
+      canvas.drawCircle(Offset(x, y), 1.7, stars);
+    }
+    _drawGround(canvas, size);
+    for (var i = 0; i < 4; i++) {
+      final x = size.width * (.18 + i * .21);
+      _fill(p, Colors.white);
+      canvas.drawPath(Path()
+        ..moveTo(x - 32, size.height * .79)
+        ..lineTo(x, size.height * .57)
+        ..lineTo(x + 32, size.height * .79)
+        ..close(), p);
+      _fill(p, _green);
+      canvas.drawRect(Rect.fromLTWH(x - 23, size.height * .70, 46, 28), p);
+    }
+  }
+
+  void _drawJamarat(Canvas canvas, Size size) {
+    _drawGround(canvas, size);
+    final p = Paint();
+    final xs = [size.width * .22, size.width * .50, size.width * .78];
+    for (var i = 0; i < xs.length; i++) {
+      _fill(p, i == 1 ? _green : const Color(0xFF6F6B61));
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(xs[i], size.height * .52), width: 46, height: 125), const Radius.circular(22)), p);
+      _fill(p, _gold);
+      canvas.drawOval(Rect.fromCenter(center: Offset(xs[i], size.height * .40), width: 24, height: 42), p);
+    }
+    final n = progress.clamp(0, 21);
+    for (var i = 0; i < n; i++) {
+      final x = size.width * (.10 + ((i * 13) % 80) / 100);
+      final y = size.height * (.25 + ((i * 17) % 52) / 100);
+      _fill(p, const Color(0xFF8D806B));
+      canvas.drawCircle(Offset(x, y), 3.5, p);
+    }
+  }
+
+  void _drawHair(canvas, Size size) {
+    _drawGround(canvas, size);
+    final p = Paint();
+    _fill(p, const Color(0xFFB98A5A));
+    canvas.drawCircle(Offset(size.width * .50, size.height * .36), 58, p);
+    _fill(p, const Color(0xFFF0C49C));
+    canvas.drawCircle(Offset(size.width * .50, size.height * .39), 43, p);
+    _fill(p, const Color(0xFF2E2119));
+    canvas.drawArc(Rect.fromCenter(center: Offset(size.width * .50, size.height * .36), width: 91, height: 72), math.pi, math.pi, false, p);
+    _stroke(p, _gold, 4);
+    canvas.drawArc(Rect.fromCenter(center: Offset(size.width * .50, size.height * .40), width: 130, height: 110), math.pi * .15, math.pi * .70, false, p);
+    _drawArch(canvas, size, left: .22, right: .78);
+  }
+
   @override
-  bool shouldRepaint(covariant _HajjVisualPainter oldDelegate) => oldDelegate.type != type || oldDelegate.progress != progress;
+  void paint(Canvas canvas, Size size) {
+    // A refined, self-contained vector illustration: no network images and no asset paths.
+    final bg = Paint()..color = _paper;
+    canvas.drawRect(Offset.zero & size, bg);
+
+    if (type == 'الطواف' || type == 'الإفاضة' || type == 'الوداع') {
+      _drawTawaf(canvas, size);
+    } else if (type == 'السعي') {
+      _drawSai(canvas, size);
+    } else if (type == 'الإحرام') {
+      _drawIhram(canvas, size);
+    } else if (type == 'عرفة') {
+      _drawArafat(canvas, size);
+    } else if (type == 'مزدلفة') {
+      _drawMuzdalifah(canvas, size);
+    } else if (type == 'الجمرات') {
+      _drawJamarat(canvas, size);
+    } else if (type == 'الحلق والتقصير') {
+      _drawHair(canvas, size);
+    } else {
+      _drawIhram(canvas, size);
+    }
+
+    final badge = Paint()..color = _green.withOpacity(.92);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(14, 14, 108, 30), const Radius.circular(15)),
+      badge,
+    );
+    final label = TextPainter(
+      text: TextSpan(text: 'دليل تعليمي', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+      textDirection: TextDirection.rtl,
+    )..layout();
+    label.paint(canvas, Offset(68 - label.width / 2, 23));
+  }
+
+  @override
+  bool shouldRepaint(covariant _HajjVisualPainter oldDelegate) =>
+      oldDelegate.type != type || oldDelegate.progress != progress;
 }
