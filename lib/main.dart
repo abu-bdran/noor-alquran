@@ -45,12 +45,16 @@ Future<void> main() async {
 }
 
 Future<void> _playWelcomeVoiceOnce() async {
-  try {
-    // نعطي iOS/Android وقتًا حتى يجهّز محرك النطق بعد فتح الواجهة.
-    await Future<void>.delayed(const Duration(milliseconds: 1200));
+  await _speakWelcomeVoice(force: false);
+}
 
+Future<void> _speakWelcomeVoice({bool force = false}) async {
+  try {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('noor_welcome_voice_played_v3') == true) return;
+    if (!force && prefs.getBool('noor_welcome_voice_played_v4') == true) return;
+
+    // نعطي الواجهة ومحرك الصوت وقتًا كافيًا حتى لا تضيع أول كلمة على iOS.
+    await Future<void>.delayed(const Duration(seconds: 2));
 
     final tts = FlutterTts();
     try {
@@ -64,30 +68,36 @@ Future<void> _playWelcomeVoiceOnce() async {
       }
     } catch (_) {}
 
-    // لا نفترض أن ar-SA مثبتة على الجهاز؛ نبحث عن أي صوت عربي متاح.
+    try {
+      await tts.stop();
+    } catch (_) {}
+
     String language = 'ar-SA';
     try {
       final available = await tts.getLanguages;
       final languages = available is List
           ? available.map((e) => e.toString()).toList()
           : <String>[];
-      if (!languages.contains('ar-SA')) {
-        if (languages.contains('ar-IQ')) {
-          language = 'ar-IQ';
-        } else if (languages.contains('ar')) {
-          language = 'ar';
-        } else {
-          final arabic = languages.where((e) => e.toLowerCase().startsWith('ar')).toList();
-          if (arabic.isNotEmpty) language = arabic.first;
+      final candidates = <String>['ar-SA', 'ar-IQ', 'ar', 'ar-EG', 'ar-AE'];
+      for (final candidate in candidates) {
+        if (languages.contains(candidate)) {
+          language = candidate;
+          break;
         }
+      }
+      if (!languages.contains(language)) {
+        final arabic = languages
+            .where((e) => e.toLowerCase().startsWith('ar'))
+            .toList();
+        if (arabic.isNotEmpty) language = arabic.first;
       }
     } catch (_) {}
 
-    await tts.setLanguage(language);
-    await tts.setSpeechRate(0.42);
-    await tts.setPitch(1.0);
-    await tts.setVolume(1.0);
     try {
+      await tts.setLanguage(language);
+      await tts.setSpeechRate(0.40);
+      await tts.setPitch(0.95);
+      await tts.setVolume(1.0);
       await tts.awaitSpeakCompletion(true);
     } catch (_) {}
 
@@ -96,18 +106,26 @@ Future<void> _playWelcomeVoiceOnce() async {
         'اجعل القرآن رفيق يومك، واقرأ ورتّل القرآن ترتيلاً. '
         'نسأل الله أن يجعل هذا التطبيق نوراً في قلوبكم وحياتكم.';
 
-    var result = await tts.speak(welcomeMessage);
-    if (result == null || result == 0 || result == false) {
-      await Future<void>.delayed(const Duration(milliseconds: 800));
+    dynamic result;
+    try {
       result = await tts.speak(welcomeMessage);
+    } catch (_) {
+      result = null;
     }
 
-    // نحفظ أنها اشتغلت فقط بعد نجاح طلب النطق، حتى لا تضيع الرسالة إذا فشل المحرك.
-    if (result == 1 || result == '1' || result == true) {
-      await prefs.setBool('noor_welcome_voice_played_v3', true);
+    // لا نعتبر الرسالة منتهية إلا إذا قبلها محرك النطق. وإذا لم يقبلها، نجرب مرة ثانية.
+    final accepted = result == 1 || result == '1' || result == true;
+    if (!accepted) {
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      try {
+        result = await tts.speak(welcomeMessage);
+      } catch (_) {}
     }
+
+    // نضع العلامة بعد محاولة النطق حتى لا تختفي الرسالة بسبب فشل مؤقت في المحرك.
+    await prefs.setBool('noor_welcome_voice_played_v4', true);
   } catch (_) {
-    // لا نسمح للصوت بإيقاف التطبيق.
+    // الصوت ميزة إضافية ولا يجب أن يمنع التطبيق من العمل.
   }
 }
 
@@ -337,6 +355,130 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+class ContinueReadingCard extends StatefulWidget {
+  const ContinueReadingCard({super.key});
+
+  @override
+  State<ContinueReadingCard> createState() => _ContinueReadingCardState();
+}
+
+class _ContinueReadingCardState extends State<ContinueReadingCard> {
+  int? _surah;
+  int? _page;
+  String? _ayah;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosition();
+  }
+
+  Future<void> _loadPosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final surah = prefs.getInt('noor_last_read_surah');
+      final page = prefs.getInt('noor_last_read_page_global');
+      final ayah = prefs.getString('noor_last_read_ayah_global');
+      if (!mounted) return;
+      setState(() {
+        _surah = surah;
+        _page = page;
+        _ayah = ayah;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _openLastReading() async {
+    if (_surah == null || _surah! < 1 || _surah! > 114) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuranReaderPage(
+          surahNumber: _surah!,
+          surahName: surahNames[_surah! - 1],
+        ),
+      ),
+    );
+    await _loadPosition();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF123D32);
+    const gold = Color(0xFFD4B36A);
+    const paper = Color(0xFFFFFCF4);
+    final hasPosition = _surah != null && _page != null;
+    final ayahNumber = _ayah?.contains(':') == true
+        ? _ayah!.split(':').last
+        : null;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: paper,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: gold.withOpacity(.38)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x12000000), blurRadius: 18, offset: Offset(0, 7)),
+        ],
+      ),
+      child: _loading
+          ? const SizedBox(height: 86, child: Center(child: CircularProgressIndicator()))
+          : Directionality(
+              textDirection: TextDirection.rtl,
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: green,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.bookmark_added_rounded, color: gold, size: 26),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('متابعة القراءة', style: TextStyle(color: green, fontSize: 17, fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 4),
+                        Text(
+                          hasPosition
+                              ? 'آخر موضع: سورة ${surahNames[_surah! - 1]} • الصفحة $_page${ayahNumber != null ? ' • الآية $ayahNumber' : ''}'
+                              : 'لم تبدأ القراءة بعد — ابدأ من المصحف الآن',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(color: Color(0xFF70766F), fontSize: 11.5, height: 1.45),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  FilledButton(
+                    onPressed: hasPosition ? _openLastReading : () async {
+                      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuranPage()));
+                      await _loadPosition();
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: gold,
+                      foregroundColor: green,
+                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(hasPosition ? 'متابعة' : 'ابدأ', style: const TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
@@ -395,6 +537,12 @@ class HomeContent extends StatelessWidget {
                                     style: TextStyle(color: Color(0xFF6E746E), fontSize: 11.5)),
                                 ],
                               ),
+                            ),
+                            IconButton(
+                              tooltip: 'تشغيل الترحيب الصوتي',
+                              onPressed: () => _speakWelcomeVoice(force: true),
+                              icon: const Icon(Icons.volume_up_rounded),
+                              color: _green,
                             ),
                             IconButton(
                               tooltip: 'الإعدادات',
@@ -519,6 +667,8 @@ class HomeContent extends StatelessWidget {
                         ),
                       ),
                     ),
+
+                    const SliverToBoxAdapter(child: ContinueReadingCard()),
 
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 10),
@@ -1144,7 +1294,7 @@ class QuranReaderPage extends StatefulWidget {
   State<QuranReaderPage> createState() => _QuranReaderPageState();
 }
 
-class _QuranReaderPageState extends State<QuranReaderPage> {
+class _QuranReaderPageState extends State<QuranReaderPage> with WidgetsBindingObserver {
   late int currentPage;
   late WebViewController controller;
 List<TimingRead> timingReads = [];
@@ -1188,6 +1338,7 @@ List<TimingRead> timingReads = [];
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     currentPage =
         surahStartPages[widget.surahNumber - 1];
@@ -1692,7 +1843,7 @@ Future<void> _loadReciters() async {
                           children: [
                             IconButton(
                               tooltip: 'رجوع',
-                              onPressed: () => Navigator.of(context).maybePop(),
+                              onPressed: _closeReader,
                               icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white),
                             ),
                             Expanded(
@@ -2644,8 +2795,23 @@ Future<void> _loadReciters() async {
     return 1;
   }
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _saveReaderPreferences();
+    }
+  }
+
+  Future<void> _closeReader() async {
+    await _saveReaderPreferences();
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
   void dispose() {
     // نحفظ آخر صفحة/آية حتى لو خرج المستخدم قبل وصول PageChannel.
+    WidgetsBinding.instance.removeObserver(this);
     _saveReaderPreferences();
     _positionSubscription?.cancel();
     _processingSubscription?.cancel();
@@ -3703,6 +3869,7 @@ Future<void> _loadReciters() async {
       );
       await prefs.setInt('noor_last_read_surah', widget.surahNumber);
       await prefs.setInt('noor_last_read_page_global', currentPage);
+      await prefs.setInt('noor_reading_position_version', 1);
       if (_lastReadAyah != null && _lastReadAyah!.isNotEmpty) {
         await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
       }
@@ -6121,11 +6288,14 @@ class TasbihPage extends StatefulWidget {
 }
 
 class _TasbihPageState extends State<TasbihPage> {
-  static const _countKey = 'noor_tasbeeh_count';
-  static const _targetKey = 'noor_tasbeeh_target';
+  static const _countKey = 'noor_tasbeeh_count_v2';
+  static const _targetKey = 'noor_tasbeeh_target_v2';
+  static const _oldCountKey = 'noor_tasbeeh_count';
+  static const _oldTargetKey = 'noor_tasbeeh_target';
   int count = 0;
   int target = 33;
   bool loading = true;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -6136,8 +6306,8 @@ class _TasbihPageState extends State<TasbihPage> {
   Future<void> _loadSavedTasbeeh() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedCount = prefs.getInt(_countKey) ?? 0;
-      final savedTarget = prefs.getInt(_targetKey) ?? 33;
+      final savedCount = prefs.getInt(_countKey) ?? prefs.getInt(_oldCountKey) ?? 0;
+      final savedTarget = prefs.getInt(_targetKey) ?? prefs.getInt(_oldTargetKey) ?? 33;
       if (!mounted) return;
       setState(() {
         count = savedCount < 0 ? 0 : savedCount;
@@ -6150,13 +6320,17 @@ class _TasbihPageState extends State<TasbihPage> {
   }
 
   Future<void> _increment() async {
-    if (loading) return;
+    if (loading || _saving) return;
     final next = count + 1;
     if (mounted) setState(() => count = next);
+    _saving = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_countKey, next);
-    } catch (_) {}
+      await prefs.setInt(_oldCountKey, next);
+    } catch (_) {} finally {
+      _saving = false;
+    }
   }
 
   Future<void> _reset() async {
@@ -6165,6 +6339,7 @@ class _TasbihPageState extends State<TasbihPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_countKey, 0);
+      await prefs.setInt(_oldCountKey, 0);
     } catch (_) {}
   }
 
@@ -6174,6 +6349,7 @@ class _TasbihPageState extends State<TasbihPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_targetKey, value);
+      await prefs.setInt(_oldTargetKey, value);
     } catch (_) {}
   }
 
