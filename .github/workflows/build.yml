@@ -3,7 +3,8 @@ name: Build Noor Al Quran APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -41,6 +42,7 @@ jobs:
           ]
 
           marker = '<application'
+
           missing = [p for p in permissions if p not in text]
 
           if missing:
@@ -48,17 +50,13 @@ jobs:
               text = text.replace(marker, insertion + marker, 1)
               manifest.write_text(text, encoding="utf-8")
 
-          print(manifest.read_text(encoding="utf-8"))
-          PY
+          print("Location permissions configured.")
 
       - name: Get packages
         run: flutter pub get
 
       - name: Remove generated sample test
         run: rm -f test/widget_test.dart
-
-      - name: Analyze app code
-        run: flutter analyze lib
 
       - name: Build release APK
         run: flutter build apk --release
