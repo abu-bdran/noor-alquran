@@ -40,35 +40,74 @@ Future<void> main() async {
 
   // رسالة ترحيبية صوتية عند أول تشغيل للتطبيق.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    _playWelcomeVoiceOnce();
+    Future<void>.delayed(const Duration(milliseconds: 500), _playWelcomeVoiceOnce);
   });
 }
 
 Future<void> _playWelcomeVoiceOnce() async {
   try {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadyPlayed = prefs.getBool('noor_welcome_voice_played') ?? false;
-    if (alreadyPlayed) return;
+    // نعطي iOS/Android وقتًا حتى يجهّز محرك النطق بعد فتح الواجهة.
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
 
-    // ننتظر قليلاً حتى تظهر الواجهة قبل بدء الصوت.
-    await Future<void>.delayed(const Duration(milliseconds: 900));
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('noor_welcome_voice_played_v3') == true) return;
 
     final tts = FlutterTts();
-    await tts.setLanguage('ar-SA');
+    try {
+      if (!kIsWeb && Platform.isIOS) {
+        await tts.setSharedInstance(true);
+        await tts.setIosAudioCategory(
+          IosTextToSpeechAudioCategory.playback,
+          [IosTextToSpeechAudioCategoryOptions.mixWithOthers],
+          IosTextToSpeechAudioMode.voicePrompt,
+        );
+      }
+    } catch (_) {}
+
+    // لا نفترض أن ar-SA مثبتة على الجهاز؛ نبحث عن أي صوت عربي متاح.
+    String language = 'ar-SA';
+    try {
+      final available = await tts.getLanguages;
+      final languages = available is List
+          ? available.map((e) => e.toString()).toList()
+          : <String>[];
+      if (!languages.contains('ar-SA')) {
+        if (languages.contains('ar-IQ')) {
+          language = 'ar-IQ';
+        } else if (languages.contains('ar')) {
+          language = 'ar';
+        } else {
+          final arabic = languages.where((e) => e.toLowerCase().startsWith('ar')).toList();
+          if (arabic.isNotEmpty) language = arabic.first;
+        }
+      }
+    } catch (_) {}
+
+    await tts.setLanguage(language);
     await tts.setSpeechRate(0.42);
     await tts.setPitch(1.0);
     await tts.setVolume(1.0);
-    await tts.awaitSpeakCompletion(true);
+    try {
+      await tts.awaitSpeakCompletion(true);
+    } catch (_) {}
 
     const welcomeMessage =
         'السلام عليكم ورحمة الله وبركاته. أهلاً وسهلاً بكم في نور القرآن. '
         'اجعل القرآن رفيق يومك، واقرأ ورتّل القرآن ترتيلاً. '
         'نسأل الله أن يجعل هذا التطبيق نوراً في قلوبكم وحياتكم.';
 
-    await tts.speak(welcomeMessage);
-    await prefs.setBool('noor_welcome_voice_played', true);
+    var result = await tts.speak(welcomeMessage);
+    if (result == null || result == 0 || result == false) {
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      result = await tts.speak(welcomeMessage);
+    }
+
+    // نحفظ أنها اشتغلت فقط بعد نجاح طلب النطق، حتى لا تضيع الرسالة إذا فشل المحرك.
+    if (result == 1 || result == '1' || result == true) {
+      await prefs.setBool('noor_welcome_voice_played_v3', true);
+    }
   } catch (_) {
-    // فشل خدمة النطق لا يمنع التطبيق من العمل.
+    // لا نسمح للصوت بإيقاف التطبيق.
   }
 }
 
@@ -2605,7 +2644,9 @@ Future<void> _loadReciters() async {
     return 1;
   }
   @override
-void dispose() {
+  void dispose() {
+    // نحفظ آخر صفحة/آية حتى لو خرج المستخدم قبل وصول PageChannel.
+    _saveReaderPreferences();
     _positionSubscription?.cancel();
     _processingSubscription?.cancel();
     _audioPlayer.dispose();
@@ -3618,8 +3659,13 @@ void dispose() {
         _prefsLoaded = true;
       });
 
-      if (savedPage != null && savedPage >= 1 && savedPage <= 604 && savedPage != currentPage) {
-        await _changePage(savedPage, forceReload: true);
+      if (savedPage != null && savedPage >= 1 && savedPage <= 604) {
+        if (savedPage != currentPage) {
+          await _changePage(savedPage, forceReload: true);
+        } else {
+          // حتى إذا كانت الصفحة نفسها، نعيد تحميلها لتطبيق تظليل آخر آية مقروءة.
+          await _loadMushafPage(savedPage);
+        }
       } else if (kIsWeb && night) {
         await _loadMushafPage(currentPage);
       }
@@ -3642,6 +3688,9 @@ void dispose() {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('noor_last_read_ayah_${widget.surahNumber}', _lastReadAyah!);
       await prefs.setInt('noor_last_read_page_${widget.surahNumber}', currentPage);
+      await prefs.setInt('noor_last_read_surah', widget.surahNumber);
+      await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
+      await prefs.setInt('noor_last_read_page_global', currentPage);
     } catch (_) {}
   }
 
@@ -3652,6 +3701,11 @@ void dispose() {
         'noor_last_read_page_${widget.surahNumber}',
         currentPage,
       );
+      await prefs.setInt('noor_last_read_surah', widget.surahNumber);
+      await prefs.setInt('noor_last_read_page_global', currentPage);
+      if (_lastReadAyah != null && _lastReadAyah!.isNotEmpty) {
+        await prefs.setString('noor_last_read_ayah_global', _lastReadAyah!);
+      }
       if (_lastReadAyah != null && _lastReadAyah!.isNotEmpty) {
         await prefs.setString('noor_last_read_ayah_${widget.surahNumber}', _lastReadAyah!);
       }
@@ -6080,66 +6134,103 @@ class _TasbihPageState extends State<TasbihPage> {
   }
 
   Future<void> _loadSavedTasbeeh() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      count = prefs.getInt(_countKey) ?? 0;
-      target = prefs.getInt(_targetKey) ?? 33;
-      if (![33, 100, 1000].contains(target)) target = 33;
-      loading = false;
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedCount = prefs.getInt(_countKey) ?? 0;
+      final savedTarget = prefs.getInt(_targetKey) ?? 33;
+      if (!mounted) return;
+      setState(() {
+        count = savedCount < 0 ? 0 : savedCount;
+        target = [33, 100, 1000].contains(savedTarget) ? savedTarget : 33;
+        loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   Future<void> _increment() async {
-    setState(() => count++);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_countKey, count);
+    if (loading) return;
+    final next = count + 1;
+    if (mounted) setState(() => count = next);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_countKey, next);
+    } catch (_) {}
   }
 
   Future<void> _reset() async {
-    setState(() => count = 0);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_countKey, 0);
+    if (loading) return;
+    if (mounted) setState(() => count = 0);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_countKey, 0);
+    } catch (_) {}
   }
 
   Future<void> _setTarget(int value) async {
-    setState(() => target = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_targetKey, value);
+    if (loading) return;
+    if (mounted) setState(() => target = value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_targetKey, value);
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('التسبيح'), centerTitle: true, actions: [IconButton(onPressed: _reset, icon: const Icon(Icons.refresh))]),
+      backgroundColor: const Color(0xFFF7F4EC),
+      appBar: AppBar(
+        title: const Text('التسبيح الإلكتروني', style: TextStyle(fontWeight: FontWeight.w900)),
+        centerTitle: true,
+        actions: [
+          IconButton(onPressed: loading ? null : _reset, icon: const Icon(Icons.restart_alt_rounded), tooltip: 'تصفير العداد'),
+        ],
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('سبحان الله', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 18),
-            Text('$count', style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold)),
-            Text('من $target', textDirection: TextDirection.rtl),
-            const SizedBox(height: 30),
-            GestureDetector(
-              onTap: _increment,
-              child: Container(
-                width: 190,
-                height: 190,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.primaryContainer),
-                child: const Center(child: Icon(Icons.touch_app, size: 70)),
+          : Directionality(
+              textDirection: TextDirection.rtl,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF1B5B50), Color(0xFF123F38)]), borderRadius: BorderRadius.circular(26)),
+                    child: const Column(children: [
+                      Icon(Icons.auto_awesome_rounded, color: Color(0xFFF0CF7A), size: 28),
+                      SizedBox(height: 7),
+                      Text('عدادك محفوظ تلقائيًا', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+                      SizedBox(height: 5),
+                      Text('اخرج وارجع للتطبيق أو أغلقه وافتحه، وسيبقى العدد كما هو.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFD7E4DF), height: 1.5, fontSize: 12)),
+                    ]),
+                  ),
+                  const SizedBox(height: 26),
+                  Center(child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _increment,
+                    child: Container(
+                      width: 245, height: 245,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFE7EFE9), border: Border.all(color: const Color(0xFFB8CDBF), width: 8), boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 20, offset: Offset(0, 10))]),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text('$count', style: const TextStyle(fontSize: 62, fontWeight: FontWeight.w900, color: Color(0xFF173F38))),
+                        const SizedBox(height: 4),
+                        const Text('سبحان الله', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF47734A))),
+                        const SizedBox(height: 9),
+                        Text('من $target', style: const TextStyle(fontSize: 12, color: Color(0xFF7A827C))),
+                        const SizedBox(height: 4),
+                        const Text('اضغط للعد', style: TextStyle(fontSize: 11, color: Color(0xFF7A827C))),
+                      ]),
+                    ),
+                  )),
+                  const SizedBox(height: 22),
+                  Wrap(alignment: WrapAlignment.center, spacing: 8, children: [33, 100, 1000].map((v) => ChoiceChip(label: Text('$v'), selected: target == v, onSelected: (_) => _setTarget(v))).toList()),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(onPressed: _reset, icon: const Icon(Icons.restart_alt_rounded), label: const Text('تصفير العداد يدويًا', style: TextStyle(fontWeight: FontWeight.w900))),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              children: [33, 100, 1000].map((v) => ChoiceChip(label: Text('$v'), selected: target == v, onSelected: (_) => _setTarget(v))).toList(),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
