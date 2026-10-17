@@ -1306,6 +1306,78 @@ class _QuranTab extends StatelessWidget {
   }
 }
 
+
+class TimingRead {
+  final int id;
+  final String name;
+  final String rewaya;
+  final String folderUrl;
+  final int soarCount;
+
+  const TimingRead({
+    required this.id,
+    required this.name,
+    required this.rewaya,
+    required this.folderUrl,
+    required this.soarCount,
+  });
+
+  factory TimingRead.fromJson(Map<String, dynamic> json) {
+    return TimingRead(
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      name: json['name']?.toString().trim() ?? '',
+      rewaya: json['rewaya']?.toString().trim() ?? '',
+      folderUrl: json['folder_url']?.toString() ?? '',
+      soarCount: int.tryParse(json['soar_count']?.toString() ?? '') ?? 0,
+    );
+  }
+}
+
+class AyahTiming {
+  final int ayah;
+  final int startTime;
+  final int endTime;
+  final String? polygon;
+  final int? page;
+
+  const AyahTiming({
+    required this.ayah,
+    required this.startTime,
+    required this.endTime,
+    this.polygon,
+    this.page,
+  });
+
+  factory AyahTiming.fromJson(Map<String, dynamic> json) {
+    final pageUrl = json['page']?.toString();
+    final pageMatch = pageUrl == null
+        ? null
+        : RegExp(r'/([0-9]{3})\.svg').firstMatch(pageUrl);
+
+    return AyahTiming(
+      ayah: int.tryParse(json['ayah']?.toString() ?? '') ?? -1,
+      startTime: int.tryParse(json['start_time']?.toString() ?? '') ?? 0,
+      endTime: int.tryParse(json['end_time']?.toString() ?? '') ?? 0,
+      polygon: json['polygon']?.toString(),
+      page: int.tryParse(pageMatch?.group(1) ?? ''),
+    );
+  }
+}
+
+class SurahInfo {
+  final String revelationPlace;
+  final int ayahCount;
+  final String context;
+  final String? sabab;
+
+  const SurahInfo({
+    required this.revelationPlace,
+    required this.ayahCount,
+    required this.context,
+    this.sabab,
+  });
+}
+
 class QuranReaderPage extends StatefulWidget {
   final int surahNumber;
   final String surahName;
