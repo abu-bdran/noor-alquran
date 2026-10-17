@@ -3,48 +3,66 @@ name: Build Noor Al Quran APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-
-permissions:
-  contents: read
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download source code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Install Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.7'
           channel: stable
           cache: true
 
-      - name: Prepare Android project
-        run: flutter create --platforms=android --project-name noor_alquran .
+      - name: Flutter version
+        run: flutter --version
 
-      - name: Enable Internet
+      - name: Create Android platform files
+        run: flutter create . --platforms=android
+
+      - name: Add location permissions
+        shell: bash
         run: |
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          python3 - <<'PY'
+          from pathlib import Path
 
-      - name: Get dependencies
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text(encoding="utf-8")
+
+          permissions = [
+              '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+              '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+          ]
+
+          marker = '<application'
+          missing = [p for p in permissions if p not in text]
+
+          if missing:
+              insertion = "\n".join(missing) + "\n\n"
+              text = text.replace(marker, insertion + marker, 1)
+              manifest.write_text(text, encoding="utf-8")
+
+          print(manifest.read_text(encoding="utf-8"))
+          PY
+
+      - name: Get packages
         run: flutter pub get
 
-      - name: Build APK
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Build release APK
         run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: noor-alquran-apk
+          name: noor-al-quran-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
