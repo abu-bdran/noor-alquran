@@ -27,7 +27,7 @@ jobs:
       - name: Create Android platform files
         run: flutter create . --platforms=android --project-name=noor_al_quran
 
-      - name: Add location permissions
+      - name: Configure Android permissions
         shell: bash
         run: |
           python3 - <<'PY'
@@ -37,12 +37,12 @@ jobs:
           text = manifest.read_text(encoding="utf-8")
 
           permissions = [
+              '    <uses-permission android:name="android.permission.INTERNET" />',
               '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
               '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
           ]
 
           marker = '<application'
-
           missing = [p for p in permissions if p not in text]
 
           if missing:
@@ -50,13 +50,17 @@ jobs:
               text = text.replace(marker, insertion + marker, 1)
               manifest.write_text(text, encoding="utf-8")
 
-          print("Location permissions configured.")
+          print(manifest.read_text(encoding="utf-8"))
+          PY
 
       - name: Get packages
         run: flutter pub get
 
       - name: Remove generated sample test
         run: rm -f test/widget_test.dart
+
+      - name: Analyze app code
+        run: flutter analyze lib --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
         run: flutter build apk --release
