@@ -1519,7 +1519,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
     if (mounted) setState(() => _highlights = <HighlightVerse>[]);
   }
 
-  Future<void> _onLongPress(int surah, int ayah, LongPressStartDetails details) async {
+  Future<void> _onLongPress(int surah, int ayah) async {
     final page = _currentPage;
     _selectedAyah = '$surah:$ayah';
     _setHighlight(surah, ayah, page);
