@@ -1618,7 +1618,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
                       itemBuilder: (_, i) {
                         final read = _reads[i];
                         return ListTile(
-                          leading: CircleAvatar(child: Text(read.name.isEmpty ? 'ق' : read.name.characters.first)),
+                          leading: CircleAvatar(child: Text(read.name.isEmpty ? 'ق' : read.name.substring(0, 1))),
                           title: Text(read.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                           subtitle: Text(read.rewaya),
                           onTap: () { Navigator.pop(context); _selectedRead = read; if (ayah == null) { _playFullSurah(read); } else { _playAyah(ayah, read); } },
@@ -1711,7 +1711,13 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
   void _onAudioPosition(Duration position) {
     if (_timings.isEmpty) return;
     final ms = position.inMilliseconds;
-    final timing = _timings.where((t) => ms >= t.startTime && ms < t.endTime).firstOrNull;
+    AyahTiming? timing;
+    for (final t in _timings) {
+      if (ms >= t.startTime && ms < t.endTime) {
+        timing = t;
+        break;
+      }
+    }
     if (timing == null) return;
     if (_currentTiming?.ayah != timing.ayah) {
       _currentTiming = timing;
@@ -1792,7 +1798,6 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
               padding: const EdgeInsets.symmetric(horizontal: 5),
               child: QuranPageView(
                 pageController: _pageController,
-                scaffoldKey: _scaffoldKey,
                 highlights: _highlights,
                 scrollDirection: Axis.horizontal,
                 pageSnapping: true,
@@ -1823,8 +1828,17 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
   Widget _miniChip(IconData icon, String text, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(color: Colors.white.withOpacity(_nightMode ? .08 : .65), borderRadius: BorderRadius.circular(12)),
-        child: Row(textDirection: TextDirection.rtl, mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 14, color: color), const SizedBox(width: 4), Text(text, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700))],
+        child: Row(
+          textDirection: TextDirection.rtl,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(text, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+          ],
+        ),
       );
+
 
   Future<void> _showSavedAyahs() async {
     if (!mounted) return;
