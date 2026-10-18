@@ -13,35 +13,22 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
-  # القرآن والصوت
+  # مصحف المدينة 604 صفحة يعمل بالكامل بدون إنترنت
+  qcf_quran_lite: ^0.0.5
+  scrollable_positioned_list: ^0.3.8
+
   just_audio: ^0.10.6
-
-  # الشبكة
   http: ^1.5.0
-
-  # التخزين المحلي
   shared_preferences: ^2.5.5
   path_provider: ^2.1.5
-
-  # المشاركة
   share_plus: ^12.0.2
-
-  # النطق الصوتي
   flutter_tts: ^4.2.5
-
-  # الموقع والقبلة
   geolocator: ^14.0.2
   flutter_compass: ^0.8.1
-
-  # المصحف داخل WebView
-  webview_flutter: ^4.14.1
-  webview_flutter_web: ^0.2.3+4
-  webview_flutter_platform_interface: ^2.15.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^6.0.0
 
 flutter:
