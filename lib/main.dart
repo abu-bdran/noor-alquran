@@ -1127,6 +1127,44 @@ class _QuranPageState extends State<QuranPage> {
                   ],
                 ),
               ),
+              if (_resumeSurah != null && _resumePage != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
+                  child: Material(
+                    color: const Color(0xFFE8F0EB),
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: _continueReading,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+                        child: Row(
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            Container(
+                              width: 46, height: 46,
+                              decoration: BoxDecoration(color: const Color(0xFF174A43), borderRadius: BorderRadius.circular(14)),
+                              child: const Icon(Icons.play_arrow_rounded, color: Color(0xFFE8D7A8), size: 28),
+                            ),
+                            const SizedBox(width: 11),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text('متابعة القراءة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF173F35))),
+                                  const SizedBox(height: 3),
+                                  Text('سورة ${_resumeSurah! >= 1 && _resumeSurah! <= 114 ? surahNames[_resumeSurah! - 1] : ''} • صفحة $_resumePage', textDirection: TextDirection.rtl, style: const TextStyle(fontSize: 11.5, color: Color(0xFF66736C))),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.chevron_left_rounded, color: Color(0xFF174A43)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
                 child: TextField(
@@ -1525,7 +1563,7 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
     final page = _currentPage;
     _selectedAyah = '$surah:$ayah';
     _setHighlight(surah, ayah, page);
-    await _savePreferences();
+    try { await _savePreferences(); } catch (_) {}
     if (!mounted) return;
     await _showRecitersAndPlay('$surah:$ayah');
   }
@@ -1611,16 +1649,51 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
 
   Future<void> _loadReciters() async {
     if (_reads.isNotEmpty) return;
-    setState(() => _loadingReciters = true);
+    if (mounted) setState(() => _loadingReciters = true);
+    final prefs = await SharedPreferences.getInstance();
+
+    // استخدم النسخة المحفوظة أولًا حتى لا تختفي القائمة عند ضعف الإنترنت.
+    final cached = prefs.getString('noor_timing_reads_cache_v2');
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) {
+          _reads = decoded
+              .whereType<Map>()
+              .map((e) => TimingRead.fromJson(Map<String, dynamic>.from(e)))
+              .where((e) => e.id > 0 && e.folderUrl.isNotEmpty)
+              .toList();
+        }
+      } catch (_) {}
+    }
+
     try {
-      final response = await http.get(Uri.parse('https://mp3quran.net/api/v3/ayat_timing/reads')).timeout(const Duration(seconds: 12));
-      if (response.statusCode != 200) throw Exception();
+      final response = await http.get(
+        Uri.parse('https://mp3quran.net/api/v3/ayat_timing/reads'),
+      ).timeout(const Duration(seconds: 12));
+      if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
       final data = jsonDecode(response.body);
-      final list = data is List ? data : <dynamic>[];
-      _reads = list.map((e) => TimingRead.fromJson(Map<String, dynamic>.from(e))).where((e) => e.id > 0 && e.folderUrl.isNotEmpty).toList();
+      final list = data is List ? data : (data is Map && data['reads'] is List ? data['reads'] : <dynamic>[]);
+      final fresh = list
+          .whereType<Map>()
+          .map((e) => TimingRead.fromJson(Map<String, dynamic>.from(e)))
+          .where((e) => e.id > 0 && e.folderUrl.isNotEmpty)
+          .toList();
+      if (fresh.isNotEmpty) {
+        _reads = fresh;
+        await prefs.setString(
+          'noor_timing_reads_cache_v2',
+          jsonEncode(_reads.map((r) => {
+            'id': r.id,
+            'name': r.name,
+            'rewaya': r.rewaya,
+            'folder_url': r.folderUrl,
+            'soar_count': r.soarCount,
+          }).toList()),
+        );
+      }
     } catch (_) {
-      _reads = <TimingRead>[];
-      if (mounted) _message('قائمة القراء تحتاج إلى الإنترنت أول مرة.');
+      // إذا كان لدينا cache، لا نعرض خطأ للمستخدم.
     } finally {
       if (mounted) setState(() => _loadingReciters = false);
     }
@@ -3390,6 +3463,10 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
   double? latitude;
   double? longitude;
   Map<String, String> times = {};
+  Timer? _prayerRefreshTimer;
+  String _lastPrayerDateKey = '';
+  String _nextPrayerName = '';
+  Duration _timeToNextPrayer = Duration.zero;
 
   // طريقة الحساب الحالية: 8 = Gulf Region.
   // لاحقًا يمكن جعلها قابلة للتغيير من الإعدادات.
@@ -3400,20 +3477,74 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadSavedLocation();
+    _prayerRefreshTimer = Timer.periodic(const Duration(seconds: 20), (_) => _updatePrayerClockAndDate());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      // إذا رجع المستخدم من إعدادات الموقع، أعد المحاولة تلقائياً.
+      _updatePrayerClockAndDate();
       _getCurrentLocation();
     }
   }
 
   @override
   void dispose() {
+    _prayerRefreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  String _prayerDateKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month}-${now.day}';
+  }
+
+  DateTime? _todayTime(String value) {
+    final m = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(value.trim());
+    if (m == null) return null;
+    final h = int.tryParse(m.group(1)!);
+    final min = int.tryParse(m.group(2)!);
+    if (h == null || min == null) return null;
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day, h, min);
+  }
+
+  void _updatePrayerClockAndDate() {
+    if (!mounted) return;
+    final now = DateTime.now();
+    final todayKey = _prayerDateKey();
+    if (_lastPrayerDateKey.isNotEmpty && _lastPrayerDateKey != todayKey && latitude != null && longitude != null && !loading) {
+      _loadPrayerTimes();
+      return;
+    }
+    if (times.isEmpty) return;
+    const ordered = <String>['الفجر', 'الشروق', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
+    for (final name in ordered) {
+      final dt = _todayTime(times[name] ?? '');
+      if (dt != null && dt.isAfter(now)) {
+        setState(() {
+          _nextPrayerName = name;
+          _timeToNextPrayer = dt.difference(now);
+        });
+        return;
+      }
+    }
+    final fajr = _todayTime(times['الفجر'] ?? '');
+    if (fajr != null) {
+      final tomorrow = fajr.add(const Duration(days: 1));
+      setState(() {
+        _nextPrayerName = 'الفجر';
+        _timeToNextPrayer = tomorrow.difference(now);
+      });
+    }
+  }
+
+  String _formatCountdown(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60);
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   Future<void> _loadSavedLocation() async {
@@ -3605,9 +3736,11 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
 
         dateText =
             '${metaDate?['gregorian']?['date'] ?? ''}  •  ${metaDate?['hijri']?['date'] ?? ''} هـ';
+        _lastPrayerDateKey = _prayerDateKey();
         loading = false;
         locationReady = true;
       });
+      _updatePrayerClockAndDate();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -3948,6 +4081,26 @@ class _PrayerTimesPageState extends State<PrayerTimesPage> with WidgetsBindingOb
                         ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+            if (times.isNotEmpty && _nextPrayerName.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFF174A43), Color(0xFF285F51)]),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  children: [
+                    const Text('الصلاة القادمة', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFFD5E0D9), fontSize: 12, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 5),
+                    Text(_nextPrayerName, textDirection: TextDirection.rtl, style: const TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 5),
+                    Text(_formatCountdown(_timeToNextPrayer), style: const TextStyle(color: Color(0xFFE8D7A8), fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    const SizedBox(height: 3),
+                    const Text('متبقي حتى موعد الصلاة', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFFD5E0D9), fontSize: 11)),
                   ],
                 ),
               ),
@@ -4521,9 +4674,12 @@ class TasbihPage extends StatefulWidget {
 }
 
 class _TasbihPageState extends State<TasbihPage> with WidgetsBindingObserver {
-  static const _countKey = 'noor_tasbeeh_count_v3';
-  static const _targetKey = 'noor_tasbeeh_target_v3';
-  static const _stateKey = 'noor_tasbeeh_state_v4';
+  static const _countKey = 'noor_tasbeeh_count_v5';
+  static const _targetKey = 'noor_tasbeeh_target_v5';
+  static const _stateKey = 'noor_tasbeeh_state_v5';
+  static const _legacyCountKey = 'noor_tasbeeh_count_v3';
+  static const _legacyTargetKey = 'noor_tasbeeh_target_v3';
+  static const _legacyStateKey = 'noor_tasbeeh_state_v4';
   static const _oldCountKey = 'noor_tasbeeh_count_v2';
   static const _oldTargetKey = 'noor_tasbeeh_target_v2';
   int count = 0;
@@ -4546,6 +4702,7 @@ class _TasbihPageState extends State<TasbihPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _persistTasbeeh();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -4562,9 +4719,9 @@ class _TasbihPageState extends State<TasbihPage> with WidgetsBindingObserver {
   Future<void> _loadSavedTasbeeh() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      var savedCount = prefs.getInt(_countKey) ?? prefs.getInt(_oldCountKey) ?? prefs.getInt('noor_tasbeeh_count') ?? 0;
-      var savedTarget = prefs.getInt(_targetKey) ?? prefs.getInt(_oldTargetKey) ?? prefs.getInt('noor_tasbeeh_target') ?? 33;
-      final rawState = prefs.getString(_stateKey);
+      var savedCount = prefs.getInt(_countKey) ?? prefs.getInt(_legacyCountKey) ?? prefs.getInt(_oldCountKey) ?? prefs.getInt('noor_tasbeeh_count') ?? 0;
+      var savedTarget = prefs.getInt(_targetKey) ?? prefs.getInt(_legacyTargetKey) ?? prefs.getInt(_oldTargetKey) ?? prefs.getInt('noor_tasbeeh_target') ?? 33;
+      final rawState = prefs.getString(_stateKey) ?? prefs.getString(_legacyStateKey);
       if (rawState != null) {
         try {
           final state = jsonDecode(rawState) as Map<String, dynamic>;
