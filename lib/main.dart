@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/material.dart';
-import 'package:qcf_quran_lite/qcf_quran_lite.dart';
+import 'package:qcf_quran_plus/qcf_quran_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -1433,8 +1433,7 @@ class QuranReaderPage extends StatefulWidget {
 
 class _QuranReaderPageState extends State<QuranReaderPage> {
   late PageController _pageController;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final AudioPlayer _audioPlayer = AudioPlayer();
+    final AudioPlayer _audioPlayer = AudioPlayer();
 
   int _currentPage = 1;
   bool _nightMode = false;
@@ -1534,9 +1533,9 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
     }
   }
 
-  Future<void> _onPageChanged(int index) async {
-    final page = index + 1;
-    setState(() => _currentPage = page);
+  Future<void> _onPageChanged(int pageNumber) async {
+    final page = pageNumber.clamp(1, 604);
+    if (mounted) setState(() => _currentPage = page);
     await _savePreferences();
   }
 
@@ -1557,15 +1556,17 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
     if (mounted) setState(() => _highlights = <HighlightVerse>[]);
   }
 
-  Future<void> _onLongPress(int surah, int ayah) async {
-    // الضغط المطوّل على الآية يفتح قائمة القراء مباشرة، كما هو مطلوب.
-    // نبقي التظليل والحفظ حتى يستمر تتبع الآية مع التلاوة.
+  Future<void> _onAyahTap(int surah, int ayah) async {
     final page = _currentPage;
     _selectedAyah = '$surah:$ayah';
     _setHighlight(surah, ayah, page);
     try { await _savePreferences(); } catch (_) {}
     if (!mounted) return;
     await _showRecitersAndPlay('$surah:$ayah');
+  }
+
+  Future<void> _onLongPress(int surah, int ayah, LongPressStartDetails details) async {
+    await _onAyahTap(surah, ayah);
   }
 
   Future<void> _toggleSavedAyah(String key) async {
@@ -1807,7 +1808,6 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
     final gold = const Color(0xFFD4B36A);
 
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: _nightMode ? const Color(0xFF10221C) : const Color(0xFF173F35),
@@ -1849,14 +1849,12 @@ class _QuranReaderPageState extends State<QuranReaderPage> {
               child: QuranPageView(
                 pageController: _pageController,
                 highlights: _highlights,
-                // تصغير بسيط للنص حتى لا تلامس الحروف أطراف الشاشة.
-                ayahStyle: const TextStyle(fontSize: 30),
-                scrollDirection: Axis.horizontal,
-                pageSnapping: true,
-                pagePadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
-                highlightPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                customHighlightDecoration: (color) => BoxDecoration(color: color.withOpacity(.18)),
-                onPageChanged: (index) => _onPageChanged(index),
+                isDarkMode: _nightMode,
+                isTajweed: true,
+                enableTwoPageLayout: false,
+                pageBackgroundColor: _nightMode ? const Color(0xFF151A18) : const Color(0xFFFBF6EE),
+                onPageChanged: (pageNumber) => _onPageChanged(pageNumber),
+                onWordTap: (surah, ayah, wordIndex, word) => _onAyahTap(surah, ayah),
                 onLongPress: _onLongPress,
               ),
             ),
