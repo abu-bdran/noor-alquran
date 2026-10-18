@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,26 +31,27 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          text = manifest.read_text(encoding="utf-8")
-
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text(encoding='utf-8')
           permissions = [
               '    <uses-permission android:name="android.permission.INTERNET" />',
               '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
               '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
           ]
-
           marker = '<application'
-
           missing = [p for p in permissions if p not in text]
-
           if missing:
-              insertion = "\n".join(missing) + "\n\n"
-              text = text.replace(marker, insertion + marker, 1)
-              manifest.write_text(text, encoding="utf-8")
+              text = text.replace(marker, '\n'.join(missing) + '\n\n' + marker, 1)
+          queries = '''    <queries>
+      <intent>
+        <action android:name=\"android.intent.action.TTS_SERVICE\" />
+      </intent>
+    </queries>
 
-          print(manifest.read_text(encoding="utf-8"))
+'''
+          if '<queries>' not in text:
+              text = text.replace(marker, queries + marker, 1)
+          manifest.write_text(text, encoding='utf-8')
           PY
 
       - name: Get packages
@@ -59,6 +59,9 @@ jobs:
 
       - name: Remove generated sample test
         run: rm -f test/widget_test.dart
+
+      - name: Analyze app code
+        run: flutter analyze lib --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
         run: flutter build apk --release
