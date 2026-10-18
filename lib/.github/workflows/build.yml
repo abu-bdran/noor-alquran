@@ -6,41 +6,74 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download source code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Install Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.7'
           channel: stable
           cache: true
 
-      - name: Prepare Android project
-        run: flutter create --platforms=android --project-name noor_alquran .
+      - name: Flutter version
+        run: flutter --version
 
-      - name: Get dependencies
+      - name: Create Android platform files
+        run: flutter create . --platforms=android --project-name=noor_al_quran
+
+      - name: Configure Android permissions
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text(encoding='utf-8')
+
+          permissions = [
+              '    <uses-permission android:name="android.permission.INTERNET" />',
+              '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+              '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+          ]
+
+          marker = '<application'
+          missing = [p for p in permissions if p not in text]
+          if missing:
+              text = text.replace(marker, '\\n'.join(missing) + '\\n\\n' + marker, 1)
+
+          queries = '''    <queries>
+                <intent>
+                  <action android:name="android.intent.action.TTS_SERVICE" />
+                </intent>
+              </queries>
+          '''
+
+          if '<queries>' not in text:
+              text = text.replace(marker, queries + marker, 1)
+
+          manifest.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Get packages
         run: flutter pub get
 
-      - name: Build APK
+      - name: Remove generated sample test
+        run: rm -f test/widget_test.dart
+
+      - name: Analyze app code
+        run: flutter analyze lib --no-fatal-infos --no-fatal-warnings
+
+      - name: Build release APK
         run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: noor-alquran-apk
+          name: noor-al-quran-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
