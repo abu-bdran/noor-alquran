@@ -41,7 +41,7 @@ Future<bool> _playWelcomeVoiceOnce() async => _speakWelcomeVoice(force: false);
 Future<bool> _speakWelcomeVoice({bool force = false}) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    if (!force && prefs.getBool('noor_welcome_voice_played_v6') == true) return true;
+    if (!force && prefs.getBool('noor_welcome_voice_played_v7') == true) return true;
     final tts = FlutterTts();
     if (!kIsWeb && Platform.isIOS) {
       try {
@@ -89,6 +89,7 @@ Future<bool> _speakWelcomeVoice({bool force = false}) async {
     await tts.setPitch(0.95);
     await tts.setVolume(1.0);
     await tts.awaitSpeakCompletion(true);
+    await Future<void>.delayed(const Duration(milliseconds: 250));
     bool started = false;
     bool failed = false;
     try {
@@ -103,7 +104,7 @@ Future<bool> _speakWelcomeVoice({bool force = false}) async {
     try { result = await tts.speak(welcomeMessage); } catch (_) { result = null; }
     final accepted = started || result == 1 || result == '1' || result == true;
     if (!accepted || failed) return false;
-    await prefs.setBool('noor_welcome_voice_played_v6', true);
+    await prefs.setBool('noor_welcome_voice_played_v7', true);
     return true;
   } catch (_) {
     return false;
@@ -276,6 +277,54 @@ const List<int> surahStartPages = [
   603, 604, 604, 604
 ];
 
+Future<void> _openQuranAtSavedPosition(BuildContext context) async {
+  int surah = 1;
+  int page = 1;
+  String? ayah;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    int? savedSurah = prefs.getInt('noor_last_read_surah');
+    int? savedPage = prefs.getInt('noor_last_read_page_global');
+    String? savedAyah = prefs.getString('noor_last_read_ayah_global');
+    if (savedSurah == null || savedSurah < 1 || savedSurah > 114 || savedPage == null || savedPage < 1 || savedPage > 604) {
+      int bestTimestamp = -1;
+      for (var i = 1; i <= 114; i++) {
+        final ts = prefs.getInt('noor_last_read_updated_at_$i') ?? -1;
+        final p = prefs.getInt('noor_last_read_page_$i');
+        if (p != null && p >= 1 && p <= 604 && ts > bestTimestamp) {
+          bestTimestamp = ts;
+          savedSurah = i;
+          savedPage = p;
+          savedAyah = prefs.getString('noor_last_read_ayah_$i');
+        }
+      }
+    }
+    if (savedSurah != null && savedSurah >= 1 && savedSurah <= 114) {
+      surah = savedSurah;
+      page = (savedPage != null && savedPage >= 1 && savedPage <= 604) ? savedPage : surahStartPages[surah - 1];
+      ayah = savedAyah;
+    }
+  } catch (_) {}
+  if (!context.mounted) return;
+  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => QuranReaderPage(
+    surahNumber: surah, surahName: surahNames[surah - 1], initialPage: page, initialAyah: ayah,
+  )));
+}
+
+int _surahNumberForPageGlobal(int page) {
+  var index = 0;
+  for (var i = 0; i < surahStartPages.length; i++) {
+    if (surahStartPages[i] <= page) { index = i; } else { break; }
+  }
+  return index + 1;
+}
+
+const List<int> _juzStartPages = <int>[
+  1, 22, 42, 62, 82, 102, 122, 142, 162, 182,
+  202, 222, 242, 262, 282, 302, 322, 342, 362, 382,
+  402, 422, 442, 462, 482, 502, 522, 542, 562, 582,
+];
+
 class SplashGate extends StatefulWidget {
   const SplashGate({super.key});
   @override
@@ -346,7 +395,7 @@ class _HomePageState extends State<HomePage> {
     Future<void>.delayed(const Duration(milliseconds: 700), () async {
       if (!mounted) return;
       final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('noor_welcome_voice_played_v6') != true) {
+      if (prefs.getBool('noor_welcome_voice_played_v7') != true) {
         await _playWelcomeVoiceOnce();
       }
     });
@@ -402,171 +451,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-class ContinueReadingCard extends StatefulWidget {
-  const ContinueReadingCard({super.key});
-
-  @override
-  State<ContinueReadingCard> createState() => _ContinueReadingCardState();
-}
-
-class _ContinueReadingCardState extends State<ContinueReadingCard> {
-  int? _surah;
-  int? _page;
-  String? _ayah;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPosition();
-  }
-
-  Future<void> _loadPosition() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      int? surah = prefs.getInt('noor_last_read_surah');
-      int? page = prefs.getInt('noor_last_read_page_global');
-      String? ayah = prefs.getString('noor_last_read_ayah_global');
-
-      // توافق مع النسخ الأقدم: إذا لم تكن المفاتيح العامة موجودة،
-      // نبحث عن آخر موضع محفوظ لكل سورة بدل فتح قائمة السور.
-      if (surah == null || surah < 1 || surah > 114) {
-        int? bestSurah;
-        int bestTimestamp = -1;
-        for (var i = 1; i <= 114; i++) {
-          final ts = prefs.getInt('noor_last_read_updated_at_$i') ?? -1;
-          if (ts > bestTimestamp) {
-            final p = prefs.getInt('noor_last_read_page_$i');
-            if (p != null && p >= 1 && p <= 604) {
-              bestTimestamp = ts;
-              bestSurah = i;
-            }
-          }
-        }
-        if (bestSurah != null) surah = bestSurah;
-      }
-
-      if (surah != null && surah >= 1 && surah <= 114) {
-        page ??= prefs.getInt('noor_last_read_page_$surah');
-        ayah ??= prefs.getString('noor_last_read_ayah_$surah');
-      }
-
-      if (page == null && surah != null && surah >= 1 && surah <= 114) {
-        page = surahStartPages[surah - 1];
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _surah = (surah != null && surah >= 1 && surah <= 114) ? surah : null;
-        _page = (page != null && page >= 1 && page <= 604) ? page : null;
-        _ayah = ayah;
-        _loading = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _openLastReading() async {
-    if (_surah == null || _surah! < 1 || _surah! > 114) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const QuranPage()),
-      );
-      await _loadPosition();
-      return;
-    }
-
-    final targetPage = (_page != null && _page! >= 1 && _page! <= 604)
-        ? _page!
-        : surahStartPages[_surah! - 1];
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => QuranReaderPage(
-          surahNumber: _surah!,
-          surahName: surahNames[_surah! - 1],
-          initialPage: targetPage,
-          initialAyah: _ayah,
-        ),
-      ),
-    );
-    await _loadPosition();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const green = Color(0xFF123D32);
-    const gold = Color(0xFFD4B36A);
-    const paper = Color(0xFFFFFCF4);
-    final hasPosition = _surah != null && _page != null;
-    final ayahNumber = _ayah?.contains(':') == true
-        ? _ayah!.split(':').last
-        : null;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(18, 18, 18, 0),
-      padding: const EdgeInsets.all(17),
-      decoration: BoxDecoration(
-        color: paper,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: gold.withOpacity(.38)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x12000000), blurRadius: 18, offset: Offset(0, 7)),
-        ],
-      ),
-      child: _loading
-          ? const SizedBox(height: 86, child: Center(child: CircularProgressIndicator()))
-          : Directionality(
-              textDirection: TextDirection.rtl,
-              child: Row(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: green,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.bookmark_added_rounded, color: gold, size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text('متابعة القراءة', style: TextStyle(color: green, fontSize: 17, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 4),
-                        Text(
-                          hasPosition
-                              ? 'آخر موضع: سورة ${surahNames[_surah! - 1]} • الصفحة $_page${ayahNumber != null ? ' • الآية $ayahNumber' : ''}'
-                              : 'لم تبدأ القراءة بعد — ابدأ من المصحف الآن',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(color: Color(0xFF70766F), fontSize: 11.5, height: 1.45),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  FilledButton(
-                    onPressed: hasPosition ? _openLastReading : () async {
-                      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuranPage()));
-                      await _loadPosition();
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: gold,
-                      foregroundColor: green,
-                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text(hasPosition ? 'متابعة' : 'ابدأ', style: const TextStyle(fontWeight: FontWeight.w900)),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-}
-
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
 
@@ -643,128 +527,57 @@ class HomeContent extends StatelessWidget {
                       ),
                     ),
 
-                    // Premium Abbasid-inspired daily Quran مجلس. No external images.
+                    // بطاقة يومية هادئة ومباشرة — بدون زخارف زائدة.
                     SliverPadding(
                       padding: EdgeInsets.symmetric(horizontal: horizontal),
                       sliver: SliverToBoxAdapter(
                         child: Container(
-                          height: wide ? 315 : 300,
-                          clipBehavior: Clip.antiAlias,
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(32),
-                            gradient: const LinearGradient(
-                              begin: Alignment.topRight,
-                              end: Alignment.bottomLeft,
-                              colors: [Color(0xFF0B352B), Color(0xFF173F35), Color(0xFF0D2A23)],
-                            ),
-                            boxShadow: [
-                              BoxShadow(color: _deepGreen.withOpacity(.25), blurRadius: 28, offset: const Offset(0, 14)),
-                            ],
-                            border: Border.all(color: _gold.withOpacity(.45), width: 1),
+                            color: const Color(0xFFFBF9F3),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: _green.withOpacity(.16)),
                           ),
-                          child: Stack(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Positioned.fill(child: CustomPaint(painter: _AbbasidHomePainter())),
-                              Positioned(
-                                top: 18,
-                                right: 18,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(.075),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(color: _gold.withOpacity(.45)),
+                              Row(
+                                textDirection: TextDirection.rtl,
+                                children: [
+                                  Container(
+                                    width: 48, height: 48,
+                                    decoration: BoxDecoration(color: const Color(0xFFE5EFEA), borderRadius: BorderRadius.circular(15)),
+                                    child: const Icon(Icons.menu_book_rounded, color: _green, size: 25),
                                   ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    textDirection: TextDirection.rtl,
-                                    children: [
-                                      Icon(Icons.auto_awesome_rounded, color: _gold, size: 15),
-                                      SizedBox(width: 7),
-                                      Text('مَجْلِسُ نُورٍ وَتِلَاوَة', textDirection: TextDirection.rtl,
-                                        style: TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .2)),
-                                    ],
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text('مجلسك اليومي مع القرآن', textDirection: TextDirection.rtl, style: TextStyle(color: _deepGreen, fontSize: 21, fontWeight: FontWeight.w900)),
+                                        SizedBox(height: 4),
+                                        Text('تلاوة هادئة • ذكر • صلاة • قبلة', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFF70766F), fontSize: 11.5)),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                              Positioned.fill(
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(22, 70, 22, 20),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Row(
-                                        textDirection: TextDirection.rtl,
-                                        children: [
-                                          Expanded(
-                                            child: Text('مجلسك اليومي مع القرآن', textDirection: TextDirection.rtl,
-                                              textAlign: TextAlign.right,
-                                              style: const TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900, height: 1.3)),
-                                          ),
-                                          IconButton(
-                                            tooltip: 'تشغيل الترحيب الصوتي',
-                                            onPressed: () async {
-                                              final ok = await _speakWelcomeVoice(force: true);
-                                              if (context.mounted && !ok) {
-                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر تشغيل الصوت. تأكدي من رفع صوت الجهاز وتوفر صوت عربي في إعدادات النطق.')));
-                                              }
-                                            },
-                                            icon: const Icon(Icons.volume_up_rounded, color: Colors.white),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 7),
-                                      const Text('تلاوة هادئة • ذكر • صلاة • قبلة • مناسك', textDirection: TextDirection.rtl,
-                                        style: TextStyle(color: Color(0xFFD9E7E0), fontSize: 12.5, fontWeight: FontWeight.w600)),
-                                      const Spacer(),
-                                      Container(
-                                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(.13),
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(color: Colors.white.withOpacity(.10)),
-                                        ),
-                                        child: Row(
-                                          textDirection: TextDirection.rtl,
-                                          children: [
-                                            Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(
-                                                color: _gold,
-                                                borderRadius: BorderRadius.circular(14),
-                                              ),
-                                              child: const Icon(Icons.menu_book_rounded, color: _deepGreen, size: 24),
-                                            ),
-                                            const SizedBox(width: 11),
-                                            const Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.end,
-                                                children: [
-                                                  Text('وردك الحالي', textDirection: TextDirection.rtl,
-                                                    style: TextStyle(color: Color(0xFFB9C9C2), fontSize: 10.5, fontWeight: FontWeight.w700)),
-                                                  SizedBox(height: 2),
-                                                  Text('سورة المزمل • الآية 4', textDirection: TextDirection.rtl,
-                                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900)),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            FilledButton(
-                                              onPressed: () => _open(context, const QuranPage()),
-                                              style: FilledButton.styleFrom(
-                                                backgroundColor: _gold,
-                                                foregroundColor: _deepGreen,
-                                                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                              ),
-                                              child: const Text('ابدأ التلاوة', style: TextStyle(fontWeight: FontWeight.w900)),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                              const SizedBox(height: 18),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+                                decoration: BoxDecoration(color: const Color(0xFFF1F5EF), borderRadius: BorderRadius.circular(17)),
+                                child: Row(
+                                  textDirection: TextDirection.rtl,
+                                  children: [
+                                    const Icon(Icons.favorite_outline_rounded, color: _green, size: 21),
+                                    const SizedBox(width: 9),
+                                    const Expanded(child: Text('احفظ الله يحفظك', textDirection: TextDirection.rtl, style: TextStyle(color: _deepGreen, fontSize: 14, fontWeight: FontWeight.w800))),
+                                    FilledButton(
+                                      onPressed: () => _openQuranAtSavedPosition(context),
+                                      style: FilledButton.styleFrom(backgroundColor: _green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13))),
+                                      child: const Text('افتح المصحف', style: TextStyle(fontWeight: FontWeight.w900)),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -772,8 +585,6 @@ class HomeContent extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                    const SliverToBoxAdapter(child: ContinueReadingCard()),
 
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(horizontal, 24, horizontal, 10),
@@ -1068,6 +879,8 @@ class _QuranPageState extends State<QuranPage> {
   int? _resumeSurah;
   int? _resumePage;
   String? _resumeAyah;
+  int? _bookmarkPage;
+  List<String> _savedReferences = <String>[];
 
   List<int> get _filteredIndices {
     final query = _query.trim().toLowerCase();
@@ -1092,6 +905,9 @@ class _QuranPageState extends State<QuranPage> {
       int? surah = prefs.getInt('noor_last_read_surah');
       int? page = prefs.getInt('noor_last_read_page_global');
       String? ayah = prefs.getString('noor_last_read_ayah_global');
+      int? bookmarkPage = prefs.getInt('noor_bookmark_page');
+      final savedReferences = prefs.getStringList('noor_saved_ayahs') ?? <String>[];
+
       if (surah == null || surah < 1 || surah > 114 || page == null || page < 1 || page > 604) {
         int? bestSurah;
         int bestTimestamp = -1;
@@ -1107,17 +923,97 @@ class _QuranPageState extends State<QuranPage> {
         }
         if (bestSurah != null) surah = bestSurah;
       }
+
       if (!mounted) return;
-      if (surah != null && surah >= 1 && surah <= 114) {
-        setState(() {
-          _resumeSurah = surah;
-          _resumePage = (page != null && page >= 1 && page <= 604)
-              ? page
-              : surahStartPages[surah! - 1];
-          _resumeAyah = ayah;
-        });
-      }
+      setState(() {
+        _resumeSurah = (surah != null && surah >= 1 && surah <= 114) ? surah : null;
+        _resumePage = (page != null && page >= 1 && page <= 604)
+            ? page
+            : (_resumeSurah != null ? surahStartPages[_resumeSurah! - 1] : null);
+        _resumeAyah = ayah;
+        _bookmarkPage = (bookmarkPage != null && bookmarkPage >= 1 && bookmarkPage <= 604) ? bookmarkPage : null;
+        _savedReferences = savedReferences;
+      });
     } catch (_) {}
+  }
+
+  Widget _buildQuranSecondaryTab() {
+    if (_tab == 0) {
+      return ListView.separated(
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 28),
+        itemCount: _juzStartPages.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 9),
+        itemBuilder: (_, i) {
+          final juz = i + 1;
+          final page = _juzStartPages[i];
+          final surah = _surahNumberForPageGlobal(page);
+          return Material(
+            color: const Color(0xFFFFFCF5),
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => QuranReaderPage(surahNumber: surah, surahName: surahNames[surah - 1], initialPage: page))),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2D9C8))),
+                child: Row(textDirection: TextDirection.rtl, children: [
+                  Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFE8F0EB), borderRadius: BorderRadius.circular(15)), alignment: Alignment.center, child: Text('$juz', style: const TextStyle(color: Color(0xFF174A43), fontSize: 18, fontWeight: FontWeight.w900))),
+                  const SizedBox(width: 12),
+                  const Expanded(child: Text('الجزء', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFF282A27), fontSize: 16, fontWeight: FontWeight.w900))),
+                  Text('صفحة $page', textDirection: TextDirection.rtl, style: const TextStyle(color: Color(0xFF74766F), fontSize: 12, fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 7),
+                  const Icon(Icons.chevron_left_rounded, color: Color(0xFF174A43)),
+                ]),
+              ),
+            ),
+          );
+        },
+      );
+    }
+    if (_tab == 2) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
+        children: [
+          if (_bookmarkPage != null)
+            _QuranReferenceCard(icon: Icons.bookmark_rounded, title: 'علامة المصحف', subtitle: 'الصفحة $_bookmarkPage', onTap: () {
+              final page = _bookmarkPage!;
+              final surah = _surahNumberForPageGlobal(page);
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => QuranReaderPage(surahNumber: surah, surahName: surahNames[surah - 1], initialPage: page)));
+            }),
+          if (_savedReferences.isEmpty && _bookmarkPage == null)
+            const Padding(padding: EdgeInsets.all(35), child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.bookmarks_outlined, size: 54, color: Color(0xFF174A43)),
+              SizedBox(height: 12),
+              Text('لا توجد مرجعيات محفوظة بعد', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              SizedBox(height: 6),
+              Text('من داخل المصحف يمكنك حفظ الآيات والعلامات للرجوع إليها هنا.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF777A73), height: 1.6)),
+            ])),
+          for (final ref in _savedReferences)
+            if (ref.contains(':'))
+              _QuranReferenceCard(icon: Icons.bookmark_border_rounded, title: 'الآية المحفوظة', subtitle: 'سورة ${_savedReferenceSurahName(ref)} • الآية ${ref.split(':').last}', onTap: () {
+                final parts = ref.split(':');
+                final parsed = int.tryParse(parts.first) ?? 1;
+                final surah = parsed.clamp(1, 114).toInt();
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => QuranReaderPage(surahNumber: surah, surahName: surahNames[surah - 1], initialPage: surahStartPages[surah - 1], initialAyah: ref)));
+              }),
+        ],
+      );
+    }
+    final title = _tab == 3 ? 'الختمات' : 'الملاحظات';
+    final icon = _tab == 3 ? Icons.flag_outlined : Icons.sticky_note_2_outlined;
+    return Center(child: Padding(padding: const EdgeInsets.all(30), child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 52, color: const Color(0xFF174A43)),
+      const SizedBox(height: 12),
+      Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF33352F))),
+      const SizedBox(height: 7),
+      const Text('هذه المساحة جاهزة للتفعيل في المرحلة التالية، مع الحفاظ على هدوء واجهة المصحف.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF777A73), height: 1.6)),
+    ])));
+  }
+
+  String _savedReferenceSurahName(String value) {
+    final number = int.tryParse(value.split(':').first);
+    if (number == null || number < 1 || number > 114) return 'غير معروفة';
+    return surahNames[number - 1];
   }
 
   @override
@@ -1175,62 +1071,27 @@ class _QuranPageState extends State<QuranPage> {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                padding: const EdgeInsets.fromLTRB(18, 15, 18, 15),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    colors: [Color(0xFF5A177D), Color(0xFF7D2AA1)],
-                  ),
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+                  color: Color(0xFF174A43),
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
                 ),
-                child: Column(
+                child: Row(
+                  textDirection: TextDirection.rtl,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.menu_book_rounded, color: Colors.white, size: 31),
-                        const SizedBox(width: 9),
-                        const Expanded(
-                          child: Text(
-                            'آخر المتصفحات',
-                            style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.maybePop(context),
-                          color: Colors.white,
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
+                    const Icon(Icons.menu_book_rounded, color: Colors.white, size: 29),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('القرآن الكريم', textDirection: TextDirection.rtl, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                          SizedBox(height: 3),
+                          Text('احفظ الله يحفظك', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFFD9E7E0), fontSize: 11.5, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('سورة القارعة', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w700)),
-                              Text(
-                                _resumePage != null ? 'صفحة: $_resumePage' : 'ابدئي رحلتك مع القرآن',
-                                style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900),
-                              ),
-                            ],
-                          ),
-                        ),
-                        FilledButton.icon(
-                          onPressed: _continueReading,
-                          icon: const Icon(Icons.arrow_back_rounded, size: 19),
-                          label: const Text('متابعة القراءة'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFF9DE),
-                            foregroundColor: deepGreen,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                        ),
-                      ],
-                    ),
+                    IconButton(onPressed: () => Navigator.maybePop(context), color: Colors.white, icon: const Icon(Icons.close_rounded)),
                   ],
                 ),
               ),
@@ -1241,7 +1102,7 @@ class _QuranPageState extends State<QuranPage> {
                   children: [
                     _QuranTab(title: 'الأجزاء', selected: _tab == 0, onTap: () => setState(() => _tab = 0)),
                     _QuranTab(title: 'السور', selected: _tab == 1, onTap: () => setState(() => _tab = 1)),
-                    _QuranTab(title: 'المربعات', selected: _tab == 2, onTap: () => setState(() => _tab = 2)),
+                    _QuranTab(title: 'المرجعيات', selected: _tab == 2, onTap: () => setState(() => _tab = 2)),
                     _QuranTab(title: 'الختمات', selected: _tab == 3, onTap: () => setState(() => _tab = 3)),
                     _QuranTab(title: 'الملاحظات', selected: _tab == 4, onTap: () => setState(() => _tab = 4)),
                   ],
@@ -1283,36 +1144,18 @@ class _QuranPageState extends State<QuranPage> {
                               onTap: () => _openSurah(index),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(color: isLast ? gold : const Color(0xFFE2D9C8), width: isLast ? 1.4 : 1),
-                                ),
+                                decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: isLast ? gold : const Color(0xFFE2D9C8), width: isLast ? 1.4 : 1)),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 52,
-                                      height: 52,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF0E4F8),
-                                        borderRadius: BorderRadius.circular(18),
-                                        border: Border.all(color: const Color(0xFF6B1A91), width: 1.6),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Text('$number', style: const TextStyle(color: const Color(0xFF5B1687), fontSize: 18, fontWeight: FontWeight.w900)),
-                                    ),
+                                    Container(width: 52, height: 52, decoration: BoxDecoration(color: const Color(0xFFF0F4EF), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF174A43), width: 1.2)), alignment: Alignment.center, child: Text('$number', style: const TextStyle(color: Color(0xFF174A43), fontSize: 18, fontWeight: FontWeight.w900))),
                                     const SizedBox(width: 13),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text('سورة ${surahNames[index]}', style: const TextStyle(color: Color(0xFF282A27), fontSize: 17, fontWeight: FontWeight.w900)),
-                                          const SizedBox(height: 4),
-                                          Text('${index == 0 ? 'مكية' : (index == 8 || index == 16 || index == 26 || index == 39 || index == 47 || index == 55 || index == 64 || index == 73 || index == 76 || index == 88 || index == 98 || index == 107 ? 'مدنية' : 'مكية')}  •  ${_surahAyahCounts[index]} آية', style: const TextStyle(color: Color(0xFF74766F), fontSize: 12, fontWeight: FontWeight.w600)),
-                                        ],
-                                      ),
-                                    ),
+                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                      Text('سورة ${surahNames[index]}', style: const TextStyle(color: Color(0xFF282A27), fontSize: 17, fontWeight: FontWeight.w900)),
+                                      const SizedBox(height: 4),
+                                      Text('${index == 0 ? 'مكية' : (index == 8 || index == 16 || index == 26 || index == 39 || index == 47 || index == 55 || index == 64 || index == 73 || index == 76 || index == 88 || index == 98 || index == 107 ? 'مدنية' : 'مكية')}  •  ${_surahAyahCounts[index]} آية', style: const TextStyle(color: Color(0xFF74766F), fontSize: 12, fontWeight: FontWeight.w600)),
+                                    ])),
                                     const SizedBox(width: 10),
-                                    Icon(isLast ? Icons.bookmark_rounded : Icons.auto_awesome_rounded, color: isLast ? gold : const Color(0xFF5B1687), size: 30),
+                                    Icon(isLast ? Icons.bookmark_rounded : Icons.menu_book_rounded, color: isLast ? gold : const Color(0xFF174A43), size: 27),
                                   ],
                                 ),
                               ),
@@ -1320,24 +1163,29 @@ class _QuranPageState extends State<QuranPage> {
                           );
                         },
                       )
-                    : Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(30),
-                          child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(_tab == 0 ? Icons.grid_view_rounded : _tab == 2 ? Icons.dashboard_customize_rounded : _tab == 3 ? Icons.flag_rounded : Icons.sticky_note_2_rounded, size: 54, color: const Color(0xFF5B1687)),
-                            const SizedBox(height: 12),
-                            Text(_tab == 0 ? 'الأجزاء' : _tab == 2 ? 'المربعات' : _tab == 3 ? 'الختمات' : 'الملاحظات', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: Color(0xFF33352F))),
-                            const SizedBox(height: 7),
-                            const Text('هذه الواجهة جاهزة للتطوير في المرحلة التالية دون التأثير على قراءة المصحف.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF777A73), height: 1.6)),
-                          ]),
-                        ),
-                      ),
+                    : _buildQuranSecondaryTab(),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+class _QuranReferenceCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _QuranReferenceCard({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.only(bottom: 9), child: Material(color: const Color(0xFFFFFCF5), borderRadius: BorderRadius.circular(18), child: InkWell(borderRadius: BorderRadius.circular(18), onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14), decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2D9C8))), child: Row(textDirection: TextDirection.rtl, children: [
+      Icon(icon, color: const Color(0xFF174A43), size: 27), const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(title, textDirection: TextDirection.rtl, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)), const SizedBox(height: 3), Text(subtitle, textDirection: TextDirection.rtl, style: const TextStyle(color: Color(0xFF74766F), fontSize: 12))])),
+      const SizedBox(width: 8), const Icon(Icons.chevron_left_rounded, color: Color(0xFF174A43)),
+    ])))));
   }
 }
 
@@ -4906,14 +4754,7 @@ class _AdhkarPageState extends State<AdhkarPage> {
                     label: const Text('مكتبة الأذكار'),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasbeehCounterPage())),
-                    icon: const Icon(Icons.touch_app_rounded),
-                    label: const Text('عداد التسبيح'),
-                  ),
-                ),
+
               ],
             ),
           ),
