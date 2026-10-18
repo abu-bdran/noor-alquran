@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # مصحف المدينة 604 صفحة يعمل بالكامل بدون إنترنت
-  qcf_quran_lite: ^0.0.5
+  qcf_quran_plus: ^0.1.1
   scrollable_positioned_list: ^0.3.8
 
   just_audio: ^0.10.6
